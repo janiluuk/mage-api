@@ -43,17 +43,38 @@ return [
             'visibility' => 'public',
             'throw' => false,
         ],
+        'files' => [
+            'driver' => 'local',
+            'root' => '/storage/app/files',
+            'url' => env('APP_URL').'/files',
+            'visibility' => 'public',
+            'throw' => false,
+        ],
         'storage' => [
             'driver' => 'local',
-            'root' => '/storage/processed/',
-            'url' => env('APP_URL').'/storage/processed',
+            'root' => '/storage/app',
+            'url' => env('APP_URL').'/storage',
+            'visibility' => 'public',
+            'throw' => false,
+        ],
+        'preview' => [
+            'driver' => 'local',
+            'root' => '/storage/app/preview',
+            'url' => env('APP_URL').'/preview',
+            'visibility' => 'public',
+            'throw' => false,
+        ],
+        'videos' => [
+            'driver' => 'local',
+            'root' => '/storage/app/videos',
+            'url' => env('APP_URL').'/videos',
             'visibility' => 'public',
             'throw' => false,
         ],
         'media-library' => [
             'driver' => 'local',
-            'root' => '/storage/processed/',
-            'url' => env('APP_URL').'/storage/processed',
+            'root' => '/storage/app/media-library/',
+            'url' => env('APP_URL').'/media',
             'visibility' => 'public',
             'throw' => false,
         ],
@@ -84,8 +105,12 @@ return [
     */
 
     'links' => [
-        public_path('storage') => storage_path('app/public'),
-        public_path('storage/processed') => '/storage/processed',
+        public_path('storage') => '/storage/app',
+        public_path('processed') => '/storage/app/processed',
+        public_path('videos') => '/storage/app/videos',
+        public_path('preview') => '/storage/app/preview',
+        public_path('media') => '/storage/app/media-library',
+        public_path('files') => '/storage/app/files',
 
     ],
 

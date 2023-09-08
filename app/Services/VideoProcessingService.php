@@ -238,16 +238,14 @@ class VideoProcessingService
         if ($previewFrames > 0) {
             $filename_ext = pathinfo($videoJob->outfile, PATHINFO_EXTENSION);
             $previewFile = preg_replace('/^(.*)\.' . $filename_ext . '$/', '$1_preview.' . 'png', $videoJob->outfile);
-            $previewPath = sprintf('%s/%s', rtrim(config('app.paths.processed'), '/'), 'preview');
+            $previewPath = sprintf('%s', rtrim(config('app.paths.preview'), '/'));
             $animationFile = preg_replace('/^(.*)\.' . $filename_ext . '$/', '$1_animated_preview.' . 'png', $videoJob->outfile);
 
-            $previewUrl = config('app.paths.preview_public');
-            $params['preview_url'] = $previewUrl;
             $params['preview_img'] = $previewFrames >= 1 ? sprintf("%s/%s", $previewPath, basename($previewFile)) : '';
             $params['preview_animation'] = $previewFrames > 1 ? sprintf("%s/%s", $previewPath, basename($animationFile)) : '';
             $params['limit_frames_amount'] = $previewFrames;
 
-            Log::info(sprintf("Setting paths for preview_img, preview_url, preview_animation to path: %s / %s / %s / %s", $params['preview_img'], $previewUrl, $params['preview_animation'], $previewPath));
+            Log::info(sprintf("Setting paths for preview_img, preview_animation to path: %s / %s / %s", $params['preview_img'], $params['preview_animation'], $previewPath));
         }
         return $params;
     }
@@ -273,7 +271,7 @@ class VideoProcessingService
             'model' => '"' . $modelFile->filename . '"',
             'outfile' => $outFile
         ];
-
+        
 
         if (!empty($videoJob->controlnet)) {
             $controlnetArgs = $this->generateControlnetParams((array) json_decode($videoJob->controlnet, true));
@@ -281,7 +279,8 @@ class VideoProcessingService
                 $params += $controlnetArgs;
         }
         $newParams =  json_encode($params);
-        if ($videoJob->generation_params != $newParams) {
+        if ($videoJob->generation_parameters != $newParams) {
+            Log::info('Making new version since generation params dont match:', [$newParams, $videoJob->generation_params]);
             $cmdString .= sprintf('--overwrite ');
         }
 

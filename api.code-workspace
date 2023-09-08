@@ -1,25 +1,25 @@
 {
 	"folders": [
 		{
+			"path": "../kitsu"
+		},
+		{
 			"path": "."
 		},
 		{
 			"path": "../app"
 		},
 		{
-			"path": "../bin"
+			"path": "../stable-ui"
 		},
 		{
-			"path": "../vue-material-dashboard-laravel-pro/laravel-json-api-pro"
+			"path": "../movie-maker"
 		},
 		{
 			"path": "../LineageShop"
 		},
 		{
-			"path": "../stable-ui/src"
-		},
-		{
-			"path": "../kitsu"
+			"path": "../bin"
 		}
 	],
 	"settings": {

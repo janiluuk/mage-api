@@ -155,10 +155,10 @@ return [
     |
     */
     'paths' => [
-        'processed' => '/opt/processed',
-        'preview' => '/opt/processed/preview',
+        'processed' => '/storage/app/processed',
+        'preview' => '/storage/app/preview',
         'processed_public' => env('APP_URL', 'http://localhost') . '/processed',
-        'preview_public' => env('APP_URL', 'http://localhost') . '/processed/preview',
+        'preview_public' => env('APP_URL', 'http://localhost') . '/preview',
         'image_processor_path' => '/opt/bin/video2video.py'
     ],
     'processing' => [
