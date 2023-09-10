@@ -2,19 +2,18 @@
 
 namespace App\Jobs;
 
-use App\Models\ModelFile;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use App\Models\Videojob;
-use App\Services\VideoProcessingService;
+use App\Services\DeforumProcessingService;
 use Illuminate\Support\Facades\Log;
 
 set_time_limit(27200);
 
-class ProcessVideoJob implements ShouldQueue
+class ProcessDeforumJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     public $timeout = null;
@@ -31,7 +30,7 @@ class ProcessVideoJob implements ShouldQueue
      *
      * @return void
      */
-    public function handle(VideoProcessingService $service)
+    public function handle(DeforumProcessingService $service)
     {
         $start_time = time();
 

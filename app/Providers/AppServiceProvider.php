@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Jobs\ProcessVideoJob;
+use App\Jobs\ProcessDeforumJob;
 use Illuminate\Foundation\Application;
 use App\Services\VideoProcessingService;
 use App\Repositories\SupportRequestMessage\SupportRequestMessageRepository;
@@ -67,6 +68,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bindMethod([ProcessVideoJob::class, 'handle'], function (ProcessVideoJob $job, Application $app) {
             return $job->handle($app->make(VideoProcessingService::class));
         });
+        $this->app->bindMethod([ProcessDeforumJob::class, 'handle'], function (ProcessDeforum $job, Application $app) {
+            return $job->handle($app->make(DeforumProcessingService::class));
+        });
+
         if(config('app.env') === 'production') {
             \URL::forceScheme('https');
         }

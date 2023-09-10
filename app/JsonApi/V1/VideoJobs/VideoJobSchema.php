@@ -61,6 +61,7 @@ class VideoJobSchema extends Schema
             Str::make('negative_prompt'),
             Str::make('controlnet'),
             Str::make('denoising'),
+            Str::make('generator'),
             Str::make('generation_parameters'),
             Str::make('preview_url'),
             Str::make('preview_img'),

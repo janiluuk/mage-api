@@ -19,9 +19,11 @@ class VideojobController extends Controller
     }
 
     public function upload(Request $request)
-    {
+    {   
+        
         $request->validate([
-            'video' => 'required|mimes:webm,mp4,mov,ogg,qt,gif,jpg,png,webp|max:200000',
+            'attachment' => 'required|mimes:webm,mp4,mov,ogg,qt,gif,jpg,png,webp|max:200000',
+            'type' => 'required|in:vid2vid,deforum',
         ]);
 
         $auth = auth('api');
@@ -29,18 +31,30 @@ class VideojobController extends Controller
             // Handle error, user is not authenticated
             return response()->json(['error' => 'Unauthenticated'], 401);
         }
-        $userId = $auth->id();
-
 
         // Validate the video file
-        $uploadedFile = $request->file('video');
+        $uploadedFile = $request->file('attachment');
+        switch ($request->get('type', 'vid2vid')) {
+
+            case 'vid2vid':
+                return $this->handleVid2Vid($uploadedFile);
+                break;
+            case 'deforum':
+                return $this->handleDeforum($uploadedFile);
+                break;
+            default:
+                return $this->handleVid2Vid($uploadedFile);
+        }
+
+    }
+    public function handleVid2Vid($uploadedFile)
+    {
         $mimeType = $uploadedFile->getMimeType();
 
         // Store the video file
         $path = $uploadedFile->store('videos');
 
         $uploadedFile->move(public_path('videos'), basename($path));
-        $url = asset('storage/videos/' . basename($path));
 
         // Create a new VideoJob record
         $videoJob = new Videojob;
@@ -51,7 +65,7 @@ class VideojobController extends Controller
         $videoJob->cfg_scale = 7;
         $videoJob->mimetype = $mimeType;
         $videoJob->seed = -1;
-        $videoJob->user_id = $userId;
+        $videoJob->user_id = auth('api')->id();
         $videoJob->prompt = '';
         $videoJob->negative_prompt = '';
         $videoJob->status = 'pending';
@@ -67,6 +81,42 @@ class VideojobController extends Controller
             'status' => $videoJob->status,
             'id' => $videoJob->id,
         ]);
+
+    }
+
+
+    public function handleDeforum($uploadedFile)
+    {
+        $mimeType = $uploadedFile->getMimeType();
+
+        // Store the video file
+        $path = $uploadedFile->store('videos');
+
+        $uploadedFile->move(public_path('videos'), basename($path));
+
+        // Create a new VideoJob record
+        $videoJob = new Videojob;
+        $videoJob->filename = basename($path);
+        $videoJob->original_filename = $uploadedFile->getClientOriginalName();
+        $videoJob->generator = 'deforum';
+        $videoJob->outfile = preg_replace('/\.[^.]+$/', '.', basename($path)) . 'mp4';
+        $videoJob->model_id = 1;
+        $videoJob->mimetype = $mimeType;
+        $videoJob->user_id = auth('api')->id();
+        $videoJob->prompt = '';
+        $videoJob->negative_prompt = '';
+        $videoJob->status = 'pending';
+        $videoJob->save();
+        $videoJob->addMedia($path)->withResponsiveImages()->preservingOriginal()->toMediaCollection(Videojob::MEDIA_ORIGINAL);
+        $videoJob->original_url = $videoJob->getMedia(Videojob::MEDIA_ORIGINAL)->first()->getFullUrl();
+        $videoJob->save();
+
+        return response()->json([
+            'url' => $videoJob->original_url,
+            'status' => $videoJob->status,
+            'id' => $videoJob->id,
+        ]);
+
     }
 
     public function submit(Request $request)
@@ -119,10 +169,9 @@ class VideojobController extends Controller
         $videoJob->estimated_time_left = ($frameCount * 6) + 6;
         $videoJob->denoising = $request->input('denoising');
         $videoJob->save();
-
-        Log::info("Dispatching job with framecount {$frameCount}");
-        ProcessVideoJob::dispatch($videoJob, $frameCount);
-
+        $queueName = $frameCount > 1 ? env('MEDIUM_PRIORITY_QUEUE') : env('HIGH_PRIORITY_QUEUE');
+        Log::info("Dispatching job with framecount {$frameCount} to queue {$queueName}");
+        ProcessVideoJob::dispatch($videoJob, $frameCount)->onQueue($queueName);
 
         return response()->json([
             'id' => $videoJob->id,
@@ -152,12 +201,13 @@ class VideojobController extends Controller
         $videoJob = Videojob::findOrFail($request->input('videoId'));
         $videoJob->resetProgress('approved');
         $videoJob->refresh();
-        ProcessVideoJob::dispatch($videoJob, false);
+        ProcessVideoJob::dispatch($videoJob, false)->onQueue(env('LOW_PRIORITY_QUEUE'));
         if ($videoJob) {
             return response()->json([
                 'status' => $videoJob->status,
                 'progress' => $videoJob->progress,
                 'job_time' => $videoJob->job_time,
+                'retries' => $videoJob->retries,
                 'estimated_time_left' => $videoJob->estimated_time_left
             ]);
         } else {
@@ -206,7 +256,6 @@ class VideojobController extends Controller
                 'progress' => $videoJob->progress,
                 'estimated_time_left' => $videoJob->estimated_time_left,
                 'job_time' => $videoJob->job_time,
-
             ]);
         } else {
             return response()->json(['error' => 'Job not found'], 404);
