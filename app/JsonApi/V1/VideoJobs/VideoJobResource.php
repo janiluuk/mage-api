@@ -46,6 +46,7 @@ class VideoJobResource extends JsonApiResource
             'preview_img' => $this->preview_img,    
             'preview_animation' => $this->preview_animation,            
             'mimetype' => $this->mimetype,
+            'generator' => $this->generator,
             'generation_parameters' => $this->generation_parameters,
             'job_time' => $this->job_time,
             'estimated_time_left' => $this->estimated_time_left,

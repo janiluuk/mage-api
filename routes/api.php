@@ -99,6 +99,7 @@ Route::prefix('v1')->middleware('auth:api')->group(function () {
     Route::post('/uploads/{resource}/{id}/{field}', UploadController::class);
 });
 
+Route::post('/upload', [VideojobController::class, 'upload'])->middleware('api');
 Route::post('/submit', [VideojobController::class, 'submit'])->middleware('api');
 Route::post('/cancelJob/{videoId}', [VideojobController::class, 'cancelJob'])->middleware('api');
 Route::post('/finalize', [VideojobController::class, 'finalize'])->middleware('api');

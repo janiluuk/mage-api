@@ -35,6 +35,7 @@ class Videojob extends Model implements HasMedia
     public const MEDIA_TYPE_ANIMATION = 'animation';
     public const MEDIA_TYPE_VIDEO = 'video';
 
+       
     use HasFactory;
 
     /**
@@ -456,7 +457,7 @@ class Videojob extends Model implements HasMedia
         });
         $this->addMediaCollection('preview')->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/gif', 'image/apng', 'image/webp'])->onlyKeepLatest(20);
         $this->addMediaCollection('thumbnails')->withResponsiveImages()->acceptsMimeTypes(['image/jpeg', 'image/png'])->onlyKeepLatest(3);
-        $this->addMediaCollection('original')->acceptsMimeTypes(['image/png', 'video/webm', 'video/mp4', 'image/gif', 'image/webp'])->onlyKeepLatest(3);
+        $this->addMediaCollection('original')->acceptsMimeTypes(['image/png', 'video/webm', 'video/mp4', 'image/gif', 'image/webp', 'image/jpeg'])->onlyKeepLatest(3);
 
     }
 }
