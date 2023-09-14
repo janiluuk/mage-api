@@ -71,6 +71,7 @@ class VideoJobSchema extends Schema
             Str::make('preview_animation'),
             Str::make('mimetype'),
             Str::make('audio_codec'),
+            Str::make('thumbnail'),
             Str::make('outfile'),
             Str::make('codec'),
             Number::make('fps'),

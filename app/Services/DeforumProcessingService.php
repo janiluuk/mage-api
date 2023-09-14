@@ -55,16 +55,17 @@ class DeforumProcessingService
         return [$width, $height];
     }
 
-        
+
     public function startProcess(Videojob $videoJob, $previewFrames = 0)
     {
         $isPreview = $previewFrames > 0;
 
         try {
-            
+            $videoJob = $this->parseJob($videoJob, $videoJob->getOriginalVideoPath());
+            $videoJob->save();
             $cmd = $this->buildCommandLine($videoJob, $videoJob->getOriginalVideoPath(), $videoJob->getFinishedVideoPath(), $previewFrames);
             $this->killProcess($videoJob->id);
-            Log::info("Conversion {$videoJob->id}: Running {$cmd}");
+            Log::info("Deforum Conversion {$videoJob->id}: Running {$cmd}");
             $process = Process::fromShellCommandline($cmd);
             $process->setTimeout(7200);
             try {
@@ -77,37 +78,100 @@ class DeforumProcessingService
 
                 $running = true;
                 $client = new \GuzzleHttp\Client();
-
+                $execution_times = [];
+                $progresses = [];
                 while ($running) {
-                // Using GuzzleHttp\Client to make an API request
-                    $response = $client->request('GET', 'http://192.168.2.100:7860/deforum_api/jobs/'.$first_job_id);
+
+                    // Using GuzzleHttp\Client to make an API request
+                    $response = $client->request('GET', 'http://192.168.2.100:7860/deforum_api/jobs/' . $first_job_id);
                     $data = json_decode($response->getBody(), true);
                     Log::info("Got response: {$response->getBody()}", ['data' => $data]);
 
-                    // Update database
-                    $videoJob->progress = $data['phase_progress'] * 100;
-                    $videoJob->job_time = $data['execution_time'];
-                    $videoJob->outfile = $data['outdir'].$data['timestring'].'.mp4';
-                    if ($data['phase'] ==='QUEUED' && $videoJob->status !== "approved") {
-                        $videoJob->status='approved';
-                        $videoJob->save();
+                    $videoJob = Videojob::findOrFail($videoJob->id);
+                    
+                    if ($videoJob->status == 'cancelled' || $videoJob->status == 'error') {
+                        $response = $client->request('DELETE', 'http://192.168.2.100:7860/deforum_api/jobs/' . $first_job_id);
+                        Log::info("Deleted job {$first_job_id}: {$response->getBody()}");
+                        $running = false;
+                        
                     }
-                    if ($data['status'] === 'DONE') {
+                    // Initialize arrays to hold last n values of execution_time and phase_progress
+
+
+                   
+                    // Update database
+                    if ($data['phase'] == 'GENERATING') {
+                            // Update arrays with latest values
+                    
+                        array_push($execution_times, $data['execution_time']);
+                        array_push($progresses, $data['phase_progress']*100);
+
+                        // Keep only the last n values
+                        $n = 5; // You can choose a different value for n
+                        if (count($execution_times) > $n) {
+                            array_shift($execution_times);
+                        }
+                        if (count($progresses) > $n) {
+                            array_shift($progresses);
+                        }
+
+                        // Calculate moving averages
+                        $avg_execution_time = array_sum($execution_times) / count($execution_times);
+                        $avg_progress = array_sum($progresses) / count($progresses);
+
+                        // Calculate estimated time left using moving averages
+                        if ($avg_progress > 0) {
+                            $videoJob->estimated_time_left = round((($avg_execution_time / $avg_progress) * 100) - $data['execution_time']);
+                        }
+                        
+                        $videoJob->progress = $data['phase_progress'] * 100;
+                        $videoJob->job_time = $data['execution_time'];
+          
+                    }
+                    
+                    if ($data['phase'] === 'QUEUED' && $videoJob->status !== "approved") {
+                        $videoJob->status = 'approved';
+                    } else if ($data['phase'] == 'GENERATING' && $videoJob->status != "processing") {
+                        $videoJob->status = 'processing';
+                    }
+
+                    if ($data['status'] === 'SUCCEEDED' && $data['phase'] == 'DONE') {
+                        $sourceFile = implode("/", [$data['outdir'],  $data['timestring'] . '.mp4']);
+                        $sourceAnimation = implode("/", [$data['outdir'],  $data['timestring'] . '.gif']);
+                        $previewPic = implode("/", [$data['outdir'],  $data['timestring'] . '_000000010.png']);
+
+                        if (is_file($sourceFile)) {
+                            $videoJob->outfile = basename($sourceFile);
+                            $targetUrl = config('app.url') . '/processed/' . $videoJob->outfile;
+                            $videoJob->url = $targetUrl;
+                            rename($sourceFile, $videoJob->getFinishedVideoPath());
+                        }
+                        if (is_file($sourceAnimation)) {
+                            $videoJob->preview_animation = $sourceAnimation;
+                            rename($sourceAnimation, $videoJob->getPreviewAnimationPath());
+                        }
+                        if (is_file($previewPic)) {
+                            $videoJob->preview_img = config('app.url') . '/preview/' . $videoJob->outfile;
+                            rename($previewPic, $videoJob->getPreviewImagePath());
+                        }
+
+
                         $videoJob->save();
                         $running = false;
 
-                    } elseif ($data['status'] !== 'ACCEPTED') {
+                    } elseif ($data['status'] !== 'ACCEPTED' && $data['status'] !== 'SUCCEEDED') {
                         $videoJob->status = 'error';
                         $videoJob->save();
                         $running = false;
-
+                        
                         throw new \Exception("Error in job: " . json_encode($data));
 
                     }
-                    sleep(5);
+
+                    $videoJob->save();
+                    if ($running) sleep(5);
                 }
 
-                $videoJob->refresh();
 
                 $elapsed = time() - $time;
                 $videoJob->updateProgress($elapsed, 99, 7)->save();
@@ -116,13 +180,10 @@ class DeforumProcessingService
                     $videoJob->frame_count++;
 
                 Log::info("Finished in {" . (time() - $time) . "} seconds :  {$videoJob->frame_count} frames on " . round($videoJob->frame_count / $elapsed) . "  frames/s speed. {output} ", ['output' => $process->getOutput()]);
-                
-                if (is_file($videoJob->outfile)) {
-                    rename($videoJob->outfile, $videoJob->getFinishedVideoPath());
-                }
 
                 $videoJob->attachResults();
                 $videoJob->save();
+
                 $videoJob->refresh();
 
                 Log::info("Paths: ", ['preview' => $videoJob->getMediaFilesForRevision('image'), 'animation' => $videoJob->getMediaFilesForRevision('animation'), 'finished_video' => $videoJob->getMediaFilesForRevision('video', 'finished')]);
@@ -137,7 +198,7 @@ class DeforumProcessingService
                 $videoJob->status = "error";
                 $videoJob->save();
 
-                throw new \Exception($exception->getMessage());
+                throw $exception;
             }
         } catch (\Exception $e) {
 
@@ -169,13 +230,24 @@ class DeforumProcessingService
     {
 
         $modelFile = ModelFile::find($videoJob->model_id);
+        $file = explode(" [", $modelFile->filename);
+        $modelFilename = $file[0];
+
         $cmdString = '';
+        $json_settings=[];
 
         $params = [
             'modelFile' => $modelFile->filename,
             'init_img' => $videoJob->getOriginalVideoPath(),
             'json_settings_file' => '/www/api/scripts/zoom.json',
         ];
+        
+        $json_settings['prompts'] = json_decode('{"0": "' . $videoJob->prompt . ' --neg bad-picture-chill-75v"}');
+        $json_settings['checkpoint_schedule'] = '"0": "' . $modelFilename . '", "100": "'.  $modelFilename . '"'; 
+        $json_settings['sd_model_name'] = $modelFilename;
+        $json_settings['max_frames'] = $videoJob->frame_count;
+        $json_settings['sd_model_hash'] = str_replace("]", "", $file[1]);
+        $params['json_settings'] = json_encode($json_settings);
 
 
         $videoJob->generation_parameters = json_encode($params);
@@ -183,12 +255,12 @@ class DeforumProcessingService
 
         $videoJob->save();
 
-       // $params += $this->buildPreviewParameters($videoJob, $previewFrames);
+        // $params += $this->buildPreviewParameters($videoJob, $previewFrames);
 
 
         foreach ($params as $key => $val) {
-            if ($key == 'modelFile' || $key == 'negative_prompt') {
-                $cmdString .= sprintf("--%s=\"%s\" ", $key, $val);
+            if ($key == 'modelFile' || $key == 'json_settings') {
+                $cmdString .= sprintf("--%s='%s' ", $key, $val);
             } else
                 $cmdString .= sprintf('--%s=%s ', $key, $val);
         }
@@ -241,7 +313,7 @@ class DeforumProcessingService
         try {
             $pids = false;
 
-            exec('ps aux | grep -i video2video | grep -i \"\-\-jobid=' . $sessionId . '\" | grep -v grep', $pids);
+            exec('ps aux | grep -i deforum.py | grep -i \"\-\-jobid=' . $sessionId . '\" | grep -v grep', $pids);
 
             if (empty($pids) || count($pids) < 1) {
                 return;
@@ -255,29 +327,5 @@ class DeforumProcessingService
         } catch (ProcessFailedException $exception) {
             throw new \Exception($exception->getMessage());
         }
-    }
-
-    public function generateControlnetParams(array $data)
-    {
-        $argStrings = [];
-        $controlnetUnits = [];
-        $i = 0;
-        foreach ((array) $data as $id => $unit) {
-            $i++;
-            $paramName = sprintf("unit%s_params", $i);
-
-            foreach ($unit as $key => $param) {
-                $paramValue = $param;
-                if (is_bool($param))
-                    $paramValue = $param ? 'True' : 'False';
-                $controlnetUnits[$paramName][] = sprintf("%s=%s", $key, $paramValue);
-            }
-        }
-
-        foreach ($controlnetUnits as $unitName => $values) {
-            $argStrings[$unitName] = "'" . implode(', ', $values) . "'";
-        }
-
-        return $argStrings;
     }
 }

@@ -108,6 +108,7 @@ class VideojobController extends Controller
         $videoJob->model_id = 1;
         $videoJob->mimetype = $mimeType;
         $videoJob->queued_at = null;
+        $videoJob->frame_count = 90;
         $videoJob->user_id = auth('api')->id();
         $videoJob->prompt = '';
         $videoJob->negative_prompt = '';
@@ -142,10 +143,12 @@ class VideojobController extends Controller
             'prompt' => 'required|string',
             'frameCount' => 'numeric|between:1,20',
             'preset' => 'required|string',
+            'length' => 'numeric|between:1,20',
+
         ]);
 
         $frameCount = $request->input('frameCount', 1);
-
+        $length = $request->input('length', 4);
         // Get the VideoJob record and update it with the form data
         $videoJob = Videojob::findOrFail($request->input('videoId'));
 
@@ -154,6 +157,9 @@ class VideojobController extends Controller
         $videoJob->prompt = trim($request->input('prompt'));
         $videoJob->status = 'processing';
         $videoJob->progress = 5;
+        $videoJob->fps = 24;
+        $videoJob->length = $length;
+        $videoJob->frame_count = $length*$videoJob->fps;
         $videoJob->job_time = 3;
         $videoJob->estimated_time_left = ($frameCount * 6) + 6;
         $videoJob->denoising = $request->input('denoising');
@@ -223,6 +229,7 @@ class VideojobController extends Controller
         $videoJob->model_id = $request->input('modelId');
         $videoJob->cfg_scale = $request->input('cfgScale');
         $videoJob->seed = $seed;
+    
         $videoJob->prompt = trim($request->input('prompt'));
         $videoJob->negative_prompt = trim($request->input('negative_prompt'));
         $videoJob->status = 'processing';
@@ -264,7 +271,11 @@ class VideojobController extends Controller
 
         $videoJob = Videojob::findOrFail($request->input('videoId'));
         $videoJob->resetProgress('approved');
-        
+        $length = $request->input('length', 4);
+        $videoJob->frame_count = $length * 24;
+        $videoJob->length = $length;
+        $videoJob->save();
+
         $videoJob->refresh();
         ProcessDeforumJob::dispatch($videoJob, 0)->onQueue(env('LOW_PRIORITY_QUEUE'));
         if ($videoJob) {
@@ -326,7 +337,7 @@ class VideojobController extends Controller
         }
 
         $videoJob->resetProgress('cancelled');
-
+        
         if ($videoJob) {
             return response()->json([
                 'status' => $videoJob->status,

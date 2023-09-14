@@ -43,6 +43,7 @@ class VideoJobResource extends JsonApiResource
             'queue' => $this->getQueueInfo(),
             'revisions' => $this->getRevisions(),
             'progress' => $this->progress,
+            'thumbnail' => $this->thumbnail,
             'preview_url' => $this->preview_url,
             'preview_img' => $this->preview_img,    
             'preview_animation' => $this->preview_animation,            

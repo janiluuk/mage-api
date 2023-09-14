@@ -16,7 +16,7 @@ set_time_limit(27200);
 class ProcessDeforumJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-    public $timeout = null;
+    public $timeout = 7200;
 
     const MAX_RETRIES = 5;
 
@@ -40,8 +40,9 @@ class ProcessDeforumJob implements ShouldQueue
 
 
         $processingJobs = Videojob::where('status', VideoJob::STATUS_PROCESSING)->count();
+        $deforumJobs = Videojob::where('status', VideoJob::STATUS_PROCESSING)->where('generator', 'deforum')->not('id', $this->videoJob->id)->count();
 
-        if ($this->previewFrames == 0 && (!$this->videoJob || $processingJobs > 0)) {
+        if ($deforumJobs > 0 && $this->previewFrames == 0 && (!$this->videoJob || $processingJobs > 0)) {
             if ($this->videoJob && $this->videoJob->status == VideoJob::STATUS_PROCESSING) {
                 $this->videoJob->status = VideoJob::STATUS_APPROVED;
                 $this->videoJob->save();
@@ -69,7 +70,7 @@ class ProcessDeforumJob implements ShouldQueue
                 $videoJob->resetProgress(Videojob::STATUS_PROCESSING);
                 $videoJob->job_time = time()-$start_time;
                 if ($videoJob->frame_count > 0) {
-                    $videoJob->estimated_time_left = $videoJob->frame_count * 10;
+                    $videoJob->estimated_time_left = $videoJob->frame_count * 6;
                     $videoJob->save();
                 }
                 $targetFile = implode("/", [config('app.paths.processed'), $videoJob->outfile]);
