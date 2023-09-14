@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\ModelFile;
+use DateTimeInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -17,8 +18,9 @@ set_time_limit(27200);
 class ProcessVideoJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-    public $timeout = null;
-
+    public $timeout = 27200;
+    public $tries = 200;
+    public $backoff = 30; // delay in seconds between retries
     const MAX_RETRIES = 5;
 
     public function __construct(public Videojob $videoJob, public int $previewFrames = 0)
@@ -42,7 +44,7 @@ class ProcessVideoJob implements ShouldQueue
 
         $processingJobs = Videojob::where('status', VideoJob::STATUS_PROCESSING)->count();
 
-        if ($this->previewFrames == 0 && (!$this->videoJob || $processingJobs > 0)) {
+        if ($this->previewFrames == 0 && $processingJobs > 0) {
             if ($this->videoJob && $this->videoJob->status == VideoJob::STATUS_PROCESSING) {
                 $this->videoJob->status = VideoJob::STATUS_APPROVED;
                 $this->videoJob->save();
@@ -58,7 +60,7 @@ class ProcessVideoJob implements ShouldQueue
                 Log::info("Starting...");
 
                 exec('ps aux | grep -i video2video | grep -i \"\-\-jobid=' . $videoJob->id . '\" | grep -v grep', $pids);
-                if (!empty($pids) && $videoJob->status == Videojob::STATUS_PROCESSING) {
+                if (!empty($pids) && $videoJob->status == Videojob::STATUS_PROCESSING && $this->previewFrames == 0) {
                     $videoJob->status = VideoJob::STATUS_APPROVED;
                     $videoJob->save();
                     Log::info("Found existing process, aborting..");
@@ -66,74 +68,37 @@ class ProcessVideoJob implements ShouldQueue
                 }
 
                 $videoJob->resetProgress(Videojob::STATUS_PROCESSING);
-                $videoJob->job_time = time()-$start_time;
+                $videoJob->job_time = time() - $start_time;
                 if ($videoJob->frame_count > 0) {
-                    $videoJob->estimated_time_left = $videoJob->frame_count * 10;
+                    $videoJob->estimated_time_left = ($videoJob->frame_count * 10) + 5;
                     $videoJob->save();
                 }
                 $targetFile = implode("/", [config('app.paths.processed'), $videoJob->outfile]);
                 $targetUrl = config('app.url') . '/processed/' . $videoJob->outfile;
-                
-                Log::info("Starting " . ($this->previewFrames ? " PREVIEW " : "") . "conversion for {$videoJob->filename} to {$targetFile} URL: ($targetUrl} ");
-                
+
+                Log::info("Starting " . ($this->previewFrames ? " frames PREVIEW " : "") . "conversion for {$videoJob->filename} to {$targetFile} URL: ($targetUrl} ");
+
                 $service->startProcess($videoJob, $this->previewFrames);
 
-                if (file_exists($targetFile) && $this->previewFrames == 0) {
 
-                    $videoJob->job_time = time() - $start_time;
-                    $videoJob->progress = 100;
-                    $videoJob->estimated_time_left = 0;
-                    $videoJob->url = $targetUrl;
-                    $videoJob->status = 'finished';
-                    $videoJob->save();
-                    Log::info('Successfully converted {url} in {duration}', ['url' => $videoJob->url, 'duration' => $videoJob->job_time]);
-                }
+                Log::info('WTF converted {url} in {duration}', ['url' => $videoJob->url, 'duration' => $videoJob->job_time]);
 
             } catch (\Exception $e) {
-                Log::error('Error while converting a video job: {error} ', ['error' => $e->getMessage()]);
+                Log::info('Error while converting a video job: {error} ', ['error' => $e->getMessage(), 'retries' => $videoJob->retries]);
+
                 $videoJob->job_time = time() - $start_time;
-                $videoJob->status = 'error';
-                $videoJob->save();
-                $this->fail($e->getMessage());
+                $this->videoJob = $videoJob;
+                $this->videoJob->queued_at = \Carbon\Carbon::now();
+                $this->videoJob->retries+=1;
+                $this->videoJob->save();
+
             }
+
         }
     }
-    public function failed(\Exception $exception)
+    public function retryUntil(): DateTimeInterface
     {
-        if ($this->videoJob) {
-            $videoJob = $this->videoJob;
-    
-            Log::info("Job has failed with exception: " . $exception->getMessage() . " and has " .  $videoJob->retries . " prior"); 
-    
-            // Check if the job has exceeded the maximum number of retries
-            if ($videoJob->retries < self::MAX_RETRIES) {
-                // Increment the retries count
-                $videoJob->retries++;
-                
-                // Update the job status based on the type of conversion
-                if ($this->previewFrames == 0) {
-                    // For full conversion
-                    $videoJob->status = VideoJob::STATUS_APPROVED;
-                } else {
-                    // For preview image or preview video conversion
-                    $videoJob->status = VideoJob::STATUS_PROCESSING;
-                }
-    
-                // Save the updated job details
-                $videoJob->save();
-    
-                // Re-dispatch the job to the queue for re-processing
-                dispatch(new self($videoJob, $this->previewFrames));
-            } else {
-                // The job has exceeded the maximum number of retries, update the status to 'error'
-                $videoJob->status = VideoJob::STATUS_ERROR;
-                $videoJob->save();
-            }
-        }
+       return now()->addDay();
     }
-    public function retryUntil()
-    {
-        return now()->addDay();
-    }
-    
+
 }

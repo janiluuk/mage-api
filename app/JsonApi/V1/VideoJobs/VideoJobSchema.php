@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Http\Request;
 use LaravelJsonApi\Eloquent\Contracts\Paginator;
 use LaravelJsonApi\Eloquent\Fields\DateTime;
+use LaravelJsonApi\Eloquent\Fields\Timestamp;
 use LaravelJsonApi\Eloquent\Fields\Relations\BelongsTo;
 use LaravelJsonApi\Eloquent\Fields\ID;
 use LaravelJsonApi\Eloquent\Fields\Relations\BelongsToMany;
@@ -50,18 +51,20 @@ class VideoJobSchema extends Schema
             BelongsTo::make('user')->type('users')->readOnly(),
             MorphToMany::make('media', [
                 BelongsToMany::make('finished'),
+                BelongsToMany::make('original'),
+                BelongsToMany::make('previewAnimations'),
                 BelongsToMany::make('previewImages'),
             ]),
              Number::make('user_id'),
-            Str::make('status')->sortable()->readOnly(),
+            Str::make('status')->sortable(),
             Str::make('url'),
             Str::make('media'),
             Str::make('original_filename'),
             Str::make('prompt'),
             Str::make('negative_prompt'),
             Str::make('controlnet'),
-            Str::make('denoising'),
-            Str::make('generator'),
+            Str::make('denoising'),            
+            Str::make('generator')->sortable()->readOnly(),
             Str::make('generation_parameters'),
             Str::make('preview_url'),
             Str::make('preview_img'),
@@ -83,6 +86,8 @@ class VideoJobSchema extends Schema
             Number::make('frame_count'),
             DateTime::make('created_at')->sortable()->readOnly(),
             DateTime::make('updated_at')->sortable()->readOnly(),
+            Number::make('queued_at')->sortable()->readOnly(),
+
         ];
     }
 
@@ -95,7 +100,8 @@ class VideoJobSchema extends Schema
     {
         return [
             WhereIdIn::make($this),
-            Where::make('status')
+            Where::make('status'),
+            Where::make('generator')
 
         ];
     }

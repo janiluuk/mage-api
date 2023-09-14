@@ -40,6 +40,7 @@ class VideoJobResource extends JsonApiResource
                 'animation' => $this->getMediaFilesForRevision('animation'),
                 'original' => $this->getMediaFilesForRevision('video', 'original')
             ],
+            'queue' => $this->getQueueInfo(),
             'revisions' => $this->getRevisions(),
             'progress' => $this->progress,
             'preview_url' => $this->preview_url,

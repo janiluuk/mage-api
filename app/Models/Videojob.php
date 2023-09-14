@@ -12,6 +12,7 @@ use Spatie\MediaLibrary\HasMedia;
 use Illuminate\Support\Facades\Log;
 use Spatie\Image\Manipulations;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Illuminate\Support\Facades\DB;
 
 class Videojob extends Model implements HasMedia
 {
@@ -35,7 +36,7 @@ class Videojob extends Model implements HasMedia
     public const MEDIA_TYPE_ANIMATION = 'animation';
     public const MEDIA_TYPE_VIDEO = 'video';
 
-       
+
     use HasFactory;
 
     /**
@@ -81,13 +82,14 @@ class Videojob extends Model implements HasMedia
         'job_time',
         'estimated_time_left',
         'progress',
+        'queued_at',
         'retries',
         'outfile',
         'status',
         'thumbnail',
         'url',
     ];
-
+    protected $dates = ['queued_at'];
     public function verifyAndCleanPreviews()
     {
 
@@ -163,6 +165,7 @@ class Videojob extends Model implements HasMedia
     protected $casts = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'queued_at' => 'timestamp',
     ];
     public function user()
     {
@@ -181,7 +184,7 @@ class Videojob extends Model implements HasMedia
         $mediaItems = $this->getMedia($collection, ['type' => $type, 'revision' => $this->revision]);
         if (!empty($mediaItems)) {
             foreach ($mediaItems as $item) {
-               // Log::info("scanning item: ", ['item' => $item]);
+                // Log::info("scanning item: ", ['item' => $item]);
                 if ($item->getCustomProperty('generated_at') > $generationTime)
                     $latestItem = $item;
             }
@@ -193,29 +196,29 @@ class Videojob extends Model implements HasMedia
     {
         $revisions = [];
         $generationTime = 0;
-        
+
         foreach ($this->getMedia("preview") as $mediaItem) {
-            
+
             if (!$mediaItem->hasCustomProperty('revision')) {
                 $revision = md5($mediaItem->getCustomProperty('generation_parameters'));
             } else {
                 $revision = $mediaItem->getCustomProperty('revision');
             }
-                $type = $mediaItem->getCustomProperty('type');
-                if (!empty($revisions[$revision]) && !empty($revisions[$revision][$type]) && ($revisions[$revision][$type]['generated_at'] < $mediaItem->getCustomProperty('generated_at')) || (empty($revisions[$revision]) || empty($revisions[$revision][$type]))) {
+            $type = $mediaItem->getCustomProperty('type');
+            if (!empty($revisions[$revision]) && !empty($revisions[$revision][$type]) && ($revisions[$revision][$type]['generated_at'] < $mediaItem->getCustomProperty('generated_at')) || (empty($revisions[$revision]) || empty($revisions[$revision][$type]))) {
 
-                    if (!isset($revisions[$revision]['generated_at']) || $revisions[$revision]['generated_at'] < $mediaItem->getCustomProperty('generated_at') )
-                        $revisions[$revision]['generated_at'] = $mediaItem->getCustomProperty('generated_at');
-                        $revisions[$revision][$type] = ['type' => $type, 'generation_parameters' =>  json_decode($mediaItem->getCustomProperty('generation_parameters')), 'generated_at' =>  $mediaItem->getCustomProperty('generated_at'), 'url' => $mediaItem->getFullUrl()];
+                if (!isset($revisions[$revision]['generated_at']) || $revisions[$revision]['generated_at'] < $mediaItem->getCustomProperty('generated_at'))
+                    $revisions[$revision]['generated_at'] = $mediaItem->getCustomProperty('generated_at');
+                $revisions[$revision][$type] = ['type' => $type, 'generation_parameters' => json_decode($mediaItem->getCustomProperty('generation_parameters')), 'generated_at' => $mediaItem->getCustomProperty('generated_at'), 'url' => $mediaItem->getFullUrl()];
 
-                        
-                }
-            
-    
-            
+
+            }
+
+
+
         }
         foreach ($this->getMedia("finished") as $mediaItem) {
-            
+
             if (!$mediaItem->hasCustomProperty('revision')) {
                 $revision = md5($mediaItem->getCustomProperty('generation_parameters'));
             } else {
@@ -225,17 +228,18 @@ class Videojob extends Model implements HasMedia
             $type = $mediaItem->getCustomProperty('type');
             if (!empty($revisions[$revision]) && !empty($revisions[$revision][$type]) && ($revisions[$revision][$type]['generated_at'] < $mediaItem->getCustomProperty('generated_at')) || (empty($revisions[$revision]) || empty($revisions[$revision][$type]))) {
 
-                if (!isset($revisions[$revision]['generated_at']) || $revisions[$revision]['generated_at'] < $mediaItem->getCustomProperty('generated_at') )
+                if (!isset($revisions[$revision]['generated_at']) || $revisions[$revision]['generated_at'] < $mediaItem->getCustomProperty('generated_at'))
                     $revisions[$revision]['generated_at'] = $mediaItem->getCustomProperty('generated_at');
-                    $revisions[$revision][$type] = ['type' => $type, 'generation_parameters' => json_decode($mediaItem->getCustomProperty('generation_parameters')), 'generated_at' =>  $mediaItem->getCustomProperty('generated_at'), 'url' => $mediaItem->getFullUrl()];
-                    $revisions[$revision]['revision'] = $revision;
+                $revisions[$revision][$type] = ['type' => $type, 'generation_parameters' => json_decode($mediaItem->getCustomProperty('generation_parameters')), 'generated_at' => $mediaItem->getCustomProperty('generated_at'), 'url' => $mediaItem->getFullUrl()];
+                $revisions[$revision]['revision'] = $revision;
             }
-    
+
         }
-        uasort($revisions, function($a, $b) {
-            if($a['generated_at'] > $b['generated_at']) {
+        uasort($revisions, function ($a, $b) {
+            if ($a['generated_at'] > $b['generated_at']) {
                 return 1;
-            } else return -1;
+            } else
+                return -1;
         });
         return $revisions;
     }
@@ -250,29 +254,30 @@ class Videojob extends Model implements HasMedia
 
                 if ($mediaItem->getCustomProperty('revision') == $this->revision || $collection == 'original' || empty($this->revision)) {
 
-                    $mediaType =  $mediaItem->hasCustomProperty('type') ? $mediaItem->getCustomProperty('type') : null;
+                    $mediaType = $mediaItem->hasCustomProperty('type') ? $mediaItem->getCustomProperty('type') : null;
                     if (!$mediaType)
                         $mediaType = "unknown";
                     if ($mediaType !== $type)
                         continue;
-                       // Log::info("Found match for revision", ['type' => $mediaType, 'properties' => $mediaItem ]);
-                        $generationTime = $mediaItem->hasCustomProperty('generator') ? $mediaItem->getCustomProperty('generated_at') : 0;
+                    // Log::info("Found match for revision", ['type' => $mediaType, 'properties' => $mediaItem ]);
+                    $generationTime = $mediaItem->hasCustomProperty('generator') ? $mediaItem->getCustomProperty('generated_at') : 0;
 
                     if (empty($currentCollection) || $collection == 'original' || (!empty($currentCollection) && $generationTime > $currentCollection['generated_at'])) {
                         $currentCollection = [
-                            'generator' => $mediaItem->hasCustomProperty('generator') ? $mediaItem->getCustomProperty('generator') : "", 
-                            
+                            'generator' => $mediaItem->hasCustomProperty('generator') ? $mediaItem->getCustomProperty('generator') : "",
+
                             'generated_at' => $generationTime,
                             'url' => $mediaItem->getFullUrl(),
                             'images' => [
-                            'original' => $mediaItem->getFullUrl(), 
-                            'poster' => $mediaItem->getAvailableFullUrl(['poster']), 
-                            'thumbnail' => $mediaItem->getAvailableFullUrl(['thumbnail']), 
-                            'backdrop'=> $mediaItem->getAvailableFullUrl(['backdrop']), 
+                                'original' => $mediaItem->getFullUrl(),
+                                'poster' => $mediaItem->getAvailableFullUrl(['poster']),
+                                'thumbnail' => $mediaItem->getAvailableFullUrl(['thumbnail']),
+                                'backdrop' => $mediaItem->getAvailableFullUrl(['backdrop']),
                             ],
-                            'size' => $mediaItem->size, 
-                            'mimetype' => $mediaItem->mime_type, 
-                            'type' => $type];
+                            'size' => $mediaItem->size,
+                            'mimetype' => $mediaItem->mime_type,
+                            'type' => $type
+                        ];
                     }
                 }
             }
@@ -345,7 +350,7 @@ class Videojob extends Model implements HasMedia
         return is_file($this->getFinishedVideoPath()) && file_exists($this->getFinishedVideoPath());
     }
 
-    public function addAttachment($file, $type = self::MEDIA_TYPE_ANIMATION, $collection = 'preview', $generator = 'img2img')
+    public function addAttachment($file, $type = self::MEDIA_TYPE_ANIMATION, $collection = 'preview', $generator = 'vid2vid')
     {
         $this->addMedia($file)->withCustomProperties(['generator' => $generator, 'revision' => $this->revision, 'type' => $type, 'generated_at' => time(), 'generation_parameters' => $this->generation_parameters])->withResponsiveImages()->preservingOriginal()->toMediaCollection($collection);
         Log::info('Added file {file} to media collection {collection} Is has now {size} images.', ['collection' => $collection, 'file' => $file, 'revision' => $this->revision, 'size' => count($this->getMedia($collection))]);
@@ -374,15 +379,16 @@ class Videojob extends Model implements HasMedia
 
         if ($this->hasPreviewAnimation()) {
             $this->addAttachment($this->getPreviewAnimationPath());
-            
+
             $previewAnimation = $this->getMediaFilesForRevision(self::MEDIA_TYPE_ANIMATION);
             if (!empty($previewAnimation)) {
                 $this->preview_animation = $previewAnimation['url'];
-                $this->save();
 
                 Log::info('assigning animation: ', ['item' => $previewAnimation]);
 
             }
+            $this->save();
+
         }
         if ($this->hasPreviewImage()) {
             $this->addAttachment($this->getPreviewImagePath(), self::MEDIA_TYPE_IMAGE);
@@ -426,6 +432,7 @@ class Videojob extends Model implements HasMedia
     {
         $this->status = $status;
         $this->updateProgress(0, 0, 0);
+        $this->queued_at = $status == 'approved' ? \Carbon\Carbon::now() : null;
         $this->save();
         return $this;
     }
@@ -462,4 +469,70 @@ class Videojob extends Model implements HasMedia
 
 
     }
+
+    public function getQueueInfo(): ?array
+    {
+        if ($this->status !== self::STATUS_APPROVED) {
+            return [];
+        }
+        $jobId = $this->id;
+        $info = [];
+
+        // Amount of items in the queue
+        $info['total_jobs_processing'] = DB::table('video_jobs')->where('status', 'processing')->count();
+        $info['total_jobs_in_queue'] = DB::table('video_jobs')->where('status', 'approved')->count();
+
+        $modelId = $this->model_id;
+        $info['your_position'] = DB::table('video_jobs')
+            ->where('status', 'approved')
+            ->where('queued_at', $this->queued_at)
+            ->count()+1;
+
+        // Calculate the average time per frame for previous jobs with the same model
+        $previousJobs = DB::table('video_jobs')
+            ->where('model_id', $modelId)
+            ->where('status', 'finished')
+            ->get();
+
+        if ($previousJobs->isEmpty()) {
+            $info['your_estimated_time'] = round($this->frame_count * 10);
+        }
+
+        $totalTime = 0;
+        $totalFrames = 0;
+
+        foreach ($previousJobs as $job) {
+            if ($job->job_time == 0 || $job->frame_count == 0)
+                continue;
+            $totalTime += $job->job_time;
+            $totalFrames += $job->frame_count;
+        }
+        if ($totalTime == 0 || $totalFrames == 0) {
+            $averageTimePerFrame = 10;
+        } else {
+            $averageTimePerFrame = round($totalTime / $totalFrames);
+        }
+        // Estimated time for all jobs in the queue
+        $totalFramesInQueue = DB::table('video_jobs')
+            ->where('model_id', $modelId)
+            ->where('status', self::STATUS_APPROVED)
+            ->sum('frame_count');
+
+        $currentJobsEstimate = DB::table('video_jobs')
+            ->where('status', self::STATUS_PROCESSING)
+            ->sum('estimated_time_left');
+
+        if ($totalFramesInQueue > 0) {
+            $info['estimated_time_for_all_jobs'] = round($currentJobsEstimate + ($averageTimePerFrame * $totalFramesInQueue));
+        }
+        // Estimated time for your job
+        $info['your_estimated_time'] = round($averageTimePerFrame * $this->frame_count);
+        // Estimated time for all jobs in the queue
+
+
+        $info['estimated_time_processing_jobs'] = $currentJobsEstimate;
+
+        return $info;
+    }
+
 }
