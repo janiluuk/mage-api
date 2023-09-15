@@ -91,7 +91,7 @@ class ProcessVideoJob implements ShouldQueue
                 $this->videoJob->queued_at = \Carbon\Carbon::now();
                 $this->videoJob->retries+=1;
                 $this->videoJob->save();
-
+                throw $e;
             }
 
         }

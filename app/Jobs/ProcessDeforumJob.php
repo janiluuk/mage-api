@@ -16,8 +16,9 @@ set_time_limit(27200);
 class ProcessDeforumJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-    public $timeout = 7200;
-
+    public $timeout = 27200;
+    public $tries = 200;
+    public $backoff = 30; // delay in seconds between retries
     const MAX_RETRIES = 5;
 
     public function __construct(public Videojob $videoJob, public int $previewFrames = 0)

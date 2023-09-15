@@ -159,7 +159,7 @@ class VideojobController extends Controller
         $videoJob->progress = 5;
         $videoJob->fps = 24;
         $videoJob->length = $length;
-        $videoJob->frame_count = $length*$videoJob->fps;
+        $videoJob->frame_count = ($length*$videoJob->fps);
         $videoJob->job_time = 3;
         $videoJob->estimated_time_left = ($frameCount * 6) + 6;
         $videoJob->denoising = $request->input('denoising');
@@ -272,7 +272,8 @@ class VideojobController extends Controller
         $videoJob = Videojob::findOrFail($request->input('videoId'));
         $videoJob->resetProgress('approved');
         $length = $request->input('length', 4);
-        $videoJob->frame_count = $length * 24;
+        $videoJob->frame_count = ($length * 24);
+        $videoJob->fps = 24;
         $videoJob->length = $length;
         $videoJob->save();
 

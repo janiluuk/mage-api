@@ -372,13 +372,13 @@ class Videojob extends Model implements HasMedia
         return $media;
     }
 
-    public function attachResults()
+    public function attachResults($generator='vid2vid')
     {
         $this->preview_img = $this->filterFilename($this->preview_img);
         $this->preview_animation = $this->filterFilename($this->preview_animation);
 
         if ($this->hasPreviewAnimation()) {
-            $this->addAttachment($this->getPreviewAnimationPath());
+            $this->addAttachment($this->getPreviewAnimationPath(), self::MEDIA_TYPE_ANIMATION, self::MEDIA_PREVIEW, $generator);
 
             $previewAnimation = $this->getMediaFilesForRevision(self::MEDIA_TYPE_ANIMATION);
             if (!empty($previewAnimation)) {
@@ -391,7 +391,7 @@ class Videojob extends Model implements HasMedia
 
         }
         if ($this->hasPreviewImage()) {
-            $this->addAttachment($this->getPreviewImagePath(), self::MEDIA_TYPE_IMAGE);
+            $this->addAttachment($this->getPreviewImagePath(),  self::MEDIA_TYPE_IMAGE, 'preview', $generator);
 
             $previewImage = $this->getMediaFilesForRevision(self::MEDIA_TYPE_IMAGE);
 
@@ -403,7 +403,7 @@ class Videojob extends Model implements HasMedia
         }
         if ($this->hasFinishedVideo()) {
             try {
-                $this->addAttachment($this->getFinishedVideoPath(), self::MEDIA_TYPE_VIDEO, self::MEDIA_FINISHED);
+                $this->addAttachment($this->getFinishedVideoPath(), self::MEDIA_TYPE_VIDEO, self::MEDIA_FINISHED, $generator);
                 $video = $this->getMediaFilesForRevision(self::MEDIA_TYPE_VIDEO, self::MEDIA_FINISHED);
 
                 if (!empty($video)) {

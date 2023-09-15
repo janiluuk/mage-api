@@ -62,6 +62,7 @@ class DeforumProcessingService
 
         try {
             $videoJob = $this->parseJob($videoJob, $videoJob->getOriginalVideoPath());
+            
             $videoJob->save();
             $cmd = $this->buildCommandLine($videoJob, $videoJob->getOriginalVideoPath(), $videoJob->getFinishedVideoPath(), $previewFrames);
             $this->killProcess($videoJob->id);
@@ -74,17 +75,23 @@ class DeforumProcessingService
                 // Parse the JSON output
                 $decoded_output = json_decode($output->getOutput(), true);
                 // Get the first job ID
+                if (empty($decoded_output['job_ids'])) {
+                     throw new \Exception("invalid response, " . $output->getOutput());
+                }
+
                 $first_job_id = $decoded_output['job_ids'][0];
 
                 $running = true;
                 $client = new \GuzzleHttp\Client();
                 $execution_times = [];
-                $progresses = [];
+                $progresses = [];   
                 while ($running) {
 
                     // Using GuzzleHttp\Client to make an API request
                     $response = $client->request('GET', 'http://192.168.2.100:7860/deforum_api/jobs/' . $first_job_id);
                     $data = json_decode($response->getBody(), true);
+                
+
                     Log::info("Got response: {$response->getBody()}", ['data' => $data]);
 
                     $videoJob = Videojob::findOrFail($videoJob->id);
@@ -138,7 +145,7 @@ class DeforumProcessingService
                     if ($data['status'] === 'SUCCEEDED' && $data['phase'] == 'DONE') {
                         $sourceFile = implode("/", [$data['outdir'],  $data['timestring'] . '.mp4']);
                         $sourceAnimation = implode("/", [$data['outdir'],  $data['timestring'] . '.gif']);
-                        $previewPic = implode("/", [$data['outdir'],  $data['timestring'] . '_000000010.png']);
+                        $previewPic = implode("/", [$data['outdir'],  $data['timestring'] . '_00000005.png']);
 
                         if (is_file($sourceFile)) {
                             $videoJob->outfile = basename($sourceFile);
@@ -151,7 +158,7 @@ class DeforumProcessingService
                             rename($sourceAnimation, $videoJob->getPreviewAnimationPath());
                         }
                         if (is_file($previewPic)) {
-                            $videoJob->preview_img = config('app.url') . '/preview/' . $videoJob->outfile;
+                            $videoJob->preview_img = $previewPic;
                             rename($previewPic, $videoJob->getPreviewImagePath());
                         }
 
@@ -175,13 +182,14 @@ class DeforumProcessingService
 
                 $elapsed = time() - $time;
                 $videoJob->updateProgress($elapsed, 99, 7)->save();
+                $videoJob->refresh();
 
                 if ($videoJob->frame_count == 0)
                     $videoJob->frame_count++;
 
                 Log::info("Finished in {" . (time() - $time) . "} seconds :  {$videoJob->frame_count} frames on " . round($videoJob->frame_count / $elapsed) . "  frames/s speed. {output} ", ['output' => $process->getOutput()]);
 
-                $videoJob->attachResults();
+                $videoJob->attachResults('deforum');
                 $videoJob->save();
 
                 $videoJob->refresh();
@@ -201,11 +209,11 @@ class DeforumProcessingService
                 throw $exception;
             }
         } catch (\Exception $e) {
-
             Log::info("Error while processing video {$videoJob->filename}: {$e->getMessage()} ", ['error' => $e->getMessage(), 'videoFile' => $videoJob->filename]);
             $videoJob->resetProgress('error');
             $videoJob->save();
-            throw new \Exception($e->getMessage());
+            throw $e;
+
         }
     }
     private function buildPreviewParameters(VideoJob $videoJob, $previewFrames = 0): array
@@ -242,13 +250,17 @@ class DeforumProcessingService
             'json_settings_file' => '/www/api/scripts/zoom.json',
         ];
         
-        $json_settings['prompts'] = json_decode('{"0": "' . $videoJob->prompt . ' --neg bad-picture-chill-75v"}');
-        $json_settings['checkpoint_schedule'] = '"0": "' . $modelFilename . '", "100": "'.  $modelFilename . '"'; 
-        $json_settings['sd_model_name'] = $modelFilename;
-        $json_settings['max_frames'] = $videoJob->frame_count;
-        $json_settings['sd_model_hash'] = str_replace("]", "", $file[1]);
-        $params['json_settings'] = json_encode($json_settings);
-
+        $json_settings['prompts'] = '{ "0": "' . addslashes($videoJob->prompt) .  '" }';
+        $json_settings['checkpoint_schedule'] = '"0: (\"' . $modelFilename . '\"), ' . $videoJob->frame_count . ': (\"' . $modelFilename . '\")"';   
+        $json_settings['max_frames'] =  $previewFrames > 0 ? $previewFrames : (int)$videoJob->frame_count;
+        $json_settings['sd_model_hash'] = '"' . str_replace("]", "", $file[1]) . '"';
+        $json_param = '{';
+        $comma = '';
+        foreach ($json_settings as $key  => $val) {
+            $json_param .= $comma . ' "' . $key . '": ' . $val;
+            $comma = ',';
+        }
+        $json_param .="}";
 
         $videoJob->generation_parameters = json_encode($params);
         $videoJob->revision = md5($videoJob->generation_parameters);
@@ -259,12 +271,12 @@ class DeforumProcessingService
 
 
         foreach ($params as $key => $val) {
-            if ($key == 'modelFile' || $key == 'json_settings') {
+            if ($key == 'modelFile') {
                 $cmdString .= sprintf("--%s='%s' ", $key, $val);
             } else
                 $cmdString .= sprintf('--%s=%s ', $key, $val);
         }
-
+        $cmdString .= ' --json_settings=\''. $json_param . '\' ';
         $processor = config('app.paths.deforum_processor_path');
 
         $cmdParts = [
