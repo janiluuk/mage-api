@@ -68,7 +68,7 @@ class DeforumProcessingService
             $this->killProcess($videoJob->id);
             Log::info("Deforum Conversion {$videoJob->id}: Running {$cmd}");
             $process = Process::fromShellCommandline($cmd);
-            $process->setTimeout(7200);
+            $process->setTimeout(27200);
             try {
                 $time = time();
                 $output = $process->mustRun();
@@ -147,7 +147,7 @@ class DeforumProcessingService
                         $sourceAnimation = implode("/", [$data['outdir'],  $data['timestring'] . '.gif']);
                         $previewPic = implode("/", [$data['outdir'],  $data['timestring'] . '_00000005.png']);
 
-                        if (is_file($sourceFile)) {
+                        if (is_file($sourceFile) && $previewFrames == 0 ) {
                             $videoJob->outfile = basename($sourceFile);
                             $targetUrl = config('app.url') . '/processed/' . $videoJob->outfile;
                             $videoJob->url = $targetUrl;
@@ -179,7 +179,8 @@ class DeforumProcessingService
                     if ($running) sleep(5);
                 }
 
-
+                $videoJob->attachResults('deforum');
+                $videoJob->save();
                 $elapsed = time() - $time;
                 $videoJob->updateProgress($elapsed, 99, 7)->save();
                 $videoJob->refresh();
@@ -189,8 +190,6 @@ class DeforumProcessingService
 
                 Log::info("Finished in {" . (time() - $time) . "} seconds :  {$videoJob->frame_count} frames on " . round($videoJob->frame_count / $elapsed) . "  frames/s speed. {output} ", ['output' => $process->getOutput()]);
 
-                $videoJob->attachResults('deforum');
-                $videoJob->save();
 
                 $videoJob->refresh();
 
@@ -236,6 +235,7 @@ class DeforumProcessingService
 
     private function buildCommandLine(VideoJob $videoJob, $sourceFile, $outFile, $previewFrames = 0)
     {
+        if ($previewFrames < 5 && $previewFrames > 0 ) $previewFrames = 5;
 
         $modelFile = ModelFile::find($videoJob->model_id);
         $file = explode(" [", $modelFile->filename);
@@ -251,9 +251,11 @@ class DeforumProcessingService
         ];
         
         $json_settings['prompts'] = '{ "0": "' . addslashes($videoJob->prompt) .  '" }';
-        $json_settings['checkpoint_schedule'] = '"0: (\"' . $modelFilename . '\"), ' . $videoJob->frame_count . ': (\"' . $modelFilename . '\")"';   
+        $json_settings['checkpoint_schedule'] = '"0: (\"' . $modelFilename . '\"), 100: (\"' . $modelFilename . '\")"';   
         $json_settings['max_frames'] =  $previewFrames > 0 ? $previewFrames : (int)$videoJob->frame_count;
         $json_settings['sd_model_hash'] = '"' . str_replace("]", "", $file[1]) . '"';
+        $json_settings['sd_model_name'] = '"' .trim($file[0]) . '"';
+
         $json_param = '{';
         $comma = '';
         foreach ($json_settings as $key  => $val) {

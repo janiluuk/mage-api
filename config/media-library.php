@@ -12,7 +12,7 @@ return [
      * The maximum file size of an item in bytes.
      * Adding a larger file will result in an exception.
      */
-    'max_file_size' => 1024 * 1024 * 50, // 50MB
+    'max_file_size' => 1024 * 1024 * 80, // 50MB
 
     /*
      * This queue connection will be used to generate derived and responsive images.
@@ -98,7 +98,7 @@ return [
      * Whether to activate versioning when urls to files get generated.
      * When activated, this attaches a ?v=xx query string to the URL.
      */
-    'version_urls' => true,
+    'version_urls' => false,
 
     /*
      * The media library will try to optimize all converted images by removing

@@ -41,7 +41,7 @@ class ProcessDeforumJob implements ShouldQueue
 
 
         $processingJobs = Videojob::where('status', VideoJob::STATUS_PROCESSING)->count();
-        $deforumJobs = Videojob::where('status', VideoJob::STATUS_PROCESSING)->where('generator', 'deforum')->not('id', $this->videoJob->id)->count();
+        $deforumJobs = Videojob::where('status', VideoJob::STATUS_PROCESSING)->where('generator', 'deforum')->count();
 
         if ($deforumJobs > 0 && $this->previewFrames == 0 && (!$this->videoJob || $processingJobs > 0)) {
             if ($this->videoJob && $this->videoJob->status == VideoJob::STATUS_PROCESSING) {

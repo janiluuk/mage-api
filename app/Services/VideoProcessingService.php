@@ -82,6 +82,14 @@ class VideoProcessingService
                 }
             )->get('r_frame_rate');
 
+            if ($frameRate < 1) {
+                $format = new X264();
+                $format->setAudioCodec("aac");
+                $format->setAdditionalParameters(explode(' ', '-pix_fmt yuv420p -b:v 4000k'));
+                $video->save($format, $path);
+                $video = $ffmpeg->open($path);
+
+            }
             $videoStream = $streams->first(
                 function (Stream $stream) {
                     return $stream->isVideo();
@@ -95,8 +103,7 @@ class VideoProcessingService
             if ($audioStreams->count() > 0) {
                 $audioCodec = $audioStreams->first()->get('codec_name');
             }
-
-            $dimension = new Dimension($videoStream->get('width'), $videoStream->get('height'));
+            $dimension = new Dimension($videoStream->get('width', 640), $videoStream->get('height', 480));
             $width = $dimension->getWidth();
             $height = $dimension->getHeight();
 
@@ -136,30 +143,28 @@ class VideoProcessingService
     }
     public function parseJob(Videojob $videoJob, string $path)
     {
-        if (strstr($videoJob->mimetype, 'video') !== false) {
-            try {
-                $videoInfo = $this->extractVideoInfo($path);
 
-                $videoJob->fps = $videoInfo['fps'];
-                $videoJob->codec = $videoInfo['codec'];
-                $videoJob->frame_count = $videoInfo['frame_count'];
-                $videoJob->size = $videoInfo['size'];
-                $videoJob->width = $videoInfo['width'];
-                $videoJob->bitrate = $videoInfo['bitrate'];
-                $videoJob->audio_codec = $videoInfo['audio_codec'];
-                $videoJob->length = $videoInfo['duration'];
-                $videoJob->height = $videoInfo['height'];
-                $scaled = $this->getScaledSize($videoJob);
-                $videoJob->width = $scaled[0];
-                $videoJob->height = $scaled[1];
+        try {
+            $videoInfo = $this->extractVideoInfo($path);
 
-                return $videoJob;
-            } catch (\Exception $e) {
-                Log::error($e->getMessage());
-                throw $e;
-            }
+            $videoJob->fps = $videoInfo['fps'];
+            $videoJob->codec = $videoInfo['codec'];
+            $videoJob->frame_count = $videoInfo['frame_count'];
+            $videoJob->size = $videoInfo['size'];
+            $videoJob->width = $videoInfo['width'];
+            $videoJob->bitrate = $videoInfo['bitrate'];
+            $videoJob->audio_codec = $videoInfo['audio_codec'];
+            $videoJob->length = $videoInfo['duration'];
+            $videoJob->height = $videoInfo['height'];
+            $scaled = $this->getScaledSize($videoJob);
+            $videoJob->width = $scaled[0];
+            $videoJob->height = $scaled[1];
+
+            return $videoJob;
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+            throw $e;
         }
-
     }
     public function getScaledSize(Videojob $videoJob)
     {
@@ -195,54 +200,44 @@ class VideoProcessingService
             Log::info("Conversion {$videoJob->id}: Running {$cmd}");
             $process = Process::fromShellCommandline($cmd);
             $process->setTimeout(7200);
-            $process->enableOutput();
             try {
                 $time = time();
-
                 $process->mustRun();
                 $videoJob->refresh();
+
                 $elapsed = time() - $time;
                 $videoJob->updateProgress($elapsed, 99, 7)->save();
 
                 if ($videoJob->frame_count == 0)
                     $videoJob->frame_count++;
-
+                
                 Log::info("Finished in {" . (time() - $time) . "} seconds :  {$videoJob->frame_count} frames on " . round($videoJob->frame_count / $elapsed) . "  frames/s speed. {output} ", ['output' => $process->getOutput()]);
-               
 
                 $videoJob->attachResults();
+                $videoJob->save();
                 $videoJob->refresh();
-                $videoJob->status = ($isPreview) ? 'preview' : 'finished';
-
 
                 Log::info("Paths: ", ['preview' => $videoJob->getMediaFilesForRevision('image'), 'animation' => $videoJob->getMediaFilesForRevision('animation'), 'finished_video' => $videoJob->getMediaFilesForRevision('video', 'finished')]);
-
+                
                 //$videoJob->verifyAndCleanPreviews();
+                $videoJob->status = ($isPreview) ? 'preview' : 'finished';
 
                 $videoJob->updateProgress(time() - $time, 100, 0)->save();
-                return true;
 
             } catch (ProcessFailedException $exception) {
-                Log::info('Error while making ' . ($isPreview ? "preview" : "final") . ' conversion for ' . $videoJob->filename, ['exception' => $exception->getMessage()]);
-
-                throw $exception;
+                Log::info('Error while making ' . ($isPreview ? "preview" : "finfal") . ' conversion for ' . $videoJob->filename, ['exception' => $exception->getMessage()]);
+                $videoJob->status = "error";
+                $videoJob->save();
+                
+                throw new \Exception($exception->getMessage());
             }
         } catch (\Exception $e) {
 
             Log::info("Error while processing video {$videoJob->filename}: {$e->getMessage()} ", ['error' => $e->getMessage(), 'videoFile' => $videoJob->filename]);
-            $videoJob->retries++;
-
-            if ($videoJob->retries < 5) {
-                Log::info("Queueing job again with retries " . $videoJob->retries);
-
-                $videoJob->resetProgress('approved');
-            } else {
-                $videoJob->resetProgress('error');
-
-            }
+            $videoJob->resetProgress('error');
             $videoJob->save();
-            throw $e;
-    }
+            throw new \Exception($e->getMessage());
+        }
     }
     private function buildPreviewParameters(VideoJob $videoJob, $previewFrames = 0): array
     {
@@ -259,7 +254,7 @@ class VideoProcessingService
             $params['preview_animation'] = $previewFrames > 1 ? sprintf("%s/%s", $previewPath, basename($animationFile)) : '';
             $params['limit_frames_amount'] = $previewFrames;
 
-            Log::info(sprintf("Setting paths for preview_img,  l, preview_animation to path: %s / %s / %s / %s", $params['preview_img'], $previewUrl, $params['preview_animation'], $previewPath));
+            Log::info(sprintf("Setting paths for preview_img, preview_url, preview_animation to path: %s / %s / %s / %s", $params['preview_img'], $previewUrl, $params['preview_animation'], $previewPath));
         }
         return $params;
     }
@@ -277,7 +272,7 @@ class VideoProcessingService
             'cfg_scale' => $videoJob->cfg_scale,
             'steps' => $videoJob->steps,
             'denoising_strength' => $videoJob->denoising,
-            'prompt' => $prompts[0],
+            'prompt' =>  $prompts[0] ,
             'negative_prompt' => $prompts[1],
             'seed' => $videoJob->seed,
             'jobid' => $videoJob->id,
@@ -285,17 +280,17 @@ class VideoProcessingService
             'model' => '"' . $modelFile->filename . '"',
             'outfile' => $outFile
         ];
-
+        
 
         if (!empty($videoJob->controlnet)) {
             $controlnetArgs = $this->generateControlnetParams((array) json_decode($videoJob->controlnet, true));
             if (is_array($controlnetArgs))
                 $params += $controlnetArgs;
         }
-        $newParams = json_encode($params);
+        $newParams =  json_encode($params);
         if ($videoJob->generation_parameters != $newParams) {
-            Log::info('Making new version since generation params dont match:', [$newParams, $videoJob->generation_parameters]);
-            $cmdString .= sprintf(' --overwrite ');
+            Log::info('Making new version since generation params dont match:', [$newParams, $videoJob->generation_params]);
+            $cmdString .= sprintf('--overwrite ');
         }
 
         $videoJob->generation_parameters = $newParams;
@@ -309,9 +304,9 @@ class VideoProcessingService
             if ($key == 'prompt' || $key == 'negative_prompt') {
                 $cmdString .= sprintf("--%s=\"%s\" ", $key, $val);
             } else
-                $cmdString .= sprintf('--%s=%s ', $key, $val);
+            $cmdString .= sprintf('--%s=%s ', $key, $val);
         }
-
+        
         $processor = config('app.paths.image_processor_path');
 
         $cmdParts = [
@@ -372,8 +367,6 @@ class VideoProcessingService
                 Log::info($process->output());
             }
         } catch (ProcessFailedException $exception) {
-            Log::info("Killing process {$sessionId}", ['pids' => $pids]);
-
             throw new \Exception($exception->getMessage());
         }
     }

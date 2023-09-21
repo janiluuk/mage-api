@@ -108,6 +108,7 @@ class VideojobController extends Controller
         $videoJob->model_id = 1;
         $videoJob->mimetype = $mimeType;
         $videoJob->queued_at = null;
+        $videoJob->seed = -1;
         $videoJob->frame_count = 90;
         $videoJob->user_id = auth('api')->id();
         $videoJob->prompt = '';
@@ -157,9 +158,16 @@ class VideojobController extends Controller
         $videoJob->prompt = trim($request->input('prompt'));
         $videoJob->status = 'processing';
         $videoJob->progress = 5;
+        $seed = $request->input('seed', -1);
+
+        if ((int) $seed <= 0) {
+            $seed = rand(1, 4294967295);
+        }
+
         $videoJob->fps = 24;
+        $videoJob->generator='deforum';
         $videoJob->length = $length;
-        $videoJob->frame_count = ($length*$videoJob->fps);
+        $videoJob->frame_count = round($length*$videoJob->fps);
         $videoJob->job_time = 3;
         $videoJob->estimated_time_left = ($frameCount * 6) + 6;
         $videoJob->denoising = $request->input('denoising');
@@ -272,8 +280,9 @@ class VideojobController extends Controller
         $videoJob = Videojob::findOrFail($request->input('videoId'));
         $videoJob->resetProgress('approved');
         $length = $request->input('length', 4);
-        $videoJob->frame_count = ($length * 24);
         $videoJob->fps = 24;
+        $videoJob->frame_count = round($length * $videoJob->fps);
+
         $videoJob->length = $length;
         $videoJob->save();
 
