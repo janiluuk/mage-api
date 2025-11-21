@@ -43,7 +43,8 @@ class VideojobQueueTest extends TestCase
 
         $this->actingAs($videoJob->user, 'api');
 
-        $response = $this->postJson('/api/submit', [
+        $response = $this->postJson('/api/generate', [
+            'type' => 'vid2vid',
             'videoId' => $videoJob->id,
             'modelId' => $videoJob->model_id,
             'cfgScale' => 7,
@@ -68,7 +69,8 @@ class VideojobQueueTest extends TestCase
 
         $this->actingAs($videoJob->user, 'api');
 
-        $response = $this->postJson('/api/submit', [
+        $response = $this->postJson('/api/generate', [
+            'type' => 'vid2vid',
             'videoId' => $videoJob->id,
             'modelId' => $videoJob->model_id,
             'cfgScale' => 7,
@@ -96,7 +98,8 @@ class VideojobQueueTest extends TestCase
 
         $this->actingAs($videoJob->user, 'api');
 
-        $response = $this->postJson('/api/submitDeforum', [
+        $response = $this->postJson('/api/generate', [
+            'type' => 'deforum',
             'videoId' => $videoJob->id,
             'modelId' => $videoJob->model_id,
             'prompt' => 'deforum prompt',
@@ -157,7 +160,8 @@ class VideojobQueueTest extends TestCase
 
         $this->actingAs($user, 'api');
 
-        $response = $this->postJson('/api/submitDeforum', [
+        $response = $this->postJson('/api/generate', [
+            'type' => 'deforum',
             'videoId' => $videoJob->id,
             'modelId' => $videoJob->model_id,
             'prompt' => 'stored prompt',
@@ -198,7 +202,8 @@ class VideojobQueueTest extends TestCase
 
         $this->actingAs($user, 'api');
 
-        $response = $this->postJson('/api/submitDeforum', [
+        $response = $this->postJson('/api/generate', [
+            'type' => 'deforum',
             'videoId' => $targetJob->id,
             'modelId' => $targetJob->model_id,
             'prompt' => 'extend attempt',

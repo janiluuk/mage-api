@@ -99,7 +99,24 @@ class VideojobController extends Controller
         ]);
     }
 
-    public function submitDeforum(Request $request): JsonResponse
+    
+    public function generate(Request $request): JsonResponse
+    {
+        $type = $request->input('type', 'vid2vid');
+
+        if (!in_array($type, ['vid2vid', 'deforum'], true)) {
+            return response()->json([
+                'message' => 'Unsupported generation type.',
+            ], 422);
+        }
+
+        return $type === 'deforum'
+            ? $this->generateDeforum($request)
+            : $this->generateVid2Vid($request);
+    }
+
+
+private function generateDeforum(Request $request): JsonResponse
     {
         if ($response = $this->guardAuthenticated()) {
             return $response;
@@ -183,7 +200,7 @@ class VideojobController extends Controller
         ]);
     }
 
-    public function submit(Request $request): JsonResponse
+    private function generateVid2Vid(Request $request): JsonResponse
     {
         if ($response = $this->guardAuthenticated()) {
             return $response;
@@ -246,24 +263,25 @@ class VideojobController extends Controller
         ]);
     }
 
-    public function finalizeDeforum(Request $request): JsonResponse
-    {
-        if ($response = $this->guardAuthenticated()) {
-            return $response;
-        }
+    public function finalize(Request $request): JsonResponse
+{
+    if ($response = $this->guardAuthenticated()) {
+        return $response;
+    }
 
+    $videoJob = Videojob::findOrFail($request->input('videoId'));
+
+    if ($response = $this->assertOwner($videoJob)) {
+        return $response;
+    }
+
+    if ($videoJob->generator === 'deforum') {
         $request->validate([
             'modelId' => 'integer',
             'prompt' => 'string',
             'preset' => 'string',
             'length' => 'numeric|between:1,20',
         ]);
-
-        $videoJob = Videojob::findOrFail($request->input('videoId'));
-
-        if ($response = $this->assertOwner($videoJob)) {
-            return $response;
-        }
 
         $videoJob->resetProgress('approved');
         $videoJob->fps = 24;
@@ -277,45 +295,24 @@ class VideojobController extends Controller
 
         $videoJob->refresh();
         ProcessDeforumJob::dispatch($videoJob, 0)->onQueue($this->resolveQueueName('LOW_PRIORITY_QUEUE', 'low'));
-
-        return response()->json([
-            'status' => $videoJob->status,
-            'progress' => $videoJob->progress,
-            'job_time' => $videoJob->job_time,
-            'retries' => $videoJob->retries,
-            'queued_at' => $this->queuedAtTimestamp($videoJob->queued_at),
-            'estimated_time_left' => $videoJob->estimated_time_left,
-        ]);
-    }
-
-    public function finalize(Request $request): JsonResponse
-    {
-        if ($response = $this->guardAuthenticated()) {
-            return $response;
-        }
-
-        $videoJob = Videojob::findOrFail($request->input('videoId'));
-
-        if ($response = $this->assertOwner($videoJob)) {
-            return $response;
-        }
-
+    } else {
         $videoJob->resetProgress('approved');
 
         $videoJob->refresh();
         ProcessVideoJob::dispatch($videoJob, 0)->onQueue($this->resolveQueueName('LOW_PRIORITY_QUEUE', 'low'));
-
-        return response()->json([
-            'status' => $videoJob->status,
-            'progress' => $videoJob->progress,
-            'job_time' => $videoJob->job_time,
-            'retries' => $videoJob->retries,
-            'queued_at' => $this->queuedAtTimestamp($videoJob->queued_at),
-            'estimated_time_left' => $videoJob->estimated_time_left,
-        ]);
     }
 
-    public function cancelJob(Request $request): JsonResponse
+    return response()->json([
+        'status' => $videoJob->status,
+        'progress' => $videoJob->progress,
+        'job_time' => $videoJob->job_time,
+        'retries' => $videoJob->retries,
+        'queued_at' => $this->queuedAtTimestamp($videoJob->queued_at),
+        'estimated_time_left' => $videoJob->estimated_time_left,
+    ]);
+}
+
+public function cancelJob(Request $request): JsonResponse
     {
         if ($response = $this->guardAuthenticated()) {
             return $response;
@@ -342,12 +339,26 @@ class VideojobController extends Controller
         $videoJob = Videojob::findOrFail($id);
 
         return response()->json([
+            'id' => $videoJob->id,
             'status' => $videoJob->status,
             'progress' => $videoJob->progress,
             'estimated_time_left' => $videoJob->estimated_time_left,
             'job_time' => $videoJob->job_time,
             'queued_at' => $this->queuedAtTimestamp($videoJob->queued_at),
             'queue' => $videoJob->status === 'approved' ? $videoJob->getQueueInfo() : [],
+            'generator' => $videoJob->generator,
+            'model_id' => $videoJob->model_id,
+            'prompt' => $videoJob->prompt,
+            'negative_prompt' => $videoJob->negative_prompt,
+            'cfg_scale' => $videoJob->cfg_scale,
+            'seed' => $videoJob->seed,
+            'denoising' => $videoJob->denoising,
+            'fps' => $videoJob->fps,
+            'frame_count' => $videoJob->frame_count,
+            'length' => $videoJob->length,
+            'width' => $videoJob->width,
+            'height' => $videoJob->height,
+            'generation_parameters' => $videoJob->generation_parameters,
         ]);
     }
 

@@ -169,6 +169,7 @@ class Videojob extends Model implements HasMedia
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'queued_at' => 'timestamp',
+        'generation_parameters' => 'array',
     ];
     public function user()
     {
