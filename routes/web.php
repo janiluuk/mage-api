@@ -28,9 +28,10 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 });
 Route::post('/upload', [VideojobController::class, 'upload'])->middleware('auth:api');
 Route::post('/cancelJob/{id}', [VideojobController::class, 'cancelJob'])->middleware('auth:api');
-Route::post('/submit', [VideojobController::class, 'submit'])->middleware('auth:api');
+Route::post('/generate', [VideojobController::class, 'generate'])->middleware('auth:api');
 Route::post('/finalize', [VideojobController::class, 'finalize']);
 Route::get('/status/{id}', [VideojobController::class, 'status']);
+Route::get('/queue', [VideojobController::class, 'getVideoJobs'])->middleware('auth:api');
 ctf0\MediaManager\MediaRoutes::routes();
 
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 

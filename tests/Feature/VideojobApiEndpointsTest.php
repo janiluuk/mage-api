@@ -102,7 +102,7 @@ class VideojobApiEndpointsTest extends TestCase
 
         $this->actingAs($videoJob->user, 'api');
 
-        $response = $this->postJson('/api/finalizeDeforum', [
+        $response = $this->postJson('/api/finalize', [
             'videoId' => $videoJob->id,
         ]);
 
@@ -158,7 +158,28 @@ class VideojobApiEndpointsTest extends TestCase
         ]);
     }
 
-    public function test_status_includes_queue_snapshot_for_approved_job(): void
+    
+
+    public function test_queue_endpoint_returns_user_jobs(): void
+    {
+        $user = User::factory()->create();
+
+        $ownedJobs = Videojob::factory()
+            ->count(3)
+            ->for($user, 'user')
+            ->create();
+
+        // Jobs for other users should not be included
+        Videojob::factory()->count(2)->create();
+
+        $this->actingAs($user, 'api');
+
+        $response = $this->getJson('/api/queue');
+
+        $response->assertOk();
+        $response->assertJsonCount(3);
+    }
+public function test_status_includes_queue_snapshot_for_approved_job(): void
     {
         Carbon::setTestNow('2024-05-05 12:00:00');
 
@@ -206,7 +227,7 @@ class VideojobApiEndpointsTest extends TestCase
 
         $this->actingAs(User::factory()->create(), 'api');
 
-        $response = $this->postJson('/api/finalizeDeforum', [
+        $response = $this->postJson('/api/finalize', [
             'videoId' => $videoJob->id,
         ]);
 

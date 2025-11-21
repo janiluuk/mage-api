@@ -1,4 +1,4 @@
-# Mage AI Studio backend
+# Vimage Backend API
 
 Laravel 10 API that powers uploads, video production, AI studio experiences for remixing existing or newly generated material, and GPU resource credit workflows for the clients.
 
@@ -46,15 +46,14 @@ API v2 mirrors these at `/api/v2/*` plus `/api/v2/me`.
 
 ### Video jobs
 
-- `POST /api/upload` — upload source media with `attachment`, optional `soundtrack` (mp3/aac/wav), and `type` of `vid2vid` or `deforum`.
-- `POST /api/submit` — submit vid2vid parameters (`modelId`, `cfgScale`, `prompt`, `frameCount`, `denoising`).
-- `POST /api/submitDeforum` — submit deforum parameters (`modelId`, `prompt`, `preset`, `length`, optional `frameCount`).
-- `POST /api/submitDeforum` with `extendFromJobId` — extend a finished deforum job using its saved settings and last frame as the
-  init image.
-- `POST /api/finalize` / `POST /api/finalizeDeforum` — approve and enqueue jobs for processing.
-- `POST /api/cancelJob/{videoId}` — cancel a pending job.
-- `GET /api/status/{videoId}` — check job progress.
-
+- `POST /api/upload` — upload source media with `attachment`, optional `soundtrack` (mp3/aac/wav), and a required `type` of `vid2vid` or `deforum`. This creates a pending `video_jobs` record and stores the media.
+- `POST /api/generate` — start generation for an existing uploaded job. Requires `videoId` and `type` (`vid2vid` or `deforum`), plus type-specific parameters:
+  - `vid2vid`: `modelId`, `cfgScale`, `prompt`, `frameCount`, `denoising`, optional `seed`.
+  - `deforum`: `modelId`, `prompt`, `preset`, `length`, optional `frameCount`, optional `extendFromJobId` to extend from a finished deforum job using its saved settings and last frame as the init image.
+- `POST /api/finalize` — approve and enqueue vid2vid or deforum jobs for processing (moves from `pending` to `approved` and pushes to the configured queue based on the job's \`generator\` field).
+- `POST /api/cancelJob/{videoId}` — cancel a pending or processing job and reset progress.
+- `GET /status/{videoId}` — check job status, progress, queue snapshot, and full generation parameters for a single job.
+- `GET /api/queue` — list all jobs for the authenticated user (their personal queue view, including status and progress).
 ### GPU resource credits & messaging
 
 - Categories and GPU credit products: `GET /api/categories`, `GET /api/categories/{id}`, `GET /api/products`, `GET /api/products/{productId}`,
