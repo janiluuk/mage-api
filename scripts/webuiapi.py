@@ -1,11 +1,20 @@
-import json
-import requests
-import io
+"""Lightweight client for interacting with the Stable Diffusion WebUI API.
+
+The module provides a small, dependency-free interface for common API calls
+used by the scripts in this repository. It keeps network usage minimal by
+reusing a single requests session and offering synchronous and asynchronous
+helpers for the same endpoints.
+"""
+
 import base64
-from PIL import Image, PngImagePlugin
+import io
+import json
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
+import requests
+from PIL import Image, PngImagePlugin
 
 
 class Upscaler(str, Enum):

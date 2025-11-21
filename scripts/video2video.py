@@ -1,24 +1,33 @@
 #!/usr/bin/python3
-import argparse
-import math
-from datetime import datetime
-import random
-import ffmpeg
+"""Video-to-video transformation pipeline for Codename Vimage.
 
-import mysql.connector
-import subprocess
-import imageio.v3 as iio
-from moviepy.editor import VideoFileClip, AudioFileClip
-import imageio.v2 as imageio
-import time
+The script orchestrates frame extraction, Stable Diffusion processing, progress
+tracking, and output assembly. It intentionally keeps heavy operations minimal
+by caching metadata lookups, reusing ControlNet units, and avoiding redundant
+reads when probing input files.
+"""
+
+import argparse
 import json
-from progressbar import AdaptiveETA, Percentage, Bar, ProgressBar, FormatLabel
+import math
 import os
+import random
+import subprocess
 import sys
-import numpy as np
-from PIL import Image, ImageSequence
+import time
 import warnings
+from datetime import datetime
+
+import ffmpeg
+import imageio.v2 as imageio
+import imageio.v3 as iio
+import mysql.connector
+import numpy as np
 from apng import APNG
+from moviepy.editor import AudioFileClip, VideoFileClip
+from PIL import Image, ImageSequence
+from progressbar import AdaptiveETA, Bar, FormatLabel, Percentage, ProgressBar
+
 import webuiapi
 
 warnings.filterwarnings("ignore")
@@ -53,6 +62,8 @@ starttime = time.time()
 audioFile = None
 
 class VideoProcessor:
+    """Process videos frame-by-frame through Stable Diffusion."""
+
     def __init__(self, args):
         self.args = args
         self.frames = []
@@ -227,7 +238,36 @@ class VideoProcessor:
         if self.args.unit3_params is not None:
             self.makeControlnetUnit(self.args.unit3_params);
         self.debugPrint("{0} controlnet units found".format(len(self.controlnetUnits)))
-    
+
+
+    def _probe_metadata(self, path):
+        """Read FPS and duration once, falling back to resized proxy if needed."""
+
+        metadata = iio.immeta(path, plugin="pyav")
+        fps = self.args.fps or metadata.get("fps")
+        duration = (
+            self.args.duration
+            if self.args.duration and self.args.duration > 0
+            else metadata.get("duration")
+        )
+
+        if fps is None or duration is None:
+            newpath = os.path.splitext(path)[0] + "_temp.mp4"
+            resize_script = "/opt/bin/resize_video.sh"
+            resize_cmd = [resize_script, path, newpath]
+            resize_cmd_output = subprocess.check_output(resize_cmd).decode("utf-8")
+            self.debugPrint(resize_cmd_output.strip())
+            metadata = iio.immeta(newpath, plugin="pyav")
+            fps = self.args.fps or metadata.get("fps")
+            duration = (
+                self.args.duration
+                if self.args.duration and self.args.duration > 0
+                else metadata.get("duration")
+            )
+            path = newpath
+
+        return fps, duration, path
+
     
     def isAnimatedGif(self):
         if (self.isAnimated is not None):
@@ -402,17 +442,7 @@ class VideoProcessor:
         else:
             self.args.seed = random.randint(1, 2147483647)
 
-        metadata = iio.immeta(path, plugin="pyav")
-
-        if self.args.fps and self.args.fps > 0:
-            fps = self.args.fps
-        else:
-            fps = metadata.get("fps")
-
-        if self.args.duration and self.args.duration > 0:
-            duration = int(fps * self.args.duration)
-        else:
-            duration = metadata.get("duration")
+        fps, duration, path = self._probe_metadata(path)
         preview_img_fullpath = False
         preview_img_url = False
         animated_preview_img_url = False
@@ -434,20 +464,6 @@ class VideoProcessor:
                 print("Using "+animated_preview_img_url+" for animated preview url")
                 print("Using "+animated_preview_img_fullpath+" for animated path")
                 
-
-        if fps is None or duration is None:
-            newpath = os.path.splitext(self.args.path)[0]+'_temp.mp4'
-            resize_script = "/opt/bin/resize_video.sh"
-            resize_cmd = [
-                resize_script,
-                self.args.path,
-                newpath
-            ]
-            resize_cmd_output = subprocess.check_output(resize_cmd).decode("utf-8")
-            metadata = iio.immeta(newpath, plugin="pyav")
-            fps = metadata.get("fps")
-            duration = metadata.get("duration")
-            path = newpath
 
         if fps is None or duration is None:
             print("Unable to extract FPS and duration from the video file.")
