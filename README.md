@@ -83,7 +83,7 @@ Make sure your `.env` is configured with database credentials, Redis connection 
 
 ## Keeping Your Branch Up To Date
 
-For PRs that fall behind `main`, rebase instead of merging to keep history clean and avoid noisy merge commits:
+For PRs that fall behind `main`, rebase instead of merging to keep history clean and avoid noisy merge commits. A dedicated PR workflow now fails fast when your branch cannot merge cleanly with the base branch, so fix any local conflicts before pushing:
 
 ```bash
 git remote add origin <your-fork-or-upstream-url>   # only once
@@ -91,6 +91,12 @@ git fetch origin
 git rebase origin/main
 # Resolve any conflicts, then continue
 git rebase --continue
+
+# Locally mirror the mergeability check that runs in CI
+BASE="main"  # or the PR base branch
+git fetch origin "$BASE"
+git merge --no-commit --no-ff "origin/$BASE"  # aborts with non-zero on conflicts
+git merge --abort
 ```
 
 ### Resolving conflicts safely
