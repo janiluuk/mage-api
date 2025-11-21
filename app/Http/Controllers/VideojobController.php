@@ -278,7 +278,7 @@ class VideojobController extends Controller
             'progress' => $videoJob->progress,
             'job_time' => $videoJob->job_time,
             'retries' => $videoJob->retries,
-            'queued_at' => $videoJob->queued_at,
+            'queued_at' => $this->queuedAtTimestamp($videoJob->queued_at),
             'estimated_time_left' => $videoJob->estimated_time_left,
         ]);
     }
@@ -305,7 +305,7 @@ class VideojobController extends Controller
             'progress' => $videoJob->progress,
             'job_time' => $videoJob->job_time,
             'retries' => $videoJob->retries,
-            'queued_at' => $videoJob->queued_at,
+            'queued_at' => $this->queuedAtTimestamp($videoJob->queued_at),
             'estimated_time_left' => $videoJob->estimated_time_left,
         ]);
     }
@@ -341,9 +341,22 @@ class VideojobController extends Controller
             'progress' => $videoJob->progress,
             'estimated_time_left' => $videoJob->estimated_time_left,
             'job_time' => $videoJob->job_time,
-            'queued_at' => $videoJob->queued_at,
+            'queued_at' => $this->queuedAtTimestamp($videoJob->queued_at),
             'queue' => $videoJob->status === 'approved' ? $videoJob->getQueueInfo() : [],
         ]);
+    }
+
+    private function queuedAtTimestamp($queuedAt): ?int
+    {
+        if (is_null($queuedAt)) {
+            return null;
+        }
+
+        if (is_numeric($queuedAt)) {
+            return (int) $queuedAt;
+        }
+
+        return $queuedAt instanceof \Carbon\CarbonInterface ? $queuedAt->timestamp : null;
     }
 
     public function getVideoJobs(): JsonResponse

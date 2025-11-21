@@ -1,6 +1,6 @@
 # Vimage Backend API
 
-Laravel 10 API that powers uploads, video generation, and marketplace features for the Vimage clients.
+Laravel 10 API that powers uploads, video production, and marketplace features for the clients.
 
 ## What’s inside
 
