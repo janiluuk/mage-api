@@ -148,6 +148,7 @@ private function generateDeforum(Request $request): JsonResponse
 
             $persistedParameters = json_decode((string) $baseJob->generation_parameters, true) ?? [];
 
+            // Set defaults from base job (these will be overridden if provided in request)
             $videoJob->model_id = $persistedParameters['model_id'] ?? $baseJob->model_id;
             $videoJob->prompt = $persistedParameters['prompts']['positive'] ?? $baseJob->prompt;
             $videoJob->negative_prompt = $persistedParameters['prompts']['negative'] ?? $baseJob->negative_prompt;
@@ -162,7 +163,8 @@ private function generateDeforum(Request $request): JsonResponse
             return $response;
         }
 
-        $videoJob->model_id = $request->input('modelId', $videoJob->model_id);
+        // Override with request parameters only if not extending or if explicitly provided
+        $videoJob->model_id = $extendFromJobId && !$request->has('modelId') ? $videoJob->model_id : $request->input('modelId', $videoJob->model_id);
         $videoJob->prompt = trim((string) $request->input('prompt', $videoJob->prompt));
         $videoJob->negative_prompt = trim((string) $request->input('negative_prompt', $videoJob->negative_prompt));
         $videoJob->status = 'processing';
@@ -212,6 +214,9 @@ private function generateDeforum(Request $request): JsonResponse
             'prompt' => 'required|string',
             'frameCount' => 'numeric|between:1,20',
             'denoising' => 'required|numeric|between:0.1,1.0',
+            'seed' => 'nullable|integer',
+            'negative_prompt' => 'nullable|string',
+            'controlnet' => 'nullable|array',
         ]);
 
         $seed = $this->normalizeSeed((int) $request->input('seed', -1));

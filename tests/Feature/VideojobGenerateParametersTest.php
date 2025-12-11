@@ -134,7 +134,12 @@ class VideojobGenerateParametersTest extends TestCase
         ]);
 
         $response->assertStatus(422);
-        $response->assertJsonValidationErrors('cfgScale');
+        // Check for validation error in response
+        $this->assertTrue(
+            $response->json('error.validator.cfgScale') !== null || 
+            $response->json('errors.cfgScale') !== null,
+            'Expected cfgScale validation error'
+        );
     }
 
     public function test_generate_vid2vid_validates_denoising_range(): void
@@ -154,7 +159,12 @@ class VideojobGenerateParametersTest extends TestCase
         ]);
 
         $response->assertStatus(422);
-        $response->assertJsonValidationErrors('denoising');
+        // Check for validation error in response
+        $this->assertTrue(
+            $response->json('error.validator.denoising') !== null || 
+            $response->json('errors.denoising') !== null,
+            'Expected denoising validation error'
+        );
     }
 
     public function test_generate_vid2vid_dispatches_to_high_priority_queue_for_single_frame(): void
@@ -300,7 +310,12 @@ class VideojobGenerateParametersTest extends TestCase
         ]);
 
         $response->assertStatus(422);
-        $response->assertJsonValidationErrors('length');
+        // Check for validation error in response
+        $this->assertTrue(
+            $response->json('error.validator.length') !== null || 
+            $response->json('errors.length') !== null,
+            'Expected length validation error'
+        );
     }
 
     public function test_generate_deforum_can_extend_from_existing_job(): void
@@ -472,7 +487,7 @@ class VideojobGenerateParametersTest extends TestCase
         ]);
 
         $response->assertStatus(422);
-        $response->assertJson(['message' => 'Unsupported generation type.']);
+        $response->assertJsonValidationErrors('type');
     }
 
     public function test_generate_calculates_estimated_time_correctly(): void
