@@ -40,15 +40,20 @@ final class PurgeUserDataAction
 
         // Delete all user data in a transaction
         DB::transaction(function () use ($user) {
-            // Delete relationships (some may cascade automatically)
-            $user->products()->delete();
-            $user->videoJobs()->delete();
-            $user->items()->delete();
-            $user->messages()->delete();
-            $user->chat()->delete();
-            $user->orders()->delete();
-            $user->financeOperations()->delete();
-            $user->supportRequests()->delete();
+            // Force delete relationships (permanently remove, bypassing soft deletes)
+            $user->products()->forceDelete();
+            $user->videoJobs()->forceDelete();
+            $user->items()->forceDelete();
+            $user->messages()->forceDelete();
+            
+            // For chats, we need to delete each one individually since chat() returns a query builder
+            $user->chat()->get()->each(function ($chat) {
+                $chat->forceDelete();
+            });
+            
+            $user->orders()->forceDelete();
+            $user->financeOperations()->forceDelete();
+            $user->supportRequests()->forceDelete();
             
             // Clear media files
             $user->clearMediaCollection();
