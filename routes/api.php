@@ -207,7 +207,6 @@ Route::group(
     ],
     function () {
         Route::get('', [PropertyController::class, 'getPropertyByCategoryId']);
-        Route::get('properties', [PropertyController::class, 'getPropertyByCategoryId']);
     }
 );
 
@@ -243,14 +242,13 @@ Route::prefix('/administration')->group(function () {
         Route::get('/users', [UserController::class, 'getAllUsers']);
         Route::post('/support-requests', [SupportRequestController::class, 'getSupportRequestsByCriteria']);
         Route::patch('/admin-reset-user-password', [UserController::class, 'adminResetUserPassword']);
+        Route::patch('/users/admin-reset-user-password', [UserController::class, 'adminResetUserPassword']);
         Route::patch('/change-user-data', [UserController::class, 'changeUserData']);
         Route::get('/finance-operations/get-all', [FinanceOperationsController::class, 'getAllFinanceOperations']);
     });
 
     // Authenticated user routes (non-admin)
     Route::middleware('AuthorizationChecker')->group(function () {
-        Route::patch('/users/admin-reset-user-password', [UserController::class, 'adminResetUserPassword']);
-        Route::patch('/change-user-data', [UserController::class, 'changeUserData']);
         Route::get('/orders', [OrderController::class, 'getAllOrders']);
         Route::patch('/orders/change-order-status', [OrderController::class, 'changeOrderStatus']);
         Route::patch('/change-password', [UserController::class, 'changePassword']);

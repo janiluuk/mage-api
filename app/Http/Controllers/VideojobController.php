@@ -526,7 +526,9 @@ public function cancelJob(int $videoId): JsonResponse
 
     private function resolveQueueName(string $envKey, string $default): string
     {
-        $queue = config('queue.' . strtolower($envKey));
+        // Note: Queue names should be defined in config/queue.php for proper config caching
+        // For now, using env() with a fallback. Consider moving to config file.
+        $queue = config("queue.names.{$envKey}", env($envKey));
 
         return ! empty($queue) ? $queue : $default;
     }
