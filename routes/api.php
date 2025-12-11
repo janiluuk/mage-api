@@ -135,17 +135,13 @@ Route::prefix('/administration')->group(function () {
         Route::post('/support-requests', [SupportRequestController::class, 'getSupportRequestsByCriteria']);
         Route::patch('/admin-reset-user-password', [UserController::class, 'adminResetUserPassword']);
         Route::patch('/change-user-data', [UserController::class, 'changeUserData']);
-        
-        // SD Instance management routes
-        Route::get('/sd-instances', [SdInstanceController::class, 'index']);
-        Route::post('/sd-instances', [SdInstanceController::class, 'store']);
-        Route::get('/sd-instances/{id}', [SdInstanceController::class, 'show']);
-        Route::put('/sd-instances/{id}', [SdInstanceController::class, 'update']);
-        Route::patch('/sd-instances/{id}', [SdInstanceController::class, 'update']);
-        Route::delete('/sd-instances/{id}', [SdInstanceController::class, 'destroy']);
-        Route::patch('/sd-instances/{id}/toggle', [SdInstanceController::class, 'toggle']);
+        Route::get('/finance-operations/get-all', [FinanceOperationsController::class, 'getAllFinanceOperations']);
+        Route::get('/orders', [OrderController::class, 'getAllOrders']);
+        Route::patch('/orders/change-order-status', [OrderController::class, 'changeOrderStatus']);
+        Route::patch('/change-password', [UserController::class, 'changePassword']);
     });
 });
+
 
 Route::prefix('/categories')->group(
     function () {
@@ -207,12 +203,6 @@ Route::prefix('/finance-operations')->group(
     }
 );
 
-Route::prefix('/administration')->group(function () {
-    Route::middleware(['AuthorizationChecker', 'IsAdministratorChecker'])->group(function () {
-        Route::get('/finance-operations/get-all', [FinanceOperationsController::class, 'getAllFinanceOperations']);
-    });
-});
-
 Route::group(
     [
         'prefix' => '/wallet-types',
@@ -228,7 +218,6 @@ Route::group(
     ],
     function () {
         Route::get('', [PropertyController::class, 'getPropertyByCategoryId']);
-        Route::get('properties', [PropertyController::class, 'getPropertyByCategoryId']);
     }
 );
 
@@ -256,22 +245,6 @@ Route::prefix('/orders')->group(
     }
 );
 
-
-Route::group(
-    [
-        'prefix' => 'administration',
-    ],
-    function () {
-        Route::middleware('AuthorizationChecker')->group(function () {
-            Route::get('/users', [UserController::class, 'getAllUsers']);
-            Route::patch('/users/admin-reset-user-password', [UserController::class, 'adminResetUserPassword']);
-            Route::patch('/change-user-data', [UserController::class, 'changeUserData']);
-            Route::get('/orders', [OrderController::class, 'getAllOrders']);
-            Route::patch('/orders/change-order-status', [OrderController::class, 'changeOrderStatus']);
-            Route::patch('/change-password', [UserController::class, 'changePassword']);
-        });
-    }
-);
 
 Route::prefix('/user-ratings')->group(
     function () {
