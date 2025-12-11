@@ -6,10 +6,12 @@ use App\Jobs\ProcessDeforumJob;
 use App\Jobs\ProcessVideoJob;
 use App\Models\User;
 use App\Models\Videojob;
+use App\Services\VideoProcessingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Mockery;
 use Tests\TestCase;
 
 class VideojobExtensionTest extends TestCase
@@ -17,6 +19,7 @@ class VideojobExtensionTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+    private VideoProcessingService $mockVideoService;
 
     protected function setUp(): void
     {
@@ -24,7 +27,17 @@ class VideojobExtensionTest extends TestCase
 
         $this->withoutMiddleware();
 
+        $this->mockVideoService = Mockery::mock(VideoProcessingService::class);
+        $this->mockVideoService->shouldIgnoreMissing();
+        $this->app->instance(VideoProcessingService::class, $this->mockVideoService);
+
         $this->user = User::factory()->create();
+    }
+
+    protected function tearDown(): void
+    {
+        Mockery::close();
+        parent::tearDown();
     }
 
     /**
