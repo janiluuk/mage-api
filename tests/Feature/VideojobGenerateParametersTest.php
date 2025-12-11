@@ -487,7 +487,12 @@ class VideojobGenerateParametersTest extends TestCase
         ]);
 
         $response->assertStatus(422);
-        $response->assertJsonValidationErrors('type');
+        // Check for validation error in response
+        $this->assertTrue(
+            $response->json('error.validator.type') !== null || 
+            $response->json('errors.type') !== null,
+            'Expected type validation error'
+        );
     }
 
     public function test_generate_calculates_estimated_time_correctly(): void

@@ -163,8 +163,11 @@ private function generateDeforum(Request $request): JsonResponse
             return $response;
         }
 
-        // Override with request parameters only if not extending or if explicitly provided
-        $videoJob->model_id = $extendFromJobId && !$request->has('modelId') ? $videoJob->model_id : $request->input('modelId', $videoJob->model_id);
+        // When extending, keep base job's model_id; otherwise use request value
+        if (!$extendFromJobId) {
+            $videoJob->model_id = $request->input('modelId', $videoJob->model_id);
+        }
+        // else: extending - keep the model_id from base job (already set above at line 152)
         $videoJob->prompt = trim((string) $request->input('prompt', $videoJob->prompt));
         $videoJob->negative_prompt = trim((string) $request->input('negative_prompt', $videoJob->negative_prompt));
         $videoJob->status = 'processing';
