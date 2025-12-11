@@ -148,15 +148,19 @@ private function generateDeforum(Request $request): JsonResponse
 
             $persistedParameters = json_decode((string) $baseJob->generation_parameters, true) ?? [];
 
-            // Set defaults from base job (will use request values if provided)
-            $videoJob->model_id = $request->input('modelId', $persistedParameters['model_id'] ?? $baseJob->model_id);
+            // When extending, inherit model_id from base job (not overridable)
+            $videoJob->model_id = $persistedParameters['model_id'] ?? $baseJob->model_id;
+            
+            // These parameters can be overridden by request
             $videoJob->prompt = $request->input('prompt', $persistedParameters['prompts']['positive'] ?? $baseJob->prompt);
             $videoJob->negative_prompt = $request->input('negative_prompt', $persistedParameters['prompts']['negative'] ?? $baseJob->negative_prompt);
+            $videoJob->length = $request->input('length', $persistedParameters['length'] ?? $baseJob->length);
+            
+            // These parameters come from base job only
             $videoJob->seed = $request->input('seed', $persistedParameters['seed'] ?? $baseJob->seed);
             $videoJob->denoising = $request->input('denoising', $persistedParameters['denoising'] ?? $baseJob->denoising);
             $videoJob->fps = $persistedParameters['fps'] ?? $baseJob->fps;
             $videoJob->frame_count = $persistedParameters['frame_count'] ?? $baseJob->frame_count;
-            $videoJob->length = $request->input('length', $persistedParameters['length'] ?? $baseJob->length);
             $videoJob->width = $baseJob->width;
             $videoJob->height = $baseJob->height;
         } else {
@@ -180,7 +184,6 @@ private function generateDeforum(Request $request): JsonResponse
         $videoJob->frame_count = round($videoJob->length * $videoJob->fps);
         $videoJob->job_time = 3;
         $videoJob->estimated_time_left = ($videoJob->frame_count * 6) + 6;
-        $videoJob->denoising = $request->input('denoising', $videoJob->denoising);
         $videoJob->queued_at = Carbon::now();
         $videoJob->save();
 
