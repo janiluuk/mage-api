@@ -52,8 +52,6 @@ class SdInstanceManagementTest extends TestCase
         $this->assertDatabaseHas('sd_instances', $data);
     }
 
-
-
     public function test_show_returns_single_sd_instance(): void
     {
         $instance = SdInstance::factory()->create([

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\SdInstanceUnavailableException;
 use App\Models\ModelFile;
 use App\Models\Videojob;
 use Illuminate\Support\Facades\Log;
@@ -104,7 +105,7 @@ class DeforumProcessingService
                 // Get SD instance URL
                 $sdInstanceUrl = $this->sdInstanceService->getEnabledInstanceUrl('stable_diffusion_forge');
                 if (!$sdInstanceUrl) {
-                    throw new \Exception('No enabled Stable Diffusion instance available');
+                    throw SdInstanceUnavailableException::forType('stable_diffusion_forge');
                 }
                 
                 while ($running) {
