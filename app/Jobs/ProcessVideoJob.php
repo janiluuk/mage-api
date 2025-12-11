@@ -32,7 +32,11 @@ class ProcessVideoJob implements ShouldQueue, ShouldBeUnique
 
     public function uniqueId(): string
     {
-        return $this->videoJob->id . '-' . $this->previewFrames . '-' . ($this->extendFromJobId ?? 'base');
+        $id = $this->videoJob->id . '-' . $this->previewFrames;
+        if ($this->extendFromJobId !== null) {
+            $id .= '-' . $this->extendFromJobId;
+        }
+        return $id;
     }
 
     /**

@@ -168,6 +168,7 @@ private function generateDeforum(Request $request): JsonResponse
             $videoJob->prompt = trim((string) $request->input('prompt', $videoJob->prompt));
             $videoJob->negative_prompt = trim((string) $request->input('negative_prompt', $videoJob->negative_prompt));
             $videoJob->length = $request->input('length', $videoJob->length ?? 4);
+            $videoJob->denoising = $request->input('denoising', $videoJob->denoising);
         }
 
         if ($response = $this->assertOwner($videoJob)) {
