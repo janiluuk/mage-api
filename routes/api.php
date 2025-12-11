@@ -139,6 +139,15 @@ Route::prefix('/administration')->group(function () {
         Route::get('/orders', [OrderController::class, 'getAllOrders']);
         Route::patch('/orders/change-order-status', [OrderController::class, 'changeOrderStatus']);
         Route::patch('/change-password', [UserController::class, 'changePassword']);
+        
+        // SD Instance management routes
+        Route::get('/sd-instances', [SdInstanceController::class, 'index']);
+        Route::post('/sd-instances', [SdInstanceController::class, 'store']);
+        Route::get('/sd-instances/{id}', [SdInstanceController::class, 'show']);
+        Route::put('/sd-instances/{id}', [SdInstanceController::class, 'update']);
+        Route::patch('/sd-instances/{id}', [SdInstanceController::class, 'update']);
+        Route::delete('/sd-instances/{id}', [SdInstanceController::class, 'destroy']);
+        Route::patch('/sd-instances/{id}/toggle', [SdInstanceController::class, 'toggle']);
     });
 });
 
