@@ -74,6 +74,7 @@ class VideojobGenerateParametersTest extends TestCase
     public function test_generate_vid2vid_with_all_parameters(): void
     {
         Queue::fake();
+        config(['queue.names.MEDIUM_PRIORITY_QUEUE' => 'normal']);
         
         $user = User::factory()->create();
         $videoJob = Videojob::factory()->for($user, 'user')->create([
