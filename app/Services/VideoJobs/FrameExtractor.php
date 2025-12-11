@@ -34,13 +34,13 @@ class FrameExtractor
             }
 
             // Extract first frame using ffmpeg
-            $command = sprintf(
-                'ffmpeg -y -i %s -vframes 1 -vf "select=eq(n\,0)" %s',
-                escapeshellarg($videoPath),
-                escapeshellarg($outputPath)
-            );
-
-            $process = Process::fromShellCommandline($command);
+            $process = new Process([
+                'ffmpeg',
+                '-y',
+                '-i', $videoPath,
+                '-vframes', '1',
+                $outputPath
+            ]);
             $process->setTimeout(30);
             $process->mustRun();
 
@@ -87,13 +87,14 @@ class FrameExtractor
             }
 
             // Extract last frame using ffmpeg (seek to end minus 1 second)
-            $command = sprintf(
-                'ffmpeg -y -sseof -1 -i %s -vframes 1 %s',
-                escapeshellarg($videoPath),
-                escapeshellarg($outputPath)
-            );
-
-            $process = Process::fromShellCommandline($command);
+            $process = new Process([
+                'ffmpeg',
+                '-y',
+                '-sseof', '-1',
+                '-i', $videoPath,
+                '-vframes', '1',
+                $outputPath
+            ]);
             $process->setTimeout(30);
             $process->mustRun();
 

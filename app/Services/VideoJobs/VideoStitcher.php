@@ -43,10 +43,12 @@ class VideoStitcher
 
             // Create a temporary file list for ffmpeg concat
             $listPath = sys_get_temp_dir() . '/ffmpeg_concat_' . uniqid() . '.txt';
+            
+            // Write absolute paths to the list file (no need for escaping in file)
             $listContent = sprintf(
                 "file '%s'\nfile '%s'",
-                str_replace("'", "'\\''", $firstVideoPath),
-                str_replace("'", "'\\''", $secondVideoPath)
+                $firstVideoPath,
+                $secondVideoPath
             );
             
             file_put_contents($listPath, $listContent);
@@ -59,13 +61,15 @@ class VideoStitcher
             ]);
 
             // Use ffmpeg concat demuxer to stitch videos
-            $command = sprintf(
-                'ffmpeg -y -f concat -safe 0 -i %s -c copy %s',
-                escapeshellarg($listPath),
-                escapeshellarg($outputPath)
-            );
-
-            $process = Process::fromShellCommandline($command);
+            $process = new Process([
+                'ffmpeg',
+                '-y',
+                '-f', 'concat',
+                '-safe', '0',
+                '-i', $listPath,
+                '-c', 'copy',
+                $outputPath
+            ]);
             $process->setTimeout(600); // 10 minutes for large videos
             $process->mustRun();
 

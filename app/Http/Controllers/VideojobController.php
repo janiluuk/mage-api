@@ -250,12 +250,26 @@ private function generateDeforum(Request $request): JsonResponse
                 // Copy the last frame to use as the new job's original video
                 $videosPath = config('app.paths.videos', 'videos');
                 $targetPath = public_path($videosPath . '/' . $videoJob->id . '_extend_init.png');
-                copy($baseJob->last_frame_path, $targetPath);
-                Log::info('Using last frame from base job as init image', [
-                    'base_job_id' => $baseJob->id,
-                    'last_frame' => $baseJob->last_frame_path,
-                    'target_path' => $targetPath,
-                ]);
+                
+                // Ensure directory exists
+                $targetDir = dirname($targetPath);
+                if (!is_dir($targetDir)) {
+                    mkdir($targetDir, 0755, true);
+                }
+                
+                if (copy($baseJob->last_frame_path, $targetPath)) {
+                    Log::info('Using last frame from base job as init image', [
+                        'base_job_id' => $baseJob->id,
+                        'last_frame' => $baseJob->last_frame_path,
+                        'target_path' => $targetPath,
+                    ]);
+                } else {
+                    Log::warning('Failed to copy last frame for init image', [
+                        'base_job_id' => $baseJob->id,
+                        'last_frame' => $baseJob->last_frame_path,
+                        'target_path' => $targetPath,
+                    ]);
+                }
             }
 
             $persistedParameters = json_decode((string) $baseJob->generation_parameters, true) ?? [];
