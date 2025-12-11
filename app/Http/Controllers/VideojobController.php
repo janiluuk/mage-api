@@ -83,8 +83,8 @@ class VideojobController extends Controller
         $videoJob->seed = -1;
         $videoJob->frame_count = 90;
         $videoJob->user_id = auth('api')->id();
-        $videoJob->prompt = 'skull face, Halloween, (sharp teeth:1.4), (mouth open:1.3), (dark skin:1.2), scull, night, dim light, darkness, looking to the viewer, eyes looking straight,  <lora:LowRA:0.3> <lora:more_details:0.5>';
-        $videoJob->negative_prompt = 'bad-picture-chill-75v';
+        $videoJob->prompt = '';
+        $videoJob->negative_prompt = '';
         $videoJob->status = 'pending';
 
         $this->attachSoundtrack($videoJob, $request);
@@ -312,13 +312,13 @@ private function generateDeforum(Request $request): JsonResponse
     ]);
 }
 
-public function cancelJob(Request $request): JsonResponse
+public function cancelJob(int $videoId): JsonResponse
     {
         if ($response = $this->guardAuthenticated()) {
             return $response;
         }
 
-        $videoJob = Videojob::findOrFail($request->input('videoId'));
+        $videoJob = Videojob::findOrFail($videoId);
 
         if ($response = $this->assertOwner($videoJob)) {
             return $response;
@@ -526,7 +526,7 @@ public function cancelJob(Request $request): JsonResponse
 
     private function resolveQueueName(string $envKey, string $default): string
     {
-        $queue = env($envKey);
+        $queue = config('queue.' . strtolower($envKey));
 
         return ! empty($queue) ? $queue : $default;
     }
