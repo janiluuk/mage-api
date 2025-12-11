@@ -31,6 +31,7 @@ use App\Http\Controllers\Api\UserRatingController;
 use App\Http\Controllers\Api\WalletTypeController;
 use App\Http\Controllers\Api\SupportRequestController;
 use App\Http\Controllers\Api\FinanceOperationsController;
+use App\Http\Controllers\Api\SdInstanceController;
 use LaravelJsonApi\Laravel\Routing\Relationships;
 
 /*
@@ -134,6 +135,15 @@ Route::prefix('/administration')->group(function () {
         Route::post('/support-requests', [SupportRequestController::class, 'getSupportRequestsByCriteria']);
         Route::patch('/admin-reset-user-password', [UserController::class, 'adminResetUserPassword']);
         Route::patch('/change-user-data', [UserController::class, 'changeUserData']);
+        
+        // SD Instance management routes
+        Route::get('/sd-instances', [SdInstanceController::class, 'index']);
+        Route::post('/sd-instances', [SdInstanceController::class, 'store']);
+        Route::get('/sd-instances/{id}', [SdInstanceController::class, 'show']);
+        Route::put('/sd-instances/{id}', [SdInstanceController::class, 'update']);
+        Route::patch('/sd-instances/{id}', [SdInstanceController::class, 'update']);
+        Route::delete('/sd-instances/{id}', [SdInstanceController::class, 'destroy']);
+        Route::patch('/sd-instances/{id}/toggle', [SdInstanceController::class, 'toggle']);
     });
 });
 

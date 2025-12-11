@@ -10,6 +10,13 @@ use Symfony\Component\Process\Process;
 
 class DeforumProcessingService
 {
+    protected $sdInstanceService;
+
+    public function __construct(SdInstanceService $sdInstanceService)
+    {
+        $this->sdInstanceService = $sdInstanceService;
+    }
+
     public function parseJob(Videojob $videoJob, string $path)
     {
 
@@ -92,11 +99,18 @@ class DeforumProcessingService
                 $running = true;
                 $client = new \GuzzleHttp\Client();
                 $execution_times = [];
-                $progresses = [];   
+                $progresses = [];
+                
+                // Get SD instance URL
+                $sdInstanceUrl = $this->sdInstanceService->getEnabledInstanceUrl('stable_diffusion_forge');
+                if (!$sdInstanceUrl) {
+                    throw new \Exception('No enabled Stable Diffusion instance available');
+                }
+                
                 while ($running) {
 
                     // Using GuzzleHttp\Client to make an API request
-                    $response = $client->request('GET', 'http://192.168.2.100:7860/deforum_api/jobs/' . $first_job_id);
+                    $response = $client->request('GET', $sdInstanceUrl . '/deforum_api/jobs/' . $first_job_id);
                     $data = json_decode($response->getBody(), true);
                 
 
@@ -105,7 +119,7 @@ class DeforumProcessingService
                     $videoJob = Videojob::findOrFail($videoJob->id);
                     
                     if ($videoJob->status == 'cancelled' || $videoJob->status == 'error') {
-                        $response = $client->request('DELETE', 'http://192.168.2.100:7860/deforum_api/jobs/' . $first_job_id);
+                        $response = $client->request('DELETE', $sdInstanceUrl . '/deforum_api/jobs/' . $first_job_id);
                         Log::info("Deleted job {$first_job_id}: {$response->getBody()}");
                         $running = false;
                         
