@@ -102,13 +102,13 @@ class VideojobController extends Controller
     
     public function generate(Request $request): JsonResponse
     {
-        $type = $request->input('type', 'vid2vid');
+        // Validate common parameters first
+        $request->validate([
+            'videoId' => 'required|integer|exists:video_jobs,id',
+            'type' => 'required|in:vid2vid,deforum',
+        ]);
 
-        if (!in_array($type, ['vid2vid', 'deforum'], true)) {
-            return response()->json([
-                'message' => 'Unsupported generation type.',
-            ], 422);
-        }
+        $type = $request->input('type');
 
         return $type === 'deforum'
             ? $this->generateDeforum($request)
