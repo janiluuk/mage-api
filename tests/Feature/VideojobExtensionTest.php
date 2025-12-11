@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\ProcessDeforumJob;
+use App\Jobs\ProcessVideoJob;
 use App\Models\User;
 use App\Models\Videojob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -27,6 +30,8 @@ class VideojobExtensionTest extends TestCase
      */
     public function test_can_extend_deforum_job()
     {
+        Queue::fake();
+
         // Create a base deforum job
         $baseJob = Videojob::factory()->create([
             'user_id' => $this->user->id,
@@ -106,6 +111,8 @@ class VideojobExtensionTest extends TestCase
      */
     public function test_can_extend_vid2vid_job()
     {
+        Queue::fake();
+
         // Create a base vid2vid job
         $baseJob = Videojob::factory()->create([
             'user_id' => $this->user->id,
@@ -181,6 +188,8 @@ class VideojobExtensionTest extends TestCase
      */
     public function test_cannot_extend_deforum_job_with_vid2vid()
     {
+        Queue::fake();
+
         // Create a base deforum job
         $baseJob = Videojob::factory()->create([
             'user_id' => $this->user->id,
@@ -222,6 +231,8 @@ class VideojobExtensionTest extends TestCase
      */
     public function test_cannot_extend_vid2vid_job_with_deforum()
     {
+        Queue::fake();
+
         // Create a base vid2vid job
         $baseJob = Videojob::factory()->create([
             'user_id' => $this->user->id,
@@ -264,6 +275,8 @@ class VideojobExtensionTest extends TestCase
      */
     public function test_cannot_extend_another_users_job()
     {
+        Queue::fake();
+
         $otherUser = User::factory()->create();
 
         // Create a base job owned by another user
