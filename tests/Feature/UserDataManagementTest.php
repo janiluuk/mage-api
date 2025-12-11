@@ -38,26 +38,28 @@ class UserDataManagementTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonStructure([
-            '*' => [
-                'id',
-                'email',
-                'login',
-                'data_stats' => [
-                    'products_count',
-                    'video_jobs_count',
-                    'items_count',
-                    'messages_count',
-                    'chats_count',
-                    'orders_count',
-                    'finance_operations_count',
-                    'support_requests_count',
-                    'media_count',
+            'data' => [
+                '*' => [
+                    'id',
+                    'email',
+                    'login',
+                    'data_stats' => [
+                        'products_count',
+                        'video_jobs_count',
+                        'items_count',
+                        'messages_count',
+                        'chats_count',
+                        'orders_count',
+                        'finance_operations_count',
+                        'support_requests_count',
+                        'media_count',
+                    ],
                 ],
             ],
         ]);
 
         // Verify the counts are correct for the created user
-        $userData = collect($response->json())->firstWhere('id', $user->id);
+        $userData = collect($response->json('data'))->firstWhere('id', $user->id);
         $this->assertEquals(2, $userData['data_stats']['products_count']);
         $this->assertEquals(3, $userData['data_stats']['items_count']);
     }
@@ -75,15 +77,17 @@ class UserDataManagementTest extends TestCase
 
         $response->assertOk();
         $response->assertJson([
-            'products_count' => 5,
-            'items_count' => 3,
-            'orders_count' => 2,
-            'video_jobs_count' => 0,
-            'messages_count' => 0,
-            'chats_count' => 0,
-            'finance_operations_count' => 0,
-            'support_requests_count' => 0,
-            'media_count' => 0,
+            'data' => [
+                'products_count' => 5,
+                'items_count' => 3,
+                'orders_count' => 2,
+                'video_jobs_count' => 0,
+                'messages_count' => 0,
+                'chats_count' => 0,
+                'finance_operations_count' => 0,
+                'support_requests_count' => 0,
+                'media_count' => 0,
+            ],
         ]);
     }
 
@@ -109,24 +113,26 @@ class UserDataManagementTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonStructure([
-            'msg',
-            'purged_counts' => [
-                'products',
-                'video_jobs',
-                'items',
-                'messages',
-                'chats',
-                'orders',
-                'finance_operations',
-                'support_requests',
-                'media',
+            'data' => [
+                'msg',
+                'purged_counts' => [
+                    'products',
+                    'video_jobs',
+                    'items',
+                    'messages',
+                    'chats',
+                    'orders',
+                    'finance_operations',
+                    'support_requests',
+                    'media',
+                ],
             ],
         ]);
 
         // Verify the counts returned
-        $this->assertEquals(3, $response->json('purged_counts.products'));
-        $this->assertEquals(2, $response->json('purged_counts.items'));
-        $this->assertEquals(1, $response->json('purged_counts.orders'));
+        $this->assertEquals(3, $response->json('data.purged_counts.products'));
+        $this->assertEquals(2, $response->json('data.purged_counts.items'));
+        $this->assertEquals(1, $response->json('data.purged_counts.orders'));
 
         // Verify data is actually deleted
         $this->assertDatabaseMissing('products', ['id' => $products[0]->id]);
