@@ -160,7 +160,7 @@ class VideojobGenerateParametersTest extends TestCase
     public function test_generate_vid2vid_dispatches_to_high_priority_queue_for_single_frame(): void
     {
         Queue::fake();
-        putenv('HIGH_PRIORITY_QUEUE=urgent');
+        config(['queue.names.HIGH_PRIORITY_QUEUE' => 'urgent']);
         
         $user = User::factory()->create();
         $videoJob = Videojob::factory()->for($user, 'user')->create();
@@ -185,7 +185,7 @@ class VideojobGenerateParametersTest extends TestCase
     public function test_generate_vid2vid_dispatches_to_medium_priority_queue_for_multiple_frames(): void
     {
         Queue::fake();
-        putenv('MEDIUM_PRIORITY_QUEUE=normal');
+        config(['queue.names.MEDIUM_PRIORITY_QUEUE' => 'normal']);
         
         $user = User::factory()->create();
         $videoJob = Videojob::factory()->for($user, 'user')->create();

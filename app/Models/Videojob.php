@@ -518,15 +518,15 @@ class Videojob extends Model implements HasMedia
         $totalTime = $avgStats->total_time ?? 0;
         $totalFrames = $avgStats->total_frames ?? 0;
 
-        if ($totalFrames == 0) {
-            $info['your_estimated_time'] = round($this->frame_count * 10);
-        }
         // Calculate average time per frame
         if ($totalTime == 0 || $totalFrames == 0) {
             $averageTimePerFrame = 10;
         } else {
             $averageTimePerFrame = round($totalTime / $totalFrames);
         }
+
+        // Calculate estimated time for this job
+        $info['your_estimated_time'] = round($averageTimePerFrame * $this->frame_count);
 
         // Optimize: Get queue stats and processing estimate in single query
         $queueStats = DB::table('video_jobs')
@@ -543,7 +543,6 @@ class Videojob extends Model implements HasMedia
             $info['estimated_time_for_all_jobs'] = round($currentJobsEstimate + ($averageTimePerFrame * $totalFramesInQueue));
         }
 
-        $info['your_estimated_time'] = round($averageTimePerFrame * $this->frame_count);
         $info['estimated_time_processing_jobs'] = $currentJobsEstimate;
 
         return $info;

@@ -66,7 +66,7 @@ class ProcessVideoJob implements ShouldQueue, ShouldBeUnique
                 Log::info("Starting video job processing", ['job_id' => $videoJob->id]);
 
                 // Check for existing processing using cache instead of exec for better performance and security
-                $lockKey = "video_job_processing_{$videoJob->id}";
+                $lockKey = $this->getProcessingLockKey($videoJob->id);
                 $isLocked = \Cache::has($lockKey);
                 
                 if ($isLocked && $videoJob->status == Videojob::STATUS_PROCESSING && $this->previewFrames == 0) {
@@ -97,7 +97,7 @@ class ProcessVideoJob implements ShouldQueue, ShouldBeUnique
                 $service->startProcess($videoJob, $this->previewFrames);
 
                 // Release lock on successful completion
-                \Cache::forget("video_job_processing_{$videoJob->id}");
+                \Cache::forget($this->getProcessingLockKey($videoJob->id));
 
                 Log::info('Video conversion completed', [
                     'job_id' => $videoJob->id,
@@ -107,7 +107,7 @@ class ProcessVideoJob implements ShouldQueue, ShouldBeUnique
 
             } catch (\Exception $e) {
                 // Release lock on error
-                \Cache::forget("video_job_processing_{$videoJob->id}");
+                \Cache::forget($this->getProcessingLockKey($videoJob->id));
                 
                 Log::error('Error while converting video job', [
                     'job_id' => $videoJob->id,
@@ -124,6 +124,15 @@ class ProcessVideoJob implements ShouldQueue, ShouldBeUnique
             }
         }
     }
+
+    /**
+     * Get the cache key for processing lock
+     */
+    private function getProcessingLockKey(int $jobId): string
+    {
+        return "video_job_processing_{$jobId}";
+    }
+
     public function retryUntil(): DateTimeInterface
     {
        return now()->addDay();
