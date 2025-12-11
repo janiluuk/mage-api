@@ -44,33 +44,49 @@ class FileSystemWatcherTest extends TestCase
 
     public function test_detects_new_files()
     {
+        if (!extension_loaded('pcntl')) {
+            $this->markTestSkipped('PCNTL extension is not available');
+        }
+
+        // Create a temporary file to store detection results
+        $resultFile = sys_get_temp_dir() . '/watcher_test_' . uniqid() . '.txt';
+        
         $watcher = new FileSystemWatcher(1);
         $watcher->watchPath($this->testDir);
 
-        $detectedFiles = [];
-        
         // Start watcher in background
         $pid = pcntl_fork();
         if ($pid == 0) {
-            // Child process - run watcher for 5 seconds
-            $watcher->start(function($file) use (&$detectedFiles) {
-                $detectedFiles[] = $file;
+            // Child process - run watcher and write detections to file
+            $watcher->start(function($file) use ($resultFile) {
+                file_put_contents($resultFile, $file . "\n", FILE_APPEND);
             });
             exit(0);
+        } elseif ($pid > 0) {
+            // Parent process - create a test file
+            sleep(2);
+            $testFile = $this->testDir . '/test_video.mp4';
+            file_put_contents($testFile, 'test content for detection');
+            
+            sleep(3); // Give watcher time to detect
+            
+            // Stop child process
+            posix_kill($pid, SIGTERM);
+            pcntl_wait($status);
+
+            // Read detected files from the result file
+            $detectedFiles = [];
+            if (file_exists($resultFile)) {
+                $content = file_get_contents($resultFile);
+                $detectedFiles = array_filter(explode("\n", $content));
+                unlink($resultFile);
+            }
+
+            $this->assertNotEmpty($detectedFiles, 'Watcher should have detected the new file');
+            $this->assertStringContainsString('test_video.mp4', implode('', $detectedFiles));
+        } else {
+            $this->fail('Failed to fork process');
         }
-
-        // Parent process - create a test file
-        sleep(1);
-        $testFile = $this->testDir . '/test_video.mp4';
-        file_put_contents($testFile, 'test content');
-        
-        sleep(3); // Give watcher time to detect
-        
-        // Stop child process
-        posix_kill($pid, SIGTERM);
-        pcntl_wait($status);
-
-        $this->assertNotEmpty($detectedFiles);
     }
 
     public function test_is_running_returns_correct_state()
