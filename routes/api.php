@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\WalletTypeController;
 use App\Http\Controllers\Api\SupportRequestController;
 use App\Http\Controllers\Api\FinanceOperationsController;
 use App\Http\Controllers\Api\SdInstanceController;
+use App\Http\Controllers\Api\PaymentController;
 use LaravelJsonApi\Laravel\Routing\Relationships;
 
 /*
@@ -255,6 +256,14 @@ Route::prefix('/orders')->group(
         });
     }
 );
+
+// Payment routes
+Route::prefix('/payment')->middleware('auth:api')->group(function () {
+    Route::post('/create-intent', [PaymentController::class, 'createPaymentIntent']);
+});
+
+Route::post('/webhooks/stripe', [PaymentController::class, 'webhook'])
+    ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
 
 
 Route::prefix('/user-ratings')->group(
