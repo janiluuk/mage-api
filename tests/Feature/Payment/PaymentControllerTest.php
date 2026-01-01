@@ -6,7 +6,7 @@ use Tests\TestCase;
 use App\Models\User;
 use App\Models\Order;
 use App\Models\OrderPayment;
-use App\Constant\OrderConstant;
+use App\Constant\OrderStatusConstant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Mockery;
@@ -58,7 +58,7 @@ class PaymentControllerTest extends TestCase
             ->postJson('/api/payment/create-intent', []);
 
         $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['order_id']);
+        $this->assertNotNull($response->json('error.validator.order_id'));
     }
 
     public function test_payment_intent_requires_valid_order(): void
@@ -71,7 +71,7 @@ class PaymentControllerTest extends TestCase
             ]);
 
         $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['order_id']);
+        $this->assertNotNull($response->json('error.validator.order_id'));
     }
 
     public function test_cannot_create_payment_intent_for_non_created_order(): void
@@ -80,7 +80,7 @@ class PaymentControllerTest extends TestCase
         
         $order = Order::factory()->create([
             'user_id' => $user->id,
-            'status' => OrderConstant::PAID,
+            'status' => OrderStatusConstant::PAID,
             'product_cost' => 100.00,
             'total_cost' => 100.00,
         ]);
@@ -91,7 +91,7 @@ class PaymentControllerTest extends TestCase
             ]);
 
         $response->assertStatus(400);
-        $response->assertJsonFragment(['error']);
+        $response->assertJsonStructure(['error']);
     }
 
     public function test_unauthenticated_user_cannot_create_payment_intent(): void
