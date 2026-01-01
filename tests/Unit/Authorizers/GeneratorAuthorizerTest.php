@@ -54,7 +54,8 @@ class GeneratorAuthorizerTest extends TestCase
         $userRole = Mockery::mock(UserRole::class);
         $userRole->shouldReceive('getType')->andReturn(UserRoleConstant::REGISTERED);
 
-        $user = Mockery::mock(User::class);
+        $user = Mockery::mock(User::class)->makePartial();
+        $user->shouldReceive('getAttribute')->with('userRole')->andReturn($userRole);
         $user->userRole = $userRole;
 
         $request = Mockery::mock(Request::class);
@@ -70,7 +71,8 @@ class GeneratorAuthorizerTest extends TestCase
         $userRole = Mockery::mock(UserRole::class);
         $userRole->shouldReceive('getType')->andReturn(UserRoleConstant::ADMINISTRATOR);
 
-        $user = Mockery::mock(User::class);
+        $user = Mockery::mock(User::class)->makePartial();
+        $user->shouldReceive('getAttribute')->with('userRole')->andReturn($userRole);
         $user->userRole = $userRole;
 
         $request = Mockery::mock(Request::class);
@@ -86,7 +88,8 @@ class GeneratorAuthorizerTest extends TestCase
         $userRole = Mockery::mock(UserRole::class);
         $userRole->shouldReceive('getType')->andReturn(UserRoleConstant::SUPER_ADMINISTRATOR);
 
-        $user = Mockery::mock(User::class);
+        $user = Mockery::mock(User::class)->makePartial();
+        $user->shouldReceive('getAttribute')->with('userRole')->andReturn($userRole);
         $user->userRole = $userRole;
 
         $request = Mockery::mock(Request::class);
@@ -112,7 +115,8 @@ class GeneratorAuthorizerTest extends TestCase
         $userRole = Mockery::mock(UserRole::class);
         $userRole->shouldReceive('getType')->andReturn(UserRoleConstant::REGISTERED);
 
-        $user = Mockery::mock(User::class);
+        $user = Mockery::mock(User::class)->makePartial();
+        $user->shouldReceive('getAttribute')->with('userRole')->andReturn($userRole);
         $user->userRole = $userRole;
 
         $request = Mockery::mock(Request::class);
@@ -129,7 +133,8 @@ class GeneratorAuthorizerTest extends TestCase
         $userRole = Mockery::mock(UserRole::class);
         $userRole->shouldReceive('getType')->andReturn(UserRoleConstant::ADMINISTRATOR);
 
-        $user = Mockery::mock(User::class);
+        $user = Mockery::mock(User::class)->makePartial();
+        $user->shouldReceive('getAttribute')->with('userRole')->andReturn($userRole);
         $user->userRole = $userRole;
 
         $request = Mockery::mock(Request::class);
@@ -146,7 +151,8 @@ class GeneratorAuthorizerTest extends TestCase
         $userRole = Mockery::mock(UserRole::class);
         $userRole->shouldReceive('getType')->andReturn(UserRoleConstant::REGISTERED);
 
-        $user = Mockery::mock(User::class);
+        $user = Mockery::mock(User::class)->makePartial();
+        $user->shouldReceive('getAttribute')->with('userRole')->andReturn($userRole);
         $user->userRole = $userRole;
 
         $request = Mockery::mock(Request::class);
@@ -163,7 +169,8 @@ class GeneratorAuthorizerTest extends TestCase
         $userRole = Mockery::mock(UserRole::class);
         $userRole->shouldReceive('getType')->andReturn(UserRoleConstant::ADMINISTRATOR);
 
-        $user = Mockery::mock(User::class);
+        $user = Mockery::mock(User::class)->makePartial();
+        $user->shouldReceive('getAttribute')->with('userRole')->andReturn($userRole);
         $user->userRole = $userRole;
 
         $request = Mockery::mock(Request::class);
@@ -177,7 +184,8 @@ class GeneratorAuthorizerTest extends TestCase
 
     public function test_admin_actions_deny_users_without_role(): void
     {
-        $user = Mockery::mock(User::class);
+        $user = Mockery::mock(User::class)->makePartial();
+        $user->shouldReceive('getAttribute')->with('userRole')->andReturn(null);
         $user->userRole = null;
 
         $request = Mockery::mock(Request::class);

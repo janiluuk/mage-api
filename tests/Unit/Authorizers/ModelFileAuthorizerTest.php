@@ -54,7 +54,8 @@ class ModelFileAuthorizerTest extends TestCase
         $userRole = Mockery::mock(UserRole::class);
         $userRole->shouldReceive('getType')->andReturn(UserRoleConstant::REGISTERED);
 
-        $user = Mockery::mock(User::class);
+        $user = Mockery::mock(User::class)->makePartial();
+        $user->shouldReceive('getAttribute')->with('userRole')->andReturn($userRole);
         $user->userRole = $userRole;
 
         $request = Mockery::mock(Request::class);
@@ -70,7 +71,8 @@ class ModelFileAuthorizerTest extends TestCase
         $userRole = Mockery::mock(UserRole::class);
         $userRole->shouldReceive('getType')->andReturn(UserRoleConstant::ADMINISTRATOR);
 
-        $user = Mockery::mock(User::class);
+        $user = Mockery::mock(User::class)->makePartial();
+        $user->shouldReceive('getAttribute')->with('userRole')->andReturn($userRole);
         $user->userRole = $userRole;
 
         $request = Mockery::mock(Request::class);
@@ -86,7 +88,8 @@ class ModelFileAuthorizerTest extends TestCase
         $userRole = Mockery::mock(UserRole::class);
         $userRole->shouldReceive('getType')->andReturn(UserRoleConstant::REGISTERED);
 
-        $user = Mockery::mock(User::class);
+        $user = Mockery::mock(User::class)->makePartial();
+        $user->shouldReceive('getAttribute')->with('userRole')->andReturn($userRole);
         $user->userRole = $userRole;
 
         $request = Mockery::mock(Request::class);
@@ -103,7 +106,8 @@ class ModelFileAuthorizerTest extends TestCase
         $userRole = Mockery::mock(UserRole::class);
         $userRole->shouldReceive('getType')->andReturn(UserRoleConstant::ADMINISTRATOR);
 
-        $user = Mockery::mock(User::class);
+        $user = Mockery::mock(User::class)->makePartial();
+        $user->shouldReceive('getAttribute')->with('userRole')->andReturn($userRole);
         $user->userRole = $userRole;
 
         $request = Mockery::mock(Request::class);
@@ -120,7 +124,8 @@ class ModelFileAuthorizerTest extends TestCase
         $userRole = Mockery::mock(UserRole::class);
         $userRole->shouldReceive('getType')->andReturn(UserRoleConstant::ADMINISTRATOR);
 
-        $user = Mockery::mock(User::class);
+        $user = Mockery::mock(User::class)->makePartial();
+        $user->shouldReceive('getAttribute')->with('userRole')->andReturn($userRole);
         $user->userRole = $userRole;
 
         $request = Mockery::mock(Request::class);
