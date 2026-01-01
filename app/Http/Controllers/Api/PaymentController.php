@@ -36,7 +36,7 @@ class PaymentController extends Controller
         $order = Order::findOrFail($request->order_id);
 
         // Verify user owns this order
-        if ($order->user_customer_id !== auth()->id()) {
+        if ($order->user_id !== auth()->id()) {
             return response()->json([
                 'error' => 'You do not have permission to process payment for this order.'
             ], 403);
@@ -52,19 +52,19 @@ class PaymentController extends Controller
         try {
             // Create payment intent
             $paymentIntent = $this->stripe->paymentIntents->create([
-                'amount' => (int)($order->order_price * 100), // Convert to cents
+                'amount' => (int)($order->total_cost * 100), // Convert to cents
                 'currency' => 'usd',
                 'metadata' => [
                     'order_id' => $order->id,
                     'user_id' => auth()->id(),
                 ],
-                'description' => "Order #{$order->id} - " . ($order->product->name ?? 'Product'),
+                'description' => "Order #{$order->id}",
             ]);
 
             // Create payment record
             OrderPayment::create([
                 'order_id' => $order->id,
-                'amount' => $order->order_price,
+                'amount' => $order->total_cost,
                 'status' => 'pending',
                 'type' => 'Stripe',
                 'session_id' => $paymentIntent->id,

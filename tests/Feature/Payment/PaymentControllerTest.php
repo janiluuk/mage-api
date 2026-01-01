@@ -5,7 +5,6 @@ namespace Tests\Feature\Payment;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Order;
-use App\Models\Product;
 use App\Models\OrderPayment;
 use App\Constant\OrderConstant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -35,13 +34,11 @@ class PaymentControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $otherUser = User::factory()->create();
-        $product = Product::factory()->create();
         
         $order = Order::factory()->create([
-            'user_customer_id' => $otherUser->id,
-            'product_id' => $product->id,
-            'status' => OrderConstant::CREATED,
-            'order_price' => 100.00
+            'user_id' => $otherUser->id,
+            'product_cost' => 100.00,
+            'total_cost' => 100.00,
         ]);
 
         $response = $this->actingAs($user, 'api')
@@ -80,13 +77,12 @@ class PaymentControllerTest extends TestCase
     public function test_cannot_create_payment_intent_for_non_created_order(): void
     {
         $user = User::factory()->create();
-        $product = Product::factory()->create();
         
         $order = Order::factory()->create([
-            'user_customer_id' => $user->id,
-            'product_id' => $product->id,
+            'user_id' => $user->id,
             'status' => OrderConstant::PAID,
-            'order_price' => 100.00
+            'product_cost' => 100.00,
+            'total_cost' => 100.00,
         ]);
 
         $response = $this->actingAs($user, 'api')
@@ -110,12 +106,11 @@ class PaymentControllerTest extends TestCase
     public function test_order_payment_model_has_correct_relationships(): void
     {
         $user = User::factory()->create();
-        $product = Product::factory()->create();
         
         $order = Order::factory()->create([
-            'user_customer_id' => $user->id,
-            'product_id' => $product->id,
-            'status' => OrderConstant::CREATED
+            'user_id' => $user->id,
+            'product_cost' => 100.00,
+            'total_cost' => 100.00,
         ]);
 
         $payment = OrderPayment::create([
