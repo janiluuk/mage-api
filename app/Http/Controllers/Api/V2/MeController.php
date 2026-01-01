@@ -20,7 +20,7 @@ class MeController extends Controller
     {
         $http = new Client(['verify' => false]);
 
-        $headers = $this->parseHeaders($request->header());
+        $headers = parse_http_headers($request->header());
  
         $headers = [
             'Accept' => 'application/vnd.api+json',
@@ -41,7 +41,7 @@ class MeController extends Controller
         
             $responseBody = json_decode((string)$response->getBody(), true);
             $responseStatus = $response->getStatusCode();
-            $responseHeaders = $this->parseHeaders($response->getHeaders());
+            $responseHeaders = parse_http_headers($response->getHeaders());
 
             unset($responseHeaders['Transfer-Encoding']);
 
@@ -66,7 +66,7 @@ class MeController extends Controller
     {
         $http = new Client(['verify' => false]);
 
-        $headers = $this->parseHeaders($request->header());
+        $headers = parse_http_headers($request->header());
 
         $input = $request->json()->all();
 
@@ -91,24 +91,10 @@ class MeController extends Controller
 
         $responseBody = json_decode((string)$response->getBody(), true);
         $responseStatus = $response->getStatusCode();
-        $responseHeaders = $this->parseHeaders($response->getHeaders());
+        $responseHeaders = parse_http_headers($response->getHeaders());
 
         unset($responseHeaders['Transfer-Encoding']);
 
         return response()->json($responseBody, $responseStatus)->withHeaders($responseHeaders);
-    }
-
-      /**
-     * Parse headers to collapse internal arrays
-     * TODO: move to helpers
-     *
-     * @param array $headers
-     * @return array
-     */
-    protected function parseHeaders($headers)
-    {
-        return collect($headers)->map(function ($item) {
-            return $item[0];
-        })->toArray();
     }
 }
