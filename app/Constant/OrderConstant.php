@@ -16,4 +16,5 @@ class OrderConstant
     public const CLOSED = 2;
     public const CONFIRMED = 3;
     public const CANCELED = 4;
+    public const PAID = 5;
 }

@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderPayment;
-use App\Constant\OrderConstant;
+use App\Constant\OrderStatusConstant;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Stripe\StripeClient;
@@ -43,7 +43,7 @@ class PaymentController extends Controller
         }
 
         // Check if order is in correct status
-        if ($order->status !== OrderConstant::CREATED) {
+        if ($order->status !== OrderStatusConstant::UNPAID) {
             return response()->json([
                 'error' => 'This order cannot be paid. Current status: ' . $order->status
             ], 400);
@@ -153,7 +153,7 @@ class PaymentController extends Controller
         }
 
         // Update order status to paid
-        $order->status = OrderConstant::PAID;
+        $order->status = OrderStatusConstant::PAID;
         $order->save();
 
         // Update payment record
