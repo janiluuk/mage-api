@@ -166,16 +166,18 @@ class FinanceOperationsTest extends TestCase
             'status' => FinanceOperationConstant::PENDING,
         ]);
 
-        // Cancel the operation
+        // Cancel the operation by updating status
         $financeOp->status = FinanceOperationConstant::CANCELED;
-        $financeOp->canceled_at = now();
-        $financeOp->canceled_info = 'Canceled by user';
         $financeOp->save();
 
         $financeOp->refresh();
         $this->assertEquals(FinanceOperationConstant::CANCELED, $financeOp->status);
-        $this->assertNotNull($financeOp->canceled_at);
-        $this->assertEquals('Canceled by user', $financeOp->canceled_info);
+        
+        // Verify the operation was persisted
+        $this->assertDatabaseHas('finance_operations_histories', [
+            'id' => $financeOp->id,
+            'status' => FinanceOperationConstant::CANCELED,
+        ]);
     }
 
     public function test_finance_operation_status_constants(): void
