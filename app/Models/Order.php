@@ -17,7 +17,7 @@ class Order extends Model
         'user_address_id',
         'promo_code_id',
         'payment_method',
-        'products_cost',
+        'product_cost',
         'delivery_cost',
         'total_cost',
         'status',
