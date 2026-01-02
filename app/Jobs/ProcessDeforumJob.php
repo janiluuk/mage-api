@@ -12,16 +12,41 @@ use App\Models\Videojob;
 use App\Services\DeforumProcessingService;
 use Illuminate\Support\Facades\Log;
 
-set_time_limit(27200);
-
 class ProcessDeforumJob implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-    public $timeout = 27200;
+    
+    /**
+     * Maximum execution time in seconds (7.5 hours)
+     * Long timeout needed for Deforum animation processing
+     */
+    public const TIMEOUT_SECONDS = 27200;
+    
+    /**
+     * Maximum number of retry attempts
+     */
+    public const MAX_RETRIES = 5;
+    
+    /**
+     * Delay between retries in seconds
+     */
+    public const BACKOFF_SECONDS = 30;
+    
+    /**
+     * Stale job detection threshold in minutes
+     */
+    public const STALE_JOB_THRESHOLD_MINUTES = 15;
+    
+    /**
+     * How long the job should remain unique in seconds (1 hour)
+     */
+    public const UNIQUE_FOR_SECONDS = 3600;
+    
+    public $timeout = self::TIMEOUT_SECONDS;
     public $tries = 200;
-    public $backoff = 30; // delay in seconds between retries
-    public $uniqueFor = 3600;
-    const MAX_RETRIES = 5;
+    public $backoff = self::BACKOFF_SECONDS;
+    public $uniqueFor = self::UNIQUE_FOR_SECONDS;
+    const MAX_RETRIES = self::MAX_RETRIES;
 
     public function __construct(public Videojob $videoJob, public int $previewFrames = 0, public ?int $extendFromJobId = null)
     {
@@ -40,10 +65,14 @@ class ProcessDeforumJob implements ShouldQueue, ShouldBeUnique
      */
     public function handle(DeforumProcessingService $service)
     {
+        // Set PHP execution time limit for long-running Deforum processing
+        set_time_limit(self::TIMEOUT_SECONDS);
+        
         $start_time = time();
 
+        // Mark stale jobs as errors
         Videojob::where('status', 'processing')
-            ->where('updated_at', '<', now()->subMinutes(15))
+            ->where('updated_at', '<', now()->subMinutes(self::STALE_JOB_THRESHOLD_MINUTES))
             ->update(['status' => 'error']);
 
 
