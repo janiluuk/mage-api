@@ -54,6 +54,9 @@ return new class extends Migration
     
     /**
      * Check if an index exists on a table.
+     * 
+     * Uses Laravel's Schema facade to check for index existence
+     * in a way that's compatible with different database drivers.
      *
      * @param string $table
      * @param string $index
@@ -61,10 +64,15 @@ return new class extends Migration
      */
     private function indexExists(string $table, string $index): bool
     {
-        $connection = Schema::getConnection();
-        $schemaManager = $connection->getDoctrineSchemaManager();
-        $doctrineTable = $schemaManager->listTableDetails($table);
-        
-        return $doctrineTable->hasIndex($index);
+        try {
+            $connection = Schema::getConnection();
+            $doctrineSchemaManager = $connection->getDoctrineSchemaManager();
+            $doctrineTable = $doctrineSchemaManager->introspectTable($table);
+            
+            return $doctrineTable->hasIndex($index);
+        } catch (\Exception $e) {
+            // If we can't check, assume index doesn't exist to allow creation attempt
+            return false;
+        }
     }
 };

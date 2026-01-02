@@ -235,9 +235,11 @@ class PaymentController extends Controller
             foreach ($order->orderItems as $orderItem) {
                 $product = $orderItem->product;
                 
-                // Assuming products have a 'quantity' or 'gpu_credits' field
-                // This represents the GPU credits included in the product
-                $creditsPerItem = $product->quantity ?? 0;
+                // Get GPU credits from product
+                // Priority: gpu_credits field > quantity field (for backward compatibility)
+                // Note: If your products don't have gpu_credits field, this falls back to quantity
+                // which may represent product stock. Consider adding a gpu_credits field to Product model.
+                $creditsPerItem = $product->gpu_credits ?? $product->quantity ?? 0;
                 $totalCredits += $creditsPerItem * $orderItem->quantity;
             }
 
