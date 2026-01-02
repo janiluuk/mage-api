@@ -43,10 +43,9 @@ class ProcessDeforumJob implements ShouldQueue, ShouldBeUnique
     public const UNIQUE_FOR_SECONDS = 3600;
     
     public $timeout = self::TIMEOUT_SECONDS;
-    public $tries = 200;
+    public $tries = 200; // Higher retry count for Deforum jobs due to external dependencies
     public $backoff = self::BACKOFF_SECONDS;
     public $uniqueFor = self::UNIQUE_FOR_SECONDS;
-    const MAX_RETRIES = self::MAX_RETRIES;
 
     public function __construct(public Videojob $videoJob, public int $previewFrames = 0, public ?int $extendFromJobId = null)
     {

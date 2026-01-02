@@ -245,8 +245,8 @@ class PaymentController extends Controller
                 // Create enrollment finance operation
                 $enrollmentAction = app(AddEnrollmentFinanceOperationAction::class);
                 $enrollmentRequest = new AddEnrollmentFinanceOperationRequest(
-                    sellerId: $order->user_id,
-                    money: $totalCredits
+                    money: $totalCredits,
+                    sellerId: $order->user_id
                 );
                 
                 $enrollmentAction->execute($enrollmentRequest);

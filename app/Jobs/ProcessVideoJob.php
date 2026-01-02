@@ -46,7 +46,7 @@ class ProcessVideoJob implements ShouldQueue, ShouldBeUnique
     public const UNIQUE_FOR_SECONDS = 3600;
     
     public $timeout = self::TIMEOUT_SECONDS;
-    public $tries = 200;
+    public $tries = 200; // Higher retry count due to external video processing dependencies
     public $backoff = self::BACKOFF_SECONDS;
     public $uniqueFor = self::UNIQUE_FOR_SECONDS;
 
