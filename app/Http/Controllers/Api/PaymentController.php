@@ -206,8 +206,22 @@ class PaymentController extends Controller
 
     /**
      * Enroll GPU credits for a paid order.
+     * 
+     * This method processes GPU credit enrollment after a successful payment.
+     * It calculates total credits from all products in the order and creates
+     * a finance enrollment operation to add credits to the user's account.
+     * 
+     * The credit calculation assumes that products have a 'quantity' field
+     * representing GPU credits included in that product. If your product
+     * structure is different, adjust the calculation logic accordingly.
+     * 
+     * Example Product Structure:
+     * - Product: "100 GPU Credits Pack"
+     * - Product->quantity: 100 (represents 100 GPU credits)
+     * - OrderItem->quantity: 2 (user bought 2 packs)
+     * - Total credits: 100 * 2 = 200 credits
      *
-     * @param Order $order
+     * @param Order $order The paid order to process
      * @return void
      */
     private function enrollCreditsForOrder(Order $order): void
