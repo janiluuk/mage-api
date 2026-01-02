@@ -8,7 +8,6 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderPayment;
 use App\Models\Product;
-use App\Models\Category;
 use App\Models\FinanceOperationsHistory;
 use App\Constant\OrderStatusConstant;
 use App\Constant\OrderPaymentConstant;
@@ -219,11 +218,10 @@ class PaymentControllerTest extends TestCase
     public function test_gpu_credits_enrolled_when_product_has_gpu_credits_field(): void
     {
         $user = User::factory()->create();
-        $category = Category::factory()->create();
         
         // Create product with gpu_credits field (if your DB supports it)
         $product = Product::factory()->create([
-            'category_id' => $category->id,
+            
             'title' => '100 GPU Credits Pack',
             'price' => 10.00,
             'quantity' => 100, // This represents GPU credits in current implementation
@@ -268,17 +266,16 @@ class PaymentControllerTest extends TestCase
     public function test_gpu_credits_enrolled_for_multiple_products(): void
     {
         $user = User::factory()->create();
-        $category = Category::factory()->create();
         
         $product1 = Product::factory()->create([
-            'category_id' => $category->id,
+            
             'title' => '50 Credits',
             'price' => 5.00,
             'quantity' => 50,
         ]);
 
         $product2 = Product::factory()->create([
-            'category_id' => $category->id,
+            
             'title' => '100 Credits',
             'price' => 10.00,
             'quantity' => 100,
@@ -323,10 +320,9 @@ class PaymentControllerTest extends TestCase
     public function test_no_credits_enrolled_when_products_have_zero_quantity(): void
     {
         $user = User::factory()->create();
-        $category = Category::factory()->create();
         
         $product = Product::factory()->create([
-            'category_id' => $category->id,
+            
             'title' => 'Non-credit product',
             'price' => 10.00,
             'quantity' => 0, // No GPU credits
@@ -386,10 +382,9 @@ class PaymentControllerTest extends TestCase
     public function test_full_payment_flow_with_credit_enrollment(): void
     {
         $user = User::factory()->create();
-        $category = Category::factory()->create();
         
         $product = Product::factory()->create([
-            'category_id' => $category->id,
+            
             'title' => '500 GPU Credits',
             'price' => 50.00,
             'quantity' => 500,
@@ -476,10 +471,9 @@ class PaymentControllerTest extends TestCase
     public function test_order_with_multiple_items_calculates_correct_credits(): void
     {
         $user = User::factory()->create();
-        $category = Category::factory()->create();
         
         $products = Product::factory()->count(3)->create([
-            'category_id' => $category->id,
+            
             'quantity' => 100, // Each has 100 credits
         ]);
 

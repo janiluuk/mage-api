@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
-use App\Models\Category;
 use App\Constant\OrderStatusConstant;
 use App\Constant\OrderPaymentConstant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,7 +23,6 @@ class OrderManagementTest extends TestCase
     public function test_user_can_create_order(): void
     {
         $user = User::factory()->create();
-        $category = Category::factory()->create();
         $product = Product::factory()->create([
             'category_id' => $category->id,
             'price' => 50.00,
@@ -49,7 +47,6 @@ class OrderManagementTest extends TestCase
     public function test_order_has_correct_relationships(): void
     {
         $user = User::factory()->create();
-        $category = Category::factory()->create();
         
         $product = Product::factory()->create([
             'category_id' => $category->id,
@@ -109,7 +106,6 @@ class OrderManagementTest extends TestCase
     public function test_order_with_multiple_items(): void
     {
         $user = User::factory()->create();
-        $category = Category::factory()->create();
         
         $products = Product::factory()->count(3)->create([
             'category_id' => $category->id,

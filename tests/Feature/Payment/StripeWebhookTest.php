@@ -8,7 +8,6 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderPayment;
 use App\Models\Product;
-use App\Models\Category;
 use App\Constant\OrderStatusConstant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
@@ -189,7 +188,7 @@ class StripeWebhookTest extends TestCase
         $category = Category::factory()->create();
         
         $product = Product::factory()->create([
-            'category_id' => $category->id,
+            
             'quantity' => 200, // 200 GPU credits
         ]);
 

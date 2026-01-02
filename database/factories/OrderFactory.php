@@ -15,7 +15,7 @@ class OrderFactory extends Factory
 
     public function definition(): array
     {
-        $productCost = $this->faker->randomFloat(2, 10, 1000);
+        $productsCost = $this->faker->randomFloat(2, 10, 1000);
         $deliveryCost = $this->faker->randomFloat(2, 0, 50);
         
         return [
@@ -23,9 +23,9 @@ class OrderFactory extends Factory
             'user_id' => User::factory(),
             'promo_code_id' => null,
             'payment_method' => OrderPaymentConstant::STRIPE,
-            'product_cost' => $productCost,
+            'products_cost' => $productsCost,
             'delivery_cost' => $deliveryCost,
-            'total_cost' => $productCost + $deliveryCost,
+            'total_cost' => $productsCost + $deliveryCost,
             'status' => OrderStatusConstant::UNPAID,
             'status_history' => null,
         ];

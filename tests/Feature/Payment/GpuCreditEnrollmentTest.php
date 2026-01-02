@@ -8,7 +8,6 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderPayment;
 use App\Models\Product;
-use App\Models\Category;
 use App\Constant\OrderStatusConstant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
@@ -34,10 +33,9 @@ class GpuCreditEnrollmentTest extends TestCase
     public function test_credits_enrolled_with_single_product(): void
     {
         $user = User::factory()->create();
-        $category = Category::factory()->create();
         
         $product = Product::factory()->create([
-            'category_id' => $category->id,
+            
             'title' => '100 GPU Credits',
             'price' => 10.00,
             'quantity' => 100, // Represents GPU credits
@@ -76,10 +74,9 @@ class GpuCreditEnrollmentTest extends TestCase
     public function test_credits_multiplied_by_order_quantity(): void
     {
         $user = User::factory()->create();
-        $category = Category::factory()->create();
         
         $product = Product::factory()->create([
-            'category_id' => $category->id,
+            
             'price' => 10.00,
             'quantity' => 50, // 50 credits per product
         ]);
@@ -114,20 +111,19 @@ class GpuCreditEnrollmentTest extends TestCase
     public function test_credits_summed_across_multiple_products(): void
     {
         $user = User::factory()->create();
-        $category = Category::factory()->create();
         
         $product1 = Product::factory()->create([
-            'category_id' => $category->id,
+            
             'quantity' => 50,
         ]);
 
         $product2 = Product::factory()->create([
-            'category_id' => $category->id,
+            
             'quantity' => 75,
         ]);
 
         $product3 = Product::factory()->create([
-            'category_id' => $category->id,
+            
             'quantity' => 25,
         ]);
 
@@ -168,10 +164,9 @@ class GpuCreditEnrollmentTest extends TestCase
     public function test_no_enrollment_when_product_quantity_is_zero(): void
     {
         $user = User::factory()->create();
-        $category = Category::factory()->create();
         
         $product = Product::factory()->create([
-            'category_id' => $category->id,
+            
             'quantity' => 0, // No credits
         ]);
 
@@ -220,10 +215,9 @@ class GpuCreditEnrollmentTest extends TestCase
     public function test_enrollment_creates_correct_finance_operation_type(): void
     {
         $user = User::factory()->create();
-        $category = Category::factory()->create();
         
         $product = Product::factory()->create([
-            'category_id' => $category->id,
+            
             'quantity' => 100,
         ]);
 
@@ -253,10 +247,9 @@ class GpuCreditEnrollmentTest extends TestCase
     public function test_large_credit_amounts_handled_correctly(): void
     {
         $user = User::factory()->create();
-        $category = Category::factory()->create();
         
         $product = Product::factory()->create([
-            'category_id' => $category->id,
+            
             'quantity' => 10000, // Large credit pack
         ]);
 
