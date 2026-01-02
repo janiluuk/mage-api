@@ -11,6 +11,8 @@ use Illuminate\Http\JsonResponse;
 use Stripe\StripeClient;
 use Stripe\Exception\SignatureVerificationException;
 use Illuminate\Support\Facades\Log;
+use App\Actions\FinanceOperation\AddEnrollmentFinanceOperationAction;
+use App\Actions\FinanceOperation\AddEnrollmentFinanceOperationRequest;
 
 class PaymentController extends Controller
 {
@@ -163,8 +165,8 @@ class PaymentController extends Controller
             $payment->save();
         }
 
-        // TODO: Enroll GPU credits to user wallet
-        // This should trigger a finance operation to add credits based on the product
+        // Enroll GPU credits to user wallet
+        $this->enrollCreditsForOrder($order);
         
         Log::info('Payment succeeded', [
             'order_id' => $orderId,
@@ -200,5 +202,68 @@ class PaymentController extends Controller
             'payment_intent_id' => $paymentIntent->id,
             'error' => $paymentIntent->last_payment_error->message ?? 'Unknown error',
         ]);
+    }
+
+    /**
+     * Enroll GPU credits for a paid order.
+     * 
+     * This method processes GPU credit enrollment after a successful payment.
+     * It calculates total credits from all products in the order and creates
+     * a finance enrollment operation to add credits to the user's account.
+     * 
+     * The credit calculation assumes that products have a 'quantity' field
+     * representing GPU credits included in that product. If your product
+     * structure is different, adjust the calculation logic accordingly.
+     * 
+     * Example Product Structure:
+     * - Product: "100 GPU Credits Pack"
+     * - Product->quantity: 100 (represents 100 GPU credits)
+     * - OrderItem->quantity: 2 (user bought 2 packs)
+     * - Total credits: 100 * 2 = 200 credits
+     *
+     * @param Order $order The paid order to process
+     * @return void
+     */
+    private function enrollCreditsForOrder(Order $order): void
+    {
+        try {
+            // Load order items with products
+            $order->load('orderItems.product');
+
+            // Calculate total credits from all order items
+            $totalCredits = 0;
+            foreach ($order->orderItems as $orderItem) {
+                $product = $orderItem->product;
+                
+                // Get GPU credits from product
+                // Priority: gpu_credits field > quantity field (for backward compatibility)
+                // Note: If your products don't have gpu_credits field, this falls back to quantity
+                // which may represent product stock. Consider adding a gpu_credits field to Product model.
+                $creditsPerItem = $product->gpu_credits ?? $product->quantity ?? 0;
+                $totalCredits += $creditsPerItem * $orderItem->quantity;
+            }
+
+            if ($totalCredits > 0) {
+                // Create enrollment finance operation
+                $enrollmentAction = app(AddEnrollmentFinanceOperationAction::class);
+                $enrollmentRequest = new AddEnrollmentFinanceOperationRequest(
+                    money: $totalCredits,
+                    sellerId: $order->user_id
+                );
+                
+                $enrollmentAction->execute($enrollmentRequest);
+
+                Log::info('GPU credits enrolled', [
+                    'order_id' => $order->id,
+                    'user_id' => $order->user_id,
+                    'credits' => $totalCredits,
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to enroll GPU credits', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

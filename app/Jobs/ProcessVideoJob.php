@@ -14,16 +14,41 @@ use App\Models\Videojob;
 use App\Services\VideoProcessingService;
 use Illuminate\Support\Facades\Log;
 
-set_time_limit(27200);
-
 class ProcessVideoJob implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-    public $timeout = 27200;
-    public $tries = 200;
-    public $backoff = 30; // delay in seconds between retries
-    public $uniqueFor = 3600;
-    const MAX_RETRIES = 5;
+    
+    /**
+     * Maximum execution time in seconds (7.5 hours)
+     * Long timeout needed for video processing with AI models
+     */
+    public const TIMEOUT_SECONDS = 27200;
+    
+    /**
+     * Maximum number of retry attempts
+     */
+    public const MAX_RETRIES = 5;
+    
+    /**
+     * Delay between retries in seconds
+     */
+    public const BACKOFF_SECONDS = 30;
+    
+    /**
+     * Stale job detection threshold in minutes
+     * Jobs stuck in processing state for longer are marked as errors
+     */
+    public const STALE_JOB_THRESHOLD_MINUTES = 15;
+    
+    /**
+     * How long the job should remain unique in seconds (1 hour)
+     */
+    public const UNIQUE_FOR_SECONDS = 3600;
+    
+    public $timeout = self::TIMEOUT_SECONDS;
+    public $tries = 200; // Higher retry count due to external video processing dependencies
+    public $backoff = self::BACKOFF_SECONDS;
+    public $uniqueFor = self::UNIQUE_FOR_SECONDS;
 
     public function __construct(public Videojob $videoJob, public int $previewFrames = 0, public ?int $extendFromJobId = null)
     {
@@ -46,10 +71,14 @@ class ProcessVideoJob implements ShouldQueue, ShouldBeUnique
      */
     public function handle(VideoProcessingService $service)
     {
+        // Set PHP execution time limit for long-running video processing
+        set_time_limit(self::TIMEOUT_SECONDS);
+        
         $start_time = time();
 
+        // Mark stale jobs as errors
         Videojob::where('status', 'processing')
-            ->where('updated_at', '<', now()->subMinutes(15))
+            ->where('updated_at', '<', now()->subMinutes(self::STALE_JOB_THRESHOLD_MINUTES))
             ->update(['status' => 'error']);
 
         // Check concurrent job limit
