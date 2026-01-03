@@ -245,16 +245,7 @@ class ComfyUIWorkflowController extends Controller
 
             $imageData = $this->client->getImage($filename, $subfolder, $type);
 
-            // Detect MIME type from filename extension
-            $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-            $mimeType = match ($extension) {
-                'jpg', 'jpeg' => 'image/jpeg',
-                'png' => 'image/png',
-                'gif' => 'image/gif',
-                'webp' => 'image/webp',
-                'bmp' => 'image/bmp',
-                default => 'image/png',
-            };
+            $mimeType = $this->getMimeTypeFromFilename($filename);
 
             return response($imageData)
                 ->header('Content-Type', $mimeType);
@@ -324,5 +315,25 @@ class ComfyUIWorkflowController extends Controller
         }
 
         return $inputs;
+    }
+
+    /**
+     * Get MIME type from filename extension
+     *
+     * @param string $filename
+     * @return string
+     */
+    protected function getMimeTypeFromFilename(string $filename): string
+    {
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        
+        return match ($extension) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'bmp' => 'image/bmp',
+            default => 'image/png',
+        };
     }
 }

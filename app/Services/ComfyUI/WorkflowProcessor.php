@@ -233,6 +233,6 @@ class WorkflowProcessor
      */
     protected function deepCopy(array $array): array
     {
-        return json_decode(json_encode($array), true);
+        return unserialize(serialize($array));
     }
 }
