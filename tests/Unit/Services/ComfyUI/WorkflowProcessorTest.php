@@ -2,10 +2,7 @@
 
 namespace Tests\Unit\Services\ComfyUI;
 
-use App\Models\SdInstance;
-use App\Services\ComfyUI\ComfyUIClient;
 use App\Services\ComfyUI\WorkflowProcessor;
-use App\Services\SdInstanceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -14,21 +11,12 @@ class WorkflowProcessorTest extends TestCase
     use RefreshDatabase;
 
     protected WorkflowProcessor $processor;
-    protected ComfyUIClient $client;
 
     protected function setUp(): void
     {
         parent::setUp();
         
-        SdInstance::factory()->create([
-            'url' => 'http://comfyui.local:8188',
-            'type' => 'comfyui',
-            'enabled' => true,
-        ]);
-        
-        $sdInstanceService = new SdInstanceService();
-        $this->client = new ComfyUIClient($sdInstanceService);
-        $this->processor = new WorkflowProcessor($this->client);
+        $this->processor = new WorkflowProcessor();
     }
 
     public function test_process_workflow_injects_prompt(): void

@@ -62,7 +62,11 @@ class ComfyUIClient
             'json' => ['prompt' => $workflow],
         ]);
 
-        $data = json_decode($response->getBody()->getContents(), true);
+        try {
+            $data = json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            throw new \RuntimeException('Invalid JSON response from ComfyUI: ' . $e->getMessage());
+        }
 
         Log::info('ComfyUI: Prompt queued successfully', [
             'response' => $data,
@@ -89,7 +93,11 @@ class ComfyUIClient
 
         $response = $this->httpClient->get($url);
 
-        return json_decode($response->getBody()->getContents(), true);
+        try {
+            return json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            throw new \RuntimeException('Invalid JSON response from ComfyUI: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -108,7 +116,11 @@ class ComfyUIClient
 
         $response = $this->httpClient->get($url);
 
-        return json_decode($response->getBody()->getContents(), true);
+        try {
+            return json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            throw new \RuntimeException('Invalid JSON response from ComfyUI: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -131,7 +143,11 @@ class ComfyUIClient
             'json' => ['delete' => [$promptId]],
         ]);
 
-        return json_decode($response->getBody()->getContents(), true);
+        try {
+            return json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            throw new \RuntimeException('Invalid JSON response from ComfyUI: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -166,7 +182,11 @@ class ComfyUIClient
             ],
         ]);
 
-        $data = json_decode($response->getBody()->getContents(), true);
+        try {
+            $data = json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            throw new \RuntimeException('Invalid JSON response from ComfyUI: ' . $e->getMessage());
+        }
 
         Log::info('ComfyUI: Image uploaded successfully', [
             'response' => $data,

@@ -31,7 +31,7 @@ class ComfyUIWorkflowController extends Controller
     public function process(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'workflow' => 'required|array',
+            'workflow' => 'required_without:workflow_file|array',
             'workflow_file' => 'sometimes|file|mimes:json',
             'inputs' => 'sometimes|array',
             'inputs.prompt' => 'sometimes|string|max:2000',
@@ -245,8 +245,19 @@ class ComfyUIWorkflowController extends Controller
 
             $imageData = $this->client->getImage($filename, $subfolder, $type);
 
+            // Detect MIME type from filename extension
+            $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+            $mimeType = match ($extension) {
+                'jpg', 'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                'gif' => 'image/gif',
+                'webp' => 'image/webp',
+                'bmp' => 'image/bmp',
+                default => 'image/png',
+            };
+
             return response($imageData)
-                ->header('Content-Type', 'image/png');
+                ->header('Content-Type', $mimeType);
 
         } catch (\Exception $e) {
             Log::error('ComfyUI get image error', [
@@ -266,6 +277,7 @@ class ComfyUIWorkflowController extends Controller
      *
      * @param Request $request
      * @return array
+     * @throws \JsonException
      */
     protected function loadWorkflow(Request $request): array
     {
@@ -273,7 +285,12 @@ class ComfyUIWorkflowController extends Controller
         if ($request->hasFile('workflow_file')) {
             $file = $request->file('workflow_file');
             $contents = file_get_contents($file->getRealPath());
-            return json_decode($contents, true);
+            
+            try {
+                return json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
+            } catch (\JsonException $e) {
+                throw new \JsonException('Invalid JSON in workflow file: ' . $e->getMessage());
+            }
         }
 
         // Otherwise use workflow from request body

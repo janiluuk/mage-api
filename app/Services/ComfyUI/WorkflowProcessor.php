@@ -6,13 +6,6 @@ use Illuminate\Support\Facades\Log;
 
 class WorkflowProcessor
 {
-    protected ComfyUIClient $client;
-
-    public function __construct(ComfyUIClient $client)
-    {
-        $this->client = $client;
-    }
-
     /**
      * Process a workflow file with inputs
      *
@@ -28,7 +21,7 @@ class WorkflowProcessor
         ]);
 
         // Make a deep copy to avoid modifying the original
-        $processedWorkflow = $workflow;
+        $processedWorkflow = $this->deepCopy($workflow);
 
         // Process text inputs (prompts)
         if (isset($inputs['prompt'])) {
@@ -230,5 +223,16 @@ class WorkflowProcessor
 
         Log::info('WorkflowProcessor: Workflow validation passed');
         return true;
+    }
+
+    /**
+     * Create a deep copy of an array
+     *
+     * @param array $array The array to copy
+     * @return array Deep copied array
+     */
+    protected function deepCopy(array $array): array
+    {
+        return json_decode(json_encode($array), true);
     }
 }
