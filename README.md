@@ -59,7 +59,7 @@ Laravel 10 API that powers video production, AI studio experiences, and GPU reso
 ## Requirements
 
 - PHP 8.2+, Composer 2
-- Node.js 18+ and npm
+- Node.js 20.19+ or 22.12+ and npm
 - MySQL/MariaDB and Redis
 - Beanstalkd (queue) and FFmpeg binaries available on the host
 
