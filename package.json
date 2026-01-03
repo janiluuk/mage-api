@@ -6,9 +6,12 @@
     },
     "devDependencies": {
         "axios": "^1.6.8",
-        "laravel-vite-plugin": "^1.0.2",
+        "laravel-vite-plugin": "^2.0.1",
         "lodash": "^4.17.21",
         "postcss": "^8.4.47",
-        "vite": "^5.3.1"
+        "vite": "^7.3.0"
+    },
+    "engines": {
+        "node": "^20.19.0 || >=22.12.0"
     }
 }
