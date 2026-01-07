@@ -49,6 +49,7 @@ class ProductRepository extends BaseRepository implements ProductRepositoryInter
         }
 
         return $query
+            ->with(['category', 'properties'])
             ->select('products.*')
             ->orderBy($orderType, $orderDirection)
             ->get();
@@ -66,6 +67,7 @@ class ProductRepository extends BaseRepository implements ProductRepositoryInter
         }
 
         return $query->select('products.*')
+            ->with(['category', 'properties'])
             ->orderBy($orderType, $orderDirection)
             ->paginate(self::PER_PAGE);
     }

@@ -49,8 +49,11 @@ class Category extends Model implements HasMedia
 
     public function loopCategories($categories)
     {
+        // Eager load all subcategories at once to avoid N+1 queries
+        $categories->loadMissing('subcategories');
+        
         foreach ($categories as $category) {
-            if ($category->subcategories()->count()) {
+            if ($category->subcategories->isNotEmpty()) {
                 $category['subcategories'] = $category->subcategories;
                 $this->loopCategories($category->subcategories);
             }
