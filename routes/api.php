@@ -33,6 +33,7 @@ use App\Http\Controllers\Api\SupportRequestController;
 use App\Http\Controllers\Api\FinanceOperationsController;
 use App\Http\Controllers\Api\SdInstanceController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\ComfyUIWorkflowController;
 use LaravelJsonApi\Laravel\Routing\Relationships;
 
 /*
@@ -305,4 +306,12 @@ Route::group(
         Route::get('/{questionSlug}', [QuestionController::class, 'getBySlug']);
     }
 );
+
+// ComfyUI Workflow routes
+Route::prefix('/comfyui')->middleware('auth:api')->group(function () {
+    Route::post('/workflow/process', [ComfyUIWorkflowController::class, 'process']);
+    Route::get('/workflow/status/{promptId}', [ComfyUIWorkflowController::class, 'status']);
+    Route::post('/workflow/cancel/{promptId}', [ComfyUIWorkflowController::class, 'cancel']);
+    Route::get('/image', [ComfyUIWorkflowController::class, 'getImage']);
+});
 

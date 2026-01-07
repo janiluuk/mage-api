@@ -34,6 +34,12 @@ Laravel 10 API that powers video production, AI studio experiences, and GPU reso
   - Configurable concurrent job processing
   - Encoding progress parser for multiple formats
   - Better error recovery and robustness
+- **ComfyUI workflow processing**: Execute custom ComfyUI workflows
+  - Upload workflow JSON files or send workflow data directly
+  - Dynamic input injection (prompts, images, seeds, parameters)
+  - Real-time status monitoring and result retrieval
+  - Support for image and video outputs
+  - Workflow validation and error handling
 
 ### 💰 GPU Credits & E-commerce
 - **Product catalog**: Categories and GPU credit packages
@@ -142,6 +148,40 @@ API v2 mirrors these endpoints at `/api/v2/*`:
 - `GET /api/video-jobs/processing/queue` — Normalized queue feed for current user (requires auth)
   - All user jobs in processing and approved states
   - Queue position and ETA for each job
+
+### ComfyUI Workflow Processing
+
+Process ComfyUI workflows with custom inputs. All endpoints require authentication.
+
+#### Workflow Submission
+- `POST /api/comfyui/workflow/process` — Submit and process a ComfyUI workflow (requires auth)
+  - **Parameters**:
+    - `workflow` (required): Workflow data as JSON object or
+    - `workflow_file` (optional): JSON file containing workflow
+    - `inputs` (optional): Object with workflow parameters to override
+      - `prompt` (optional): Text prompt (max 2000 chars)
+      - `negative_prompt` (optional): Negative prompt (max 2000 chars)
+      - `image` (optional): Input image file (max 20MB)
+      - `seed` (optional): Random seed (-1 for random)
+      - `steps` (optional): Number of steps (1-150)
+      - `cfg` (optional): CFG scale (1-30)
+      - `denoise` (optional): Denoise strength (0-1)
+      - `width` (optional): Output width (64-2048)
+      - `height` (optional): Output height (64-2048)
+    - `wait_for_completion` (optional): Wait for workflow to complete (boolean)
+    - `max_wait_seconds` (optional): Max wait time in seconds (10-600, default 300)
+  - **Returns**: Prompt ID and status (202 for queued, 200 for completed if waiting)
+
+#### Workflow Status & Results
+- `GET /api/comfyui/workflow/status/{promptId}` — Check workflow processing status (requires auth)
+  - **Returns**: Status, outputs (images/videos), and history data
+
+- `POST /api/comfyui/workflow/cancel/{promptId}` — Cancel a processing workflow (requires auth)
+  - **Returns**: Cancellation confirmation
+
+- `GET /api/comfyui/image` — Download output image from ComfyUI (requires auth)
+  - **Parameters**: `filename` (required), `subfolder` (optional), `type` (optional: output|input|temp)
+  - **Returns**: Binary image data
 
 ### GPU Credits & E-commerce
 
