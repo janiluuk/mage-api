@@ -86,8 +86,7 @@ class ProductRepository extends BaseRepository implements ProductRepositoryInter
 
     public function getProductAvailabilityColumn($productId): ?Product
     {
-        $quantity = Product::where('id', $productId)->get('status')->first();
-
-        return $quantity;
+        // Optimize: Use select and first() instead of get()->first()
+        return Product::where('id', $productId)->select('id', 'status')->first();
     }
 }
