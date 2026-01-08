@@ -473,12 +473,20 @@ public function cancelJob(int $videoId): JsonResponse
             ->orderBy('id')
             ->get();
 
+        // Optimize: Get global counts in a single query using conditional aggregation
+        $counts = \DB::table('video_jobs')
+            ->selectRaw('
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as processing,
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as queued
+            ', [Videojob::STATUS_PROCESSING, Videojob::STATUS_APPROVED])
+            ->first();
+
         return response()->json([
             'processing' => $processingJobs->map(fn (Videojob $job) => $this->serializeJobStatus($job)),
             'queue' => $queuedJobs->map(fn (Videojob $job) => $this->serializeJobStatus($job, true)),
             'counts' => [
-                'processing' => Videojob::where('status', Videojob::STATUS_PROCESSING)->count(),
-                'queued' => Videojob::where('status', Videojob::STATUS_APPROVED)->count(),
+                'processing' => $counts->processing ?? 0,
+                'queued' => $counts->queued ?? 0,
             ],
         ]);
     }

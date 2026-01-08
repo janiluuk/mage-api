@@ -36,6 +36,7 @@ class FinanceOperationRepository extends BaseRepository implements FinanceOperat
             $query = $criterion->apply($query);
         }
 
-        return $query->get();
+        // Eager load relationships to avoid N+1 queries
+        return $query->with(['user', 'userWallet'])->get();
     }
 }
