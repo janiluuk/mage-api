@@ -168,8 +168,9 @@ class FileController extends Controller
 
     public function quota(Request $request)
     {
-        $limit = (int) config('files.quota_bytes');
-        $used = UserFile::where('user_id', $request->user()->id)->sum('size');
+        $user = $request->user();
+        $limit = (int) ($user->quota_bytes ?: config('files.quota_bytes'));
+        $used = UserFile::where('user_id', $user->id)->sum('size');
 
         return [
             'limit' => $limit,

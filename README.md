@@ -68,6 +68,7 @@ Routes under `/api/administration/*` are protected by `AuthorizationChecker` and
 - Finance: review/change finance operation status, review orders, manage wallet types.
 - Support: search/update support requests and messages.
 - **Storage**: `/api/administration/files/overview` paginates users with quota usage; `/api/administration/files/users/{userId}` returns per-user file lists and storage stats.
+- **Admin panel**: `/administration/files` serves a tree-view browser for user files with per-user quota edits.
 
 ## Tooling
 - Run tests: `./vendor/bin/phpunit`

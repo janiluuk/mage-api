@@ -86,3 +86,5 @@ All routes are protected by `AuthorizationChecker` and `IsAdministratorChecker`.
 
 - `GET /api/administration/files/overview` — paginated storage usage for all users.
 - `GET /api/administration/files/users/{userId}` — storage breakdown and files for a single user.
+- `PUT /api/administration/files/users/{userId}/quota` — update a user's quota override in bytes.
+- `GET /administration/files` — web admin panel with a tree view of user files and quota editing.

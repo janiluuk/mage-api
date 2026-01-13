@@ -155,6 +155,7 @@ Route::prefix('/administration/files')->group(function () {
     Route::middleware(['AuthorizationChecker', 'IsAdministratorChecker'])->group(function () {
         Route::get('/overview', [FileAdminController::class, 'index']);
         Route::get('/users/{userId}', [FileAdminController::class, 'filesForUser']);
+        Route::put('/users/{userId}/quota', [FileAdminController::class, 'updateQuota']);
     });
 });
 

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\UserFile;
+use App\Models\User;
 use FFMpeg\Format\Audio\Aac;
 use FFMpeg\Format\Audio\Mp3;
 use FFMpeg\Format\Video\X264;
@@ -24,7 +25,7 @@ class FileManager
 
     public function quotaRemaining(int $userId): int
     {
-        $limit = (int) config('files.quota_bytes');
+        $limit = $this->resolveQuotaBytes($userId);
         $used = UserFile::where('user_id', $userId)->sum('size');
 
         return max(0, $limit - $used);
@@ -372,6 +373,14 @@ class FileManager
         if ($incomingSize > $remaining) {
             throw new \RuntimeException('Storage quota exceeded. Free up space or request more capacity.');
         }
+    }
+
+    private function resolveQuotaBytes(int $userId): int
+    {
+        $default = (int) config('files.quota_bytes');
+        $userQuota = User::whereKey($userId)->value('quota_bytes');
+
+        return (int) ($userQuota ?: $default);
     }
 
     private function runProcess(string $command): void
