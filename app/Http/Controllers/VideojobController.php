@@ -30,6 +30,8 @@ class VideojobController extends Controller
         $validated = $request->validate([
             'attachment' => 'required|mimes:webm,mp4,mov,ogg,qt,gif,jpg,jpeg,png,webp|max:200000',
             'soundtrack' => 'nullable|file|mimes:mp3,aac,wav|max:51200',
+            'soundtrack_start_seconds' => 'nullable|numeric|min:0',
+            'soundtrack_end_seconds' => 'nullable|numeric|gt:soundtrack_start_seconds',
             'type' => 'required|in:vid2vid,deforum',
         ]);
 
@@ -129,6 +131,8 @@ private function generateDeforum(Request $request): JsonResponse
             'preset' => 'required|string',
             'length' => 'numeric|between:1,20',
             'extendFromJobId' => 'nullable|integer|exists:video_jobs,id',
+            'soundtrack_start_seconds' => 'nullable|numeric|min:0',
+            'soundtrack_end_seconds' => 'nullable|numeric|gt:soundtrack_start_seconds',
         ]);
 
         $frameCount = $request->input('frameCount', 1);
@@ -161,6 +165,8 @@ private function generateDeforum(Request $request): JsonResponse
         if ($response = $this->assertOwner($videoJob)) {
             return $response;
         }
+
+        $this->applySoundtrackWindow($videoJob, $request);
 
         $videoJob->model_id = $request->input('modelId', $videoJob->model_id);
         $videoJob->prompt = trim((string) $request->input('prompt', $videoJob->prompt));
@@ -212,6 +218,8 @@ private function generateDeforum(Request $request): JsonResponse
             'prompt' => 'required|string',
             'frameCount' => 'numeric|between:1,20',
             'denoising' => 'required|numeric|between:0.1,1.0',
+            'soundtrack_start_seconds' => 'nullable|numeric|min:0',
+            'soundtrack_end_seconds' => 'nullable|numeric|gt:soundtrack_start_seconds',
         ]);
 
         $seed = $this->normalizeSeed((int) $request->input('seed', -1));
@@ -222,6 +230,8 @@ private function generateDeforum(Request $request): JsonResponse
         if ($response = $this->assertOwner($videoJob)) {
             return $response;
         }
+
+        $this->applySoundtrackWindow($videoJob, $request);
 
         $controlnet = $request->input('controlnet', []);
 
@@ -483,6 +493,8 @@ public function cancelJob(Request $request): JsonResponse
         $videoJob->soundtrack_path = $soundtrack['absolutePath'];
         $videoJob->soundtrack_url = $soundtrack['url'];
         $videoJob->soundtrack_mimetype = $soundtrack['mimeType'];
+        $videoJob->soundtrack_start_seconds = $request->input('soundtrack_start_seconds');
+        $videoJob->soundtrack_end_seconds = $request->input('soundtrack_end_seconds');
     }
 
     private function persistSoundtrack(Request $request): ?array
@@ -499,6 +511,17 @@ public function cancelJob(Request $request): JsonResponse
             'url' => Storage::disk('public')->url($path),
             'mimeType' => $soundtrack->getMimeType(),
         ];
+    }
+
+    private function applySoundtrackWindow(Videojob $videoJob, Request $request): void
+    {
+        if ($request->has('soundtrack_start_seconds')) {
+            $videoJob->soundtrack_start_seconds = $request->input('soundtrack_start_seconds');
+        }
+
+        if ($request->has('soundtrack_end_seconds')) {
+            $videoJob->soundtrack_end_seconds = $request->input('soundtrack_end_seconds');
+        }
     }
 
     private function guardAuthenticated(): ?JsonResponse

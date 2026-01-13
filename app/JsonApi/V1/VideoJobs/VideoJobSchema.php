@@ -73,6 +73,8 @@ class VideoJobSchema extends Schema
             Str::make('audio_codec'),
             Str::make('soundtrack_url'),
             Str::make('soundtrack_mimetype'),
+            Number::make('soundtrack_start_seconds'),
+            Number::make('soundtrack_end_seconds'),
             Str::make('thumbnail'),
             Str::make('outfile'),
             Str::make('codec'),

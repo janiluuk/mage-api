@@ -56,6 +56,8 @@ class VideoJobResource extends JsonApiResource
             'audio_codec' => $this->audio_codec,
             'soundtrack_url' => $this->soundtrack_url,
             'soundtrack_mimetype' => $this->soundtrack_mimetype,
+            'soundtrack_start_seconds' => $this->soundtrack_start_seconds,
+            'soundtrack_end_seconds' => $this->soundtrack_end_seconds,
             'width' => $this->width,
             'height' => $this->height,
             'model_id' => $this->model_id,

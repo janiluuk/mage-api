@@ -91,6 +91,11 @@ class User extends Authenticatable implements JWTSubject, HasMedia
         return $this->hasMany(Chat::class);
     }
 
+    public function files(): HasMany
+    {
+        return $this->hasMany(UserFile::class);
+    }
+
     public function messages(): HasMany
     {
         return $this->hasMany(Message::class);

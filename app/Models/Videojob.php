@@ -88,6 +88,8 @@ class Videojob extends Model implements HasMedia
         'soundtrack_path',
         'soundtrack_url',
         'soundtrack_mimetype',
+        'soundtrack_start_seconds',
+        'soundtrack_end_seconds',
         'status',
         'thumbnail',
         'url',
