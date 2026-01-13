@@ -63,7 +63,7 @@ class VideojobQueueTest extends TestCase
     public function test_submit_uses_medium_queue_when_requesting_multiple_frames(): void
     {
         Queue::fake();
-        putenv('MEDIUM_PRIORITY_QUEUE=');
+        config(['queue.names.MEDIUM_PRIORITY_QUEUE' => '']);
 
         $videoJob = Videojob::factory()->for(User::factory(), 'user')->create();
 
