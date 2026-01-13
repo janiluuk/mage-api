@@ -1,6 +1,6 @@
 # Mage API
 
-Laravel 10 backend for Vimage/Mage that now ships a file management stack alongside the existing video generation, catalog, and messaging workflows.
+Laravel 10 backend for Mage that now ships a file management stack alongside the existing video generation, catalog, and messaging workflows.
 
 ## Highlights
 - **Secure file vaults** for every authenticated user with a 1 GB configurable quota, upload validation, and per-project organization.
