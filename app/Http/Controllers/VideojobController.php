@@ -274,7 +274,7 @@ private function generateDeforum(Request $request): JsonResponse
             // Copy the last frame from the base job to use as init image
             $baseJobPath = storage_path('app/public/jobs/' . $baseJob->id);
             $newJobPath = storage_path('app/public/jobs/' . $videoJob->id);
-            
+
             if (!file_exists($newJobPath)) {
                 mkdir($newJobPath, 0755, true);
             }
