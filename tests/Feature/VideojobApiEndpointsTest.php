@@ -37,13 +37,16 @@ class VideojobApiEndpointsTest extends TestCase
 
     public function test_status_endpoint_returns_job_progress_snapshot(): void
     {
-        $videoJob = Videojob::factory()->create([
+        $user = User::factory()->create();
+        $videoJob = Videojob::factory()->for($user, 'user')->create([
             'status' => Videojob::STATUS_PROCESSING,
             'progress' => 42,
             'job_time' => 12,
             'estimated_time_left' => 33,
             'queued_at' => Carbon::parse('2024-01-01 12:00:00'),
         ]);
+
+        $this->actingAs($user, 'api');
 
         $response = $this->getJson("/status/{$videoJob->id}");
 
@@ -183,7 +186,8 @@ public function test_status_includes_queue_snapshot_for_approved_job(): void
     {
         Carbon::setTestNow('2024-05-05 12:00:00');
 
-        $approvedJob = Videojob::factory()->create([
+        $user = User::factory()->create();
+        $approvedJob = Videojob::factory()->for($user, 'user')->create([
             'status' => Videojob::STATUS_APPROVED,
             'queued_at' => Carbon::now()->timestamp,
             'frame_count' => 5,
@@ -197,6 +201,8 @@ public function test_status_includes_queue_snapshot_for_approved_job(): void
             'status' => Videojob::STATUS_APPROVED,
             'queued_at' => Carbon::now()->addMinute()->timestamp,
         ]);
+
+        $this->actingAs($user, 'api');
 
         $response = $this->getJson("/status/{$approvedJob->id}");
 

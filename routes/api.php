@@ -315,3 +315,4 @@ Route::prefix('/comfyui')->middleware('auth:api')->group(function () {
     Route::post('/workflow/cancel/{promptId}', [ComfyUIWorkflowController::class, 'cancel']);
     Route::get('/image', [ComfyUIWorkflowController::class, 'getImage']);
 });
+

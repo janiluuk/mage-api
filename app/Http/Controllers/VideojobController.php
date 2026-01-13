@@ -379,7 +379,7 @@ private function generateDeforum(Request $request): JsonResponse
     ]);
 }
 
-public function cancelJob(int $videoId): JsonResponse
+public function cancelJob($videoId): JsonResponse
     {
         if ($response = $this->guardAuthenticated()) {
             return $response;
@@ -401,7 +401,7 @@ public function cancelJob(int $videoId): JsonResponse
         ]);
     }
 
-    public function status(int $id): JsonResponse
+    public function status($id): JsonResponse
     {
         if ($response = $this->guardAuthenticated()) {
             return $response;
