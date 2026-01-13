@@ -403,7 +403,15 @@ public function cancelJob(int $videoId): JsonResponse
 
     public function status(int $id): JsonResponse
     {
+        if ($response = $this->guardAuthenticated()) {
+            return $response;
+        }
+
         $videoJob = Videojob::findOrFail($id);
+
+        if ($response = $this->assertOwner($videoJob)) {
+            return $response;
+        }
 
         return response()->json([
             'id' => $videoJob->id,

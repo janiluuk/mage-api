@@ -91,4 +91,10 @@ return [
         'table' => 'failed_jobs',
     ],
 
+    'names' => [
+        'HIGH_PRIORITY_QUEUE' => env('HIGH_PRIORITY_QUEUE', 'high'),
+        'MEDIUM_PRIORITY_QUEUE' => env('MEDIUM_PRIORITY_QUEUE', 'medium'),
+        'LOW_PRIORITY_QUEUE' => env('LOW_PRIORITY_QUEUE', 'low'),
+    ],
+
 ];

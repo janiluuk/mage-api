@@ -2,12 +2,12 @@
 
 namespace Database\Factories;
 
-use App\Models\SdInstance;
+use App\Models\GeneratorInstance;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-class SdInstanceFactory extends Factory
+class GeneratorInstanceFactory extends Factory
 {
-    protected $model = SdInstance::class;
+    protected $model = GeneratorInstance::class;
 
     public function definition(): array
     {

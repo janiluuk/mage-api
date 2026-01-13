@@ -29,6 +29,7 @@ class ModelFile extends Model
         'version',
         'previewUrl',
         'enabled',         
+        'instance_type',
     ];
 
     /**

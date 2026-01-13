@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\ComfyUI;
 
-use App\Models\SdInstance;
+use App\Models\GeneratorInstance;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -21,7 +21,7 @@ class ComfyUIWorkflowEndpointTest extends TestCase
         $this->user = User::factory()->create();
         
         // Create a ComfyUI instance
-        SdInstance::factory()->create([
+        GeneratorInstance::factory()->create([
             'url' => 'http://comfyui.local:8188',
             'type' => 'comfyui',
             'enabled' => true,
