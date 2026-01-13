@@ -252,8 +252,29 @@ private function generateDeforum(Request $request): JsonResponse
 
         $seed = $this->normalizeSeed((int) $request->input('seed', -1));
         $frameCount = $request->input('frameCount', 1);
+        $extendFromJobId = $request->input('extendFromJobId');
 
         $videoJob = Videojob::findOrFail($request->input('videoId'));
+
+        // Handle extension from another job
+        if ($extendFromJobId) {
+            $baseJob = Videojob::findOrFail($extendFromJobId);
+
+            // Ensure we're not trying to extend from a deforum job
+            if ($baseJob->generator === 'deforum') {
+                return response()->json(['message' => 'Cannot extend deforum jobs with vid2vid'], 422);
+            }
+
+            if ($response = $this->assertOwner($baseJob)) {
+                return $response;
+            }
+
+            // Inherit parameters from base job
+            $videoJob->model_id = $baseJob->model_id;
+            $videoJob->width = $baseJob->width;
+            $videoJob->height = $baseJob->height;
+            $videoJob->fps = $baseJob->fps;
+        }
 
         if ($response = $this->assertOwner($videoJob)) {
             return $response;
