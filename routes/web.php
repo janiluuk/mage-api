@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Controllers\VideojobController;
+use App\Http\Controllers\Admin\FileBrowserController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -34,5 +35,9 @@ Route::get('/status/{id}', [VideojobController::class, 'status']);
 Route::get('/queue', [VideojobController::class, 'getVideoJobs'])->middleware('auth:api');
 Route::view('/deforumation-qt', 'deforumation-qt')->name('deforumation.qt');
 ctf0\MediaManager\MediaRoutes::routes();
+
+Route::middleware(['AuthorizationChecker', 'IsAdministratorChecker'])
+    ->get('/administration/files', [FileBrowserController::class, 'index'])
+    ->name('admin.files');
 
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 

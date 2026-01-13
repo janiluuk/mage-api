@@ -63,14 +63,13 @@ Laravel 10 API that powers video production, AI studio experiences, and GPU reso
 - **Content moderation**: Monitor and manage user-generated content
 
 ## Requirements
-
 - PHP 8.2+, Composer 2
 - Node.js 20.19+ or 22.12+ and npm
 - MySQL/MariaDB and Redis
-- Beanstalkd (queue) and FFmpeg binaries available on the host
+- Beanstalkd (queue)
+- FFmpeg binaries on the host (for merging and transcoding)
 
 ## Setup
-
 ```bash
 cp .env.example .env
 composer install
@@ -81,11 +80,14 @@ php artisan migrate --seed
 npm run build
 ```
 
-Docker users can start the stack with `docker-compose up -d` and run the same artisan commands inside the `app` container. Queue
-workers should target the configured names (`HIGH_PRIORITY_QUEUE`, `MEDIUM_PRIORITY_QUEUE`, `LOW_PRIORITY_QUEUE`):
+Docker users can start the stack with `docker-compose up -d` and run the same artisan commands inside the `app` container. Queue workers should target the configured names (`HIGH_PRIORITY_QUEUE`, `MEDIUM_PRIORITY_QUEUE`, `LOW_PRIORITY_QUEUE`).
 
-```bash
-php artisan queue:work beanstalkd --queue=critical,medium,low
+### File service configuration
+Add/adjust these keys in `.env` to tune storage behavior:
+```
+FILES_DISK=local           # Storage disk for user uploads
+FILES_BASE_DIR=user-files  # Where user assets are nested inside the disk
+FILES_QUOTA_BYTES=1073741824  # 1 GB quota per user by default
 ```
 
 Queue names default to `high`, `medium`, and `low`. Override them with `HIGH_PRIORITY_QUEUE`, `MEDIUM_PRIORITY_QUEUE`, and
@@ -244,6 +246,7 @@ Process ComfyUI workflows with custom inputs. All endpoints require authenticati
 - `PATCH /api/support-request/status-update` — Update support request status (auth)
 
 ### Administration
+Routes under `/api/administration/*` are protected by `AuthorizationChecker` and `IsAdministratorChecker`.
 
 All administration endpoints require authentication and administrator role. Base path: `/api/administration`
 

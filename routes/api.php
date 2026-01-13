@@ -31,6 +31,8 @@ use App\Http\Controllers\Api\UserRatingController;
 use App\Http\Controllers\Api\WalletTypeController;
 use App\Http\Controllers\Api\SupportRequestController;
 use App\Http\Controllers\Api\FinanceOperationsController;
+use App\Http\Controllers\Api\FileController;
+use App\Http\Controllers\Api\Admin\FileAdminController;
 use App\Http\Controllers\Api\GeneratorInstanceController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ComfyUIWorkflowController;
@@ -113,6 +115,18 @@ Route::middleware('auth:api')->prefix('video-jobs')->group(function () {
     Route::get('/{videoId}/status', [VideojobController::class, 'status']);
 });
 
+Route::middleware('auth:api')->prefix('files')->group(function () {
+    Route::get('', [FileController::class, 'index']);
+    Route::post('', [FileController::class, 'store']);
+    Route::delete('{id}', [FileController::class, 'destroy']);
+    Route::post('{id}/unzip', [FileController::class, 'unzip']);
+    Route::post('merge', [FileController::class, 'merge']);
+    Route::post('{id}/import', [FileController::class, 'import']);
+    Route::post('{id}/transcode', [FileController::class, 'transcode']);
+    Route::post('{id}/attach-audio', [FileController::class, 'attachAudio']);
+    Route::get('quota', [FileController::class, 'quota']);
+});
+
 Route::get('/csrf-token', function () {
     return response()->json([
         'csrfToken' => csrf_token(),
@@ -156,6 +170,13 @@ Route::prefix('/administration')->group(function () {
     });
 });
 
+Route::prefix('/administration/files')->group(function () {
+    Route::middleware(['AuthorizationChecker', 'IsAdministratorChecker'])->group(function () {
+        Route::get('/overview', [FileAdminController::class, 'index']);
+        Route::get('/users/{userId}', [FileAdminController::class, 'filesForUser']);
+        Route::put('/users/{userId}/quota', [FileAdminController::class, 'updateQuota']);
+    });
+});
 
 Route::prefix('/categories')->group(
     function () {
