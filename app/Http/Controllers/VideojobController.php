@@ -181,9 +181,13 @@ private function generateDeforum(Request $request): JsonResponse
 
         $this->applySoundtrackWindow($videoJob, $request);
 
-        $videoJob->model_id = $request->input('modelId', $videoJob->model_id);
-        $videoJob->prompt = trim((string) $request->input('prompt', $videoJob->prompt));
-        $videoJob->negative_prompt = trim((string) $request->input('negative_prompt', $videoJob->negative_prompt));
+        // Only override core generation parameters from the request for non-extension jobs.
+        if (!$extendFromJobId) {
+            $videoJob->model_id = $request->input('modelId', $videoJob->model_id);
+            $videoJob->prompt = trim((string) $request->input('prompt', $videoJob->prompt));
+            $videoJob->negative_prompt = trim((string) $request->input('negative_prompt', $videoJob->negative_prompt));
+        }
+
         $videoJob->status = 'processing';
         $videoJob->progress = 5;
         $seed = $this->normalizeSeed((int) $request->input('seed', $videoJob->seed ?? -1));

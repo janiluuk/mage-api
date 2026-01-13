@@ -355,7 +355,7 @@ class FileManager
 
     private function userDirectory(int $userId, ?string $projectId = null): string
     {
-        $parts = [trim(config('files.base_directory'), '/') , 'user-' . $userId];
+        $parts = [trim(config('files.base_directory'), '/'), 'user-' . $userId];
         if ($projectId) {
             $parts[] = 'project-' . $projectId;
         }

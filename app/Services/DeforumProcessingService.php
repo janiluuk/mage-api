@@ -377,8 +377,8 @@ class DeforumProcessingService
         if ($clipStart > 0) {
             $commandParts[] = '-ss ' . escapeshellarg((string) $clipStart);
         }
-        $commandParts[] = '-i ' . escapeshellarg($soundtrackPath);
         $commandParts[] = '-i ' . escapeshellarg($finishedVideoPath);
+        $commandParts[] = '-i ' . escapeshellarg($soundtrackPath);
         if ($clipDuration !== null) {
             $commandParts[] = '-t ' . escapeshellarg((string) $clipDuration);
         }
