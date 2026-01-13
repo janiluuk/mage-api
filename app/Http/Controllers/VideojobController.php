@@ -241,7 +241,6 @@ private function generateDeforum(Request $request): JsonResponse
             'extendFromJobId' => 'nullable|integer|exists:video_jobs,id',
         ]);
 
-        $seed = $this->normalizeSeed((int) $request->input('seed', -1));
         $frameCount = $request->input('frameCount', 1);
 
         $videoJob = Videojob::findOrFail($request->input('videoId'));
@@ -300,7 +299,7 @@ private function generateDeforum(Request $request): JsonResponse
             $videoJob->denoising = $request->input('denoising', $persistedParameters['denoising_strength'] ?? $baseJob->denoising);
             $videoJob->prompt = $request->input('prompt', $persistedParameters['prompt'] ?? $baseJob->prompt);
             $videoJob->negative_prompt = $request->input('negative_prompt', $persistedParameters['negative_prompt'] ?? $baseJob->negative_prompt);
-            $videoJob->seed = $request->input('seed', $persistedParameters['seed'] ?? $baseJob->seed);
+            $videoJob->seed = $this->normalizeSeed((int) $request->input('seed', $persistedParameters['seed'] ?? $baseJob->seed));
             $videoJob->fps = $persistedParameters['fps'] ?? $baseJob->fps;
             $videoJob->width = $baseJob->width;
             $videoJob->height = $baseJob->height;
@@ -310,6 +309,7 @@ private function generateDeforum(Request $request): JsonResponse
             $videoJob->denoising = $request->input('denoising');
             $videoJob->prompt = trim((string) $request->input('prompt'));
             $videoJob->negative_prompt = trim((string) $request->input('negative_prompt', ''));
+            $videoJob->seed = $this->normalizeSeed((int) $request->input('seed', -1));
         }
 
         $controlnet = $request->input('controlnet', []);
@@ -318,8 +318,6 @@ private function generateDeforum(Request $request): JsonResponse
             $videoJob->controlnet = json_encode($controlnet);
             Log::info('Got controlnet params: ' . json_encode($controlnet), ['controlnet' => json_decode($videoJob->controlnet)]);
         }
-
-        $videoJob->seed = $seed;
         $videoJob->status = 'processing';
         $videoJob->progress = 5;
         $videoJob->job_time = 3;
