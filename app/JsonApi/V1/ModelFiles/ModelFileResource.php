@@ -25,6 +25,7 @@ class ModelFileResource extends JsonApiResource
             'sample_prompts' => $this->sample_prompts,
             'nsfw' => $this->nsfw,            
             'modelType' => $this->model_type,
+            'instanceType' => $this->instance_type,
             'description' => $this->description,
             'version' => $this->version,           
             'created_at' => (string) $this->created_at,
