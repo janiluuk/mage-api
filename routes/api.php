@@ -33,7 +33,7 @@ use App\Http\Controllers\Api\SupportRequestController;
 use App\Http\Controllers\Api\FinanceOperationsController;
 use App\Http\Controllers\Api\FileController;
 use App\Http\Controllers\Api\Admin\FileAdminController;
-use App\Http\Controllers\Api\SdInstanceController;
+use App\Http\Controllers\Api\GeneratorInstanceController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ComfyUIWorkflowController;
 use LaravelJsonApi\Laravel\Routing\Relationships;
@@ -112,6 +112,7 @@ Route::get('/queue', [VideojobController::class, 'getVideoJobs'])->middleware('a
 Route::middleware('auth:api')->prefix('video-jobs')->group(function () {
     Route::get('/processing/status', [VideojobController::class, 'processingStatus']);
     Route::get('/processing/queue', [VideojobController::class, 'processingQueue']);
+    Route::get('/{videoId}/status', [VideojobController::class, 'status']);
 });
 
 Route::middleware('auth:api')->prefix('files')->group(function () {
@@ -158,14 +159,14 @@ Route::prefix('/administration')->group(function () {
         Route::get('/users/{userId}/data-stats', [UserController::class, 'getUserDataStats']);
         Route::delete('/users/purge-data', [UserController::class, 'purgeUserData']);
         
-        // SD Instance management routes
-        Route::get('/sd-instances', [SdInstanceController::class, 'index']);
-        Route::post('/sd-instances', [SdInstanceController::class, 'store']);
-        Route::get('/sd-instances/{id}', [SdInstanceController::class, 'show']);
-        Route::put('/sd-instances/{id}', [SdInstanceController::class, 'update']);
-        Route::patch('/sd-instances/{id}', [SdInstanceController::class, 'update']);
-        Route::delete('/sd-instances/{id}', [SdInstanceController::class, 'destroy']);
-        Route::patch('/sd-instances/{id}/toggle', [SdInstanceController::class, 'toggle']);
+        // Generator instance management routes
+        Route::get('/generator-instances', [GeneratorInstanceController::class, 'index']);
+        Route::post('/generator-instances', [GeneratorInstanceController::class, 'store']);
+        Route::get('/generator-instances/{id}', [GeneratorInstanceController::class, 'show']);
+        Route::put('/generator-instances/{id}', [GeneratorInstanceController::class, 'update']);
+        Route::patch('/generator-instances/{id}', [GeneratorInstanceController::class, 'update']);
+        Route::delete('/generator-instances/{id}', [GeneratorInstanceController::class, 'destroy']);
+        Route::patch('/generator-instances/{id}/toggle', [GeneratorInstanceController::class, 'toggle']);
     });
 });
 
@@ -335,4 +336,3 @@ Route::prefix('/comfyui')->middleware('auth:api')->group(function () {
     Route::post('/workflow/cancel/{promptId}', [ComfyUIWorkflowController::class, 'cancel']);
     Route::get('/image', [ComfyUIWorkflowController::class, 'getImage']);
 });
-

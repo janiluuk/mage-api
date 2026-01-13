@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class SdInstance extends Model
+class GeneratorInstance extends Model
 {
     use HasFactory;
 
@@ -14,7 +14,7 @@ class SdInstance extends Model
      *
      * @var string
      */
-    protected $table = 'sd_instances';
+    protected $table = 'generator_instances';
 
     /**
      * The attributes that are mass assignable.

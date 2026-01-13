@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Exceptions\SdInstanceUnavailableException;
+use App\Exceptions\GeneratorInstanceUnavailableException;
 use App\Models\ModelFile;
 use App\Models\Videojob;
 use Illuminate\Support\Facades\Log;
@@ -11,11 +11,11 @@ use Symfony\Component\Process\Process;
 
 class DeforumProcessingService
 {
-    protected $sdInstanceService;
+    protected $generatorInstanceService;
 
-    public function __construct(SdInstanceService $sdInstanceService)
+    public function __construct(GeneratorInstanceService $generatorInstanceService)
     {
-        $this->sdInstanceService = $sdInstanceService;
+        $this->generatorInstanceService = $generatorInstanceService;
     }
 
     public function parseJob(Videojob $videoJob, string $path)
@@ -102,16 +102,18 @@ class DeforumProcessingService
                 $execution_times = [];
                 $progresses = [];
                 
-                // Get SD instance URL
-                $sdInstanceUrl = $this->sdInstanceService->getEnabledInstanceUrl('stable_diffusion_forge');
-                if (!$sdInstanceUrl) {
-                    throw SdInstanceUnavailableException::forType('stable_diffusion_forge');
+                // Get generator instance URL
+                $modelFile = ModelFile::find($videoJob->model_id);
+                $instanceType = $modelFile?->instance_type ?? 'stable_diffusion_forge';
+                $generatorInstanceUrl = $this->generatorInstanceService->getEnabledInstanceUrl($instanceType);
+                if (!$generatorInstanceUrl) {
+                    throw GeneratorInstanceUnavailableException::forType($instanceType);
                 }
                 
                 while ($running) {
 
                     // Using GuzzleHttp\Client to make an API request
-                    $response = $client->request('GET', $sdInstanceUrl . '/deforum_api/jobs/' . $first_job_id);
+                    $response = $client->request('GET', $generatorInstanceUrl . '/deforum_api/jobs/' . $first_job_id);
                     $data = json_decode($response->getBody(), true);
                 
 
@@ -120,7 +122,7 @@ class DeforumProcessingService
                     $videoJob = Videojob::findOrFail($videoJob->id);
                     
                     if ($videoJob->status == 'cancelled' || $videoJob->status == 'error') {
-                        $response = $client->request('DELETE', $sdInstanceUrl . '/deforum_api/jobs/' . $first_job_id);
+                        $response = $client->request('DELETE', $generatorInstanceUrl . '/deforum_api/jobs/' . $first_job_id);
                         Log::info("Deleted job {$first_job_id}: {$response->getBody()}");
                         $running = false;
                         
@@ -377,7 +379,6 @@ class DeforumProcessingService
         if ($clipStart > 0) {
             $commandParts[] = '-ss ' . escapeshellarg((string) $clipStart);
         }
-        // First input: video, second input: soundtrack, to match -map 0:v:0 -map 1:a:0
         $commandParts[] = '-i ' . escapeshellarg($finishedVideoPath);
         $commandParts[] = '-i ' . escapeshellarg($soundtrackPath);
         if ($clipDuration !== null) {

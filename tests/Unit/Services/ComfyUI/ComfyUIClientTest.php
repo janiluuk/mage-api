@@ -2,10 +2,10 @@
 
 namespace Tests\Unit\Services\ComfyUI;
 
-use App\Exceptions\SdInstanceUnavailableException;
-use App\Models\SdInstance;
+use App\Exceptions\GeneratorInstanceUnavailableException;
+use App\Models\GeneratorInstance;
 use App\Services\ComfyUI\ComfyUIClient;
-use App\Services\SdInstanceService;
+use App\Services\GeneratorInstanceService;
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
@@ -17,18 +17,18 @@ class ComfyUIClientTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected SdInstanceService $sdInstanceService;
+    protected GeneratorInstanceService $generatorInstanceService;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->sdInstanceService = new SdInstanceService();
+        $this->generatorInstanceService = new GeneratorInstanceService();
     }
 
     public function test_queue_prompt_sends_workflow_to_comfyui(): void
     {
         // Create a ComfyUI instance
-        SdInstance::factory()->create([
+        GeneratorInstance::factory()->create([
             'url' => 'http://comfyui.local:8188',
             'type' => 'comfyui',
             'enabled' => true,
@@ -45,7 +45,7 @@ class ComfyUIClientTest extends TestCase
         $handlerStack = HandlerStack::create($mock);
         $httpClient = new Client(['handler' => $handlerStack]);
 
-        $client = new ComfyUIClient($this->sdInstanceService);
+        $client = new ComfyUIClient($this->generatorInstanceService);
         
         // Use reflection to inject mock HTTP client
         $reflection = new \ReflectionClass($client);
@@ -65,7 +65,7 @@ class ComfyUIClientTest extends TestCase
 
     public function test_get_history_retrieves_prompt_history(): void
     {
-        SdInstance::factory()->create([
+        GeneratorInstance::factory()->create([
             'url' => 'http://comfyui.local:8188',
             'type' => 'comfyui',
             'enabled' => true,
@@ -92,7 +92,7 @@ class ComfyUIClientTest extends TestCase
         $handlerStack = HandlerStack::create($mock);
         $httpClient = new Client(['handler' => $handlerStack]);
 
-        $client = new ComfyUIClient($this->sdInstanceService);
+        $client = new ComfyUIClient($this->generatorInstanceService);
         
         $reflection = new \ReflectionClass($client);
         $property = $reflection->getProperty('httpClient');
@@ -107,7 +107,7 @@ class ComfyUIClientTest extends TestCase
 
     public function test_is_prompt_complete_returns_true_when_in_history(): void
     {
-        SdInstance::factory()->create([
+        GeneratorInstance::factory()->create([
             'url' => 'http://comfyui.local:8188',
             'type' => 'comfyui',
             'enabled' => true,
@@ -122,7 +122,7 @@ class ComfyUIClientTest extends TestCase
         $handlerStack = HandlerStack::create($mock);
         $httpClient = new Client(['handler' => $handlerStack]);
 
-        $client = new ComfyUIClient($this->sdInstanceService);
+        $client = new ComfyUIClient($this->generatorInstanceService);
         
         $reflection = new \ReflectionClass($client);
         $property = $reflection->getProperty('httpClient');
@@ -136,7 +136,7 @@ class ComfyUIClientTest extends TestCase
 
     public function test_is_prompt_complete_returns_false_when_not_in_history(): void
     {
-        SdInstance::factory()->create([
+        GeneratorInstance::factory()->create([
             'url' => 'http://comfyui.local:8188',
             'type' => 'comfyui',
             'enabled' => true,
@@ -149,7 +149,7 @@ class ComfyUIClientTest extends TestCase
         $handlerStack = HandlerStack::create($mock);
         $httpClient = new Client(['handler' => $handlerStack]);
 
-        $client = new ComfyUIClient($this->sdInstanceService);
+        $client = new ComfyUIClient($this->generatorInstanceService);
         
         $reflection = new \ReflectionClass($client);
         $property = $reflection->getProperty('httpClient');
@@ -164,15 +164,15 @@ class ComfyUIClientTest extends TestCase
     public function test_throws_exception_when_no_comfyui_instance_available(): void
     {
         // Create only a forge instance, no comfyui
-        SdInstance::factory()->create([
+        GeneratorInstance::factory()->create([
             'url' => 'http://forge.local:7860',
             'type' => 'stable_diffusion_forge',
             'enabled' => true,
         ]);
 
-        $this->expectException(SdInstanceUnavailableException::class);
+        $this->expectException(GeneratorInstanceUnavailableException::class);
 
-        $client = new ComfyUIClient($this->sdInstanceService);
+        $client = new ComfyUIClient($this->generatorInstanceService);
         
         $workflow = ['1' => ['class_type' => 'KSampler']];
         $client->queuePrompt($workflow);
@@ -180,7 +180,7 @@ class ComfyUIClientTest extends TestCase
 
     public function test_get_queue_returns_queue_status(): void
     {
-        SdInstance::factory()->create([
+        GeneratorInstance::factory()->create([
             'url' => 'http://comfyui.local:8188',
             'type' => 'comfyui',
             'enabled' => true,
@@ -198,7 +198,7 @@ class ComfyUIClientTest extends TestCase
         $handlerStack = HandlerStack::create($mock);
         $httpClient = new Client(['handler' => $handlerStack]);
 
-        $client = new ComfyUIClient($this->sdInstanceService);
+        $client = new ComfyUIClient($this->generatorInstanceService);
         
         $reflection = new \ReflectionClass($client);
         $property = $reflection->getProperty('httpClient');
@@ -213,7 +213,7 @@ class ComfyUIClientTest extends TestCase
 
     public function test_cancel_prompt_sends_interrupt_request(): void
     {
-        SdInstance::factory()->create([
+        GeneratorInstance::factory()->create([
             'url' => 'http://comfyui.local:8188',
             'type' => 'comfyui',
             'enabled' => true,
@@ -226,7 +226,7 @@ class ComfyUIClientTest extends TestCase
         $handlerStack = HandlerStack::create($mock);
         $httpClient = new Client(['handler' => $handlerStack]);
 
-        $client = new ComfyUIClient($this->sdInstanceService);
+        $client = new ComfyUIClient($this->generatorInstanceService);
         
         $reflection = new \ReflectionClass($client);
         $property = $reflection->getProperty('httpClient');

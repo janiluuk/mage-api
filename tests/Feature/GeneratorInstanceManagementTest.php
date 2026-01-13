@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Models\SdInstance;
+use App\Models\GeneratorInstance;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class SdInstanceManagementTest extends TestCase
+class GeneratorInstanceManagementTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -20,46 +20,46 @@ class SdInstanceManagementTest extends TestCase
         ]);
     }
 
-    public function test_index_returns_all_sd_instances(): void
+    public function test_index_returns_all_generator_instances(): void
     {
-        SdInstance::factory()->count(3)->create();
+        GeneratorInstance::factory()->count(3)->create();
 
-        $response = $this->getJson('/api/administration/sd-instances');
+        $response = $this->getJson('/api/administration/generator-instances');
 
         $response->assertOk();
         $response->assertJsonCount(3);
     }
 
-    public function test_store_creates_new_sd_instance(): void
+    public function test_store_creates_new_generator_instance(): void
     {
         $data = [
-            'name' => 'Test SD Instance',
+            'name' => 'Test Generator Instance',
             'url' => 'http://192.168.1.100:7860',
             'type' => 'stable_diffusion_forge',
             'enabled' => true,
         ];
 
-        $response = $this->postJson('/api/administration/sd-instances', $data);
+        $response = $this->postJson('/api/administration/generator-instances', $data);
 
         $response->assertStatus(201);
         $response->assertJsonFragment([
-            'name' => 'Test SD Instance',
+            'name' => 'Test Generator Instance',
             'url' => 'http://192.168.1.100:7860',
             'type' => 'stable_diffusion_forge',
             'enabled' => true,
         ]);
 
-        $this->assertDatabaseHas('sd_instances', $data);
+        $this->assertDatabaseHas('generator_instances', $data);
     }
 
-    public function test_show_returns_single_sd_instance(): void
+    public function test_show_returns_single_generator_instance(): void
     {
-        $instance = SdInstance::factory()->create([
+        $instance = GeneratorInstance::factory()->create([
             'name' => 'Test Instance',
             'url' => 'http://test.local:7860',
         ]);
 
-        $response = $this->getJson("/api/administration/sd-instances/{$instance->id}");
+        $response = $this->getJson("/api/administration/generator-instances/{$instance->id}");
 
         $response->assertOk();
         $response->assertJsonFragment([
@@ -71,14 +71,14 @@ class SdInstanceManagementTest extends TestCase
 
     public function test_show_returns_404_for_nonexistent_instance(): void
     {
-        $response = $this->getJson('/api/administration/sd-instances/999');
+        $response = $this->getJson('/api/administration/generator-instances/999');
 
         $response->assertNotFound();
     }
 
-    public function test_update_modifies_sd_instance(): void
+    public function test_update_modifies_generator_instance(): void
     {
-        $instance = SdInstance::factory()->create([
+        $instance = GeneratorInstance::factory()->create([
             'name' => 'Old Name',
             'url' => 'http://old.local:7860',
             'type' => 'stable_diffusion_forge',
@@ -90,7 +90,7 @@ class SdInstanceManagementTest extends TestCase
             'type' => 'comfyui',
         ];
 
-        $response = $this->putJson("/api/administration/sd-instances/{$instance->id}", $data);
+        $response = $this->putJson("/api/administration/generator-instances/{$instance->id}", $data);
 
         $response->assertOk();
         $response->assertJsonFragment($data);
@@ -103,12 +103,12 @@ class SdInstanceManagementTest extends TestCase
 
     public function test_update_allows_partial_updates(): void
     {
-        $instance = SdInstance::factory()->create([
+        $instance = GeneratorInstance::factory()->create([
             'name' => 'Original Name',
             'enabled' => false,
         ]);
 
-        $response = $this->patchJson("/api/administration/sd-instances/{$instance->id}", [
+        $response = $this->patchJson("/api/administration/generator-instances/{$instance->id}", [
             'enabled' => true,
         ]);
 
@@ -119,23 +119,23 @@ class SdInstanceManagementTest extends TestCase
         $this->assertTrue($instance->enabled);
     }
 
-    public function test_destroy_deletes_sd_instance(): void
+    public function test_destroy_deletes_generator_instance(): void
     {
-        $instance = SdInstance::factory()->create();
+        $instance = GeneratorInstance::factory()->create();
 
-        $response = $this->deleteJson("/api/administration/sd-instances/{$instance->id}");
+        $response = $this->deleteJson("/api/administration/generator-instances/{$instance->id}");
 
         $response->assertOk();
-        $response->assertJson(['message' => 'SD instance deleted successfully']);
+        $response->assertJson(['message' => 'Generator instance deleted successfully']);
 
-        $this->assertDatabaseMissing('sd_instances', ['id' => $instance->id]);
+        $this->assertDatabaseMissing('generator_instances', ['id' => $instance->id]);
     }
 
     public function test_toggle_changes_enabled_status_from_true_to_false(): void
     {
-        $instance = SdInstance::factory()->create(['enabled' => true]);
+        $instance = GeneratorInstance::factory()->create(['enabled' => true]);
 
-        $response = $this->patchJson("/api/administration/sd-instances/{$instance->id}/toggle");
+        $response = $this->patchJson("/api/administration/generator-instances/{$instance->id}/toggle");
 
         $response->assertOk();
         $response->assertJsonFragment(['enabled' => false]);
@@ -146,9 +146,9 @@ class SdInstanceManagementTest extends TestCase
 
     public function test_toggle_changes_enabled_status_from_false_to_true(): void
     {
-        $instance = SdInstance::factory()->create(['enabled' => false]);
+        $instance = GeneratorInstance::factory()->create(['enabled' => false]);
 
-        $response = $this->patchJson("/api/administration/sd-instances/{$instance->id}/toggle");
+        $response = $this->patchJson("/api/administration/generator-instances/{$instance->id}/toggle");
 
         $response->assertOk();
         $response->assertJsonFragment(['enabled' => true]);
@@ -159,13 +159,13 @@ class SdInstanceManagementTest extends TestCase
 
     public function test_multiple_toggles_alternate_status(): void
     {
-        $instance = SdInstance::factory()->create(['enabled' => true]);
+        $instance = GeneratorInstance::factory()->create(['enabled' => true]);
 
-        $this->patchJson("/api/administration/sd-instances/{$instance->id}/toggle");
+        $this->patchJson("/api/administration/generator-instances/{$instance->id}/toggle");
         $instance->refresh();
         $this->assertFalse($instance->enabled);
 
-        $this->patchJson("/api/administration/sd-instances/{$instance->id}/toggle");
+        $this->patchJson("/api/administration/generator-instances/{$instance->id}/toggle");
         $instance->refresh();
         $this->assertTrue($instance->enabled);
     }

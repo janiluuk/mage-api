@@ -2,20 +2,20 @@
 
 namespace App\Services;
 
-use App\Models\SdInstance;
+use App\Models\GeneratorInstance;
 use Illuminate\Support\Facades\Log;
 
-class SdInstanceService
+class GeneratorInstanceService
 {
     /**
-     * Get a random enabled SD instance URL.
+     * Get a random enabled generator instance URL.
      *
      * @param string|null $type Filter by instance type (stable_diffusion_forge or comfyui)
      * @return string|null
      */
     public function getEnabledInstanceUrl(?string $type = null): ?string
     {
-        $query = SdInstance::enabled();
+        $query = GeneratorInstance::enabled();
 
         if ($type) {
             $query->where('type', $type);
@@ -24,11 +24,11 @@ class SdInstanceService
         $instance = $query->inRandomOrder()->first();
 
         if (!$instance) {
-            Log::warning('No enabled SD instance found', ['type' => $type]);
+            Log::warning('No enabled generator instance found', ['type' => $type]);
             return null;
         }
 
-        Log::info('Selected SD instance', [
+        Log::info('Selected generator instance', [
             'id' => $instance->id,
             'name' => $instance->name,
             'url' => $instance->url,
@@ -39,14 +39,14 @@ class SdInstanceService
     }
 
     /**
-     * Get an enabled SD instance.
+     * Get an enabled generator instance.
      *
      * @param string|null $type Filter by instance type
-     * @return SdInstance|null
+     * @return GeneratorInstance|null
      */
-    public function getEnabledInstance(?string $type = null): ?SdInstance
+    public function getEnabledInstance(?string $type = null): ?GeneratorInstance
     {
-        $query = SdInstance::enabled();
+        $query = GeneratorInstance::enabled();
 
         if ($type) {
             $query->where('type', $type);
