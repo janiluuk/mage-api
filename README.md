@@ -101,7 +101,7 @@ Queue names default to `high`, `medium`, and `low`. Override them with `HIGH_PRI
 - `POST /api/auth/logout` — Invalidate current session (requires auth)
 - `POST /api/auth/forgot-password` — Request password reset email
 - `POST /api/auth/reset-password` — Reset password with token
-- `POST /api/auth/verified-email` — Verify user email with token
+- `POST /api/auth/verify-email` — Verify user email with token
 - `GET /api/auth/me` — Get current user profile (requires auth)
 
 #### V2 API
