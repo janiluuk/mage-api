@@ -37,7 +37,7 @@ class VideojobQueueTest extends TestCase
     public function test_submit_uses_high_queue_for_single_frame_jobs(): void
     {
         Queue::fake();
-        putenv('HIGH_PRIORITY_QUEUE=critical');
+        config(['queue.names.HIGH_PRIORITY_QUEUE' => 'critical']);
 
         $videoJob = Videojob::factory()->for(User::factory(), 'user')->create();
 
@@ -89,7 +89,7 @@ class VideojobQueueTest extends TestCase
     public function test_deforum_submission_uses_configured_queue(): void
     {
         Queue::fake();
-        putenv('MEDIUM_PRIORITY_QUEUE=priority-med');
+        config(['queue.names.MEDIUM_PRIORITY_QUEUE' => 'priority-med']);
 
         $videoJob = Videojob::factory()
             ->for(User::factory(), 'user')
