@@ -33,6 +33,9 @@ use App\Http\Controllers\Api\SupportRequestController;
 use App\Http\Controllers\Api\FinanceOperationsController;
 use App\Http\Controllers\Api\FileController;
 use App\Http\Controllers\Api\Admin\FileAdminController;
+use App\Http\Controllers\Api\SdInstanceController;
+use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\ComfyUIWorkflowController;
 use LaravelJsonApi\Laravel\Routing\Relationships;
 
 /*
@@ -148,6 +151,21 @@ Route::prefix('/administration')->group(function () {
         Route::post('/support-requests', [SupportRequestController::class, 'getSupportRequestsByCriteria']);
         Route::patch('/admin-reset-user-password', [UserController::class, 'adminResetUserPassword']);
         Route::patch('/change-user-data', [UserController::class, 'changeUserData']);
+        Route::get('/finance-operations/get-all', [FinanceOperationsController::class, 'getAllFinanceOperations']);
+        Route::get('/orders', [OrderController::class, 'getAllOrders']);
+        Route::patch('/orders/change-order-status', [OrderController::class, 'changeOrderStatus']);
+        Route::patch('/change-password', [UserController::class, 'changePassword']);
+        Route::get('/users/{userId}/data-stats', [UserController::class, 'getUserDataStats']);
+        Route::delete('/users/purge-data', [UserController::class, 'purgeUserData']);
+        
+        // SD Instance management routes
+        Route::get('/sd-instances', [SdInstanceController::class, 'index']);
+        Route::post('/sd-instances', [SdInstanceController::class, 'store']);
+        Route::get('/sd-instances/{id}', [SdInstanceController::class, 'show']);
+        Route::put('/sd-instances/{id}', [SdInstanceController::class, 'update']);
+        Route::patch('/sd-instances/{id}', [SdInstanceController::class, 'update']);
+        Route::delete('/sd-instances/{id}', [SdInstanceController::class, 'destroy']);
+        Route::patch('/sd-instances/{id}/toggle', [SdInstanceController::class, 'toggle']);
     });
 });
 
@@ -219,12 +237,6 @@ Route::prefix('/finance-operations')->group(
     }
 );
 
-Route::prefix('/administration')->group(function () {
-    Route::middleware(['AuthorizationChecker', 'IsAdministratorChecker'])->group(function () {
-        Route::get('/finance-operations/get-all', [FinanceOperationsController::class, 'getAllFinanceOperations']);
-    });
-});
-
 Route::group(
     [
         'prefix' => '/wallet-types',
@@ -240,7 +252,6 @@ Route::group(
     ],
     function () {
         Route::get('', [PropertyController::class, 'getPropertyByCategoryId']);
-        Route::get('properties', [PropertyController::class, 'getPropertyByCategoryId']);
     }
 );
 
@@ -268,22 +279,14 @@ Route::prefix('/orders')->group(
     }
 );
 
+// Payment routes
+Route::prefix('/payment')->middleware('auth:api')->group(function () {
+    Route::post('/create-intent', [PaymentController::class, 'createPaymentIntent']);
+});
 
-Route::group(
-    [
-        'prefix' => 'administration',
-    ],
-    function () {
-        Route::middleware('AuthorizationChecker')->group(function () {
-            Route::get('/users', [UserController::class, 'getAllUsers']);
-            Route::patch('/users/admin-reset-user-password', [UserController::class, 'adminResetUserPassword']);
-            Route::patch('/change-user-data', [UserController::class, 'changeUserData']);
-            Route::get('/orders', [OrderController::class, 'getAllOrders']);
-            Route::patch('/orders/change-order-status', [OrderController::class, 'changeOrderStatus']);
-            Route::patch('/change-password', [UserController::class, 'changePassword']);
-        });
-    }
-);
+Route::post('/webhooks/stripe', [PaymentController::class, 'webhook'])
+    ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+
 
 Route::prefix('/user-ratings')->group(
     function () {
@@ -324,3 +327,12 @@ Route::group(
         Route::get('/{questionSlug}', [QuestionController::class, 'getBySlug']);
     }
 );
+
+// ComfyUI Workflow routes
+Route::prefix('/comfyui')->middleware('auth:api')->group(function () {
+    Route::post('/workflow/process', [ComfyUIWorkflowController::class, 'process']);
+    Route::get('/workflow/status/{promptId}', [ComfyUIWorkflowController::class, 'status']);
+    Route::post('/workflow/cancel/{promptId}', [ComfyUIWorkflowController::class, 'cancel']);
+    Route::get('/image', [ComfyUIWorkflowController::class, 'getImage']);
+});
+

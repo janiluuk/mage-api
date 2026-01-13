@@ -33,7 +33,7 @@ class PermissionResource extends JsonApiResource
     public function relationships($request): iterable
     {
         return [
-            // @TODO
+            $this->belongsToMany('roles')->readOnly(),
         ];
     }
 

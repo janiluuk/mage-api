@@ -19,8 +19,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property int $created_at
  * @property int $updated_at
  * @property int $deleted_at
- * @property int $canceled_at
- * @property string $canceled_info
  */
 class FinanceOperationsHistory extends Model
 {
@@ -33,8 +31,6 @@ class FinanceOperationsHistory extends Model
         'type',
         'status',
         'wallet_id',
-        'canceled_at',
-        'canceled_info',
     ];
 
     protected $hidden = [
@@ -87,15 +83,5 @@ class FinanceOperationsHistory extends Model
     public function getCreatedAt(): string
     {
         return $this->created_at;
-    }
-
-    public function getCanceledAt(): ?string
-    {
-        return $this->canceled_at;
-    }
-
-    public function getCanceledInfo(): ?string
-    {
-        return $this->canceled_info;
     }
 }

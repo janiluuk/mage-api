@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\ModelFile;
 use App\Models\Videojob;
+use App\Services\VideoJobs\AsyncVideoProcessor;
+use App\Services\VideoJobs\EncodingProgressParser;
 use FFMpeg\FFProbe;
 use FFMpeg\Format\Video\X264;
 use FFMpeg\FFMpeg as FFMpegOg;
@@ -19,10 +21,10 @@ class VideoProcessingService
     private $ffmpeg;
     private $ffprobe;
 
-    public function __construct()
+    public function __construct(?FFMpegOg $ffmpeg = null, ?FFProbe $ffprobe = null)
     {
         /* @var \FFMpeg\FFMpeg FFMpegOg */
-        $this->ffmpeg = FFMpegOg::create(
+        $this->ffmpeg = $ffmpeg ?? FFMpegOg::create(
             [
                 'ffmpeg.binaries' => '/usr/bin/ffmpeg',
                 // Path to the FFMpeg binary
@@ -33,7 +35,7 @@ class VideoProcessingService
             ]
         );
 
-        $this->ffprobe = FFProbe::create(
+        $this->ffprobe = $ffprobe ?? FFProbe::create(
             [
                 'ffmpeg.binaries' => '/usr/bin/ffmpeg',
                 // Path to the FFMpeg binary
@@ -109,9 +111,7 @@ class VideoProcessingService
 
             $codec = $videoStream->get('codec_name');
             $bitrate = $videoStream->get('bit_rate');
-            $fps = 0;
-            eval("\$fps = {$frameRate};");
-            $fps = (float) $fps;
+            $fps = $this->parseFrameRate($frameRate);
             $size = filesize($path);
 
             $framesCount = $format->get('nb_frames');
@@ -174,12 +174,12 @@ class VideoProcessingService
 
         if ($width == $height && $width >= $max_dimension) {
             return [500, 500];
-        } else if ($width > $height) {
+        } elseif ($width > $height) {
             while ($width > $max_dimension) {
                 $height = ($height * $max_dimension) / $width;
                 $width = $max_dimension;
             }
-        } else if ($width < $height) {
+        } elseif ($width < $height) {
             while ($height > $max_dimension) {
                 $width = ($width * $max_dimension) / $height;
                 $height = $max_dimension;
@@ -189,7 +189,7 @@ class VideoProcessingService
         return [$width, $height];
     }
 
-    public function startProcess(Videojob $videoJob, $previewFrames = 0)
+    public function startProcess(Videojob $videoJob, $previewFrames = 0, ?int $extendFromJobId = null)
     {
         $isPreview = $previewFrames > 0;
 
@@ -198,6 +198,15 @@ class VideoProcessingService
             $cmd = $this->buildCommandLine($videoJob, $videoJob->getOriginalVideoPath(), $videoJob->getFinishedVideoPath(), $previewFrames);
             $this->killProcess($videoJob->id);
             Log::info("Conversion {$videoJob->id}: Running {$cmd}");
+            
+            // Use async processor with progress tracking if enabled
+            $useAsyncProcessing = config('app.video_processing.use_async', false);
+            
+            if ($useAsyncProcessing && $videoJob->frame_count > 0) {
+                return $this->processWithAsyncTracking($videoJob, $cmd, $isPreview, $extendFromJobId);
+            }
+            
+            // Fallback to synchronous processing
             $process = Process::fromShellCommandline($cmd);
             $process->setTimeout(7200);
             try {
@@ -221,6 +230,21 @@ class VideoProcessingService
                 $videoJob->save();
                 $videoJob->refresh();
 
+                // Extract first and last frames after successful processing
+                if (!$isPreview && file_exists($videoJob->getFinishedVideoPath())) {
+                    $frameExtractor = app(\App\Services\VideoJobs\FrameExtractor::class);
+                    $frameExtractor->extractAndSaveFrames($videoJob, $videoJob->getFinishedVideoPath());
+
+                    // If this is an extended job, stitch it with the base job's video
+                    if ($extendFromJobId !== null) {
+                        $baseJob = Videojob::find($extendFromJobId);
+                        if ($baseJob && file_exists($baseJob->getFinishedVideoPath())) {
+                            $videoStitcher = app(\App\Services\VideoJobs\VideoStitcher::class);
+                            $videoStitcher->stitchExtendedJob($baseJob, $videoJob);
+                        }
+                    }
+                }
+
                 Log::info("Paths: ", ['preview' => $videoJob->getMediaFilesForRevision('image'), 'animation' => $videoJob->getMediaFilesForRevision('animation'), 'finished_video' => $videoJob->getMediaFilesForRevision('video', 'finished')]);
                 
                 //$videoJob->verifyAndCleanPreviews();
@@ -243,7 +267,71 @@ class VideoProcessingService
             throw new \Exception($e->getMessage());
         }
     }
-    private function buildPreviewParameters(VideoJob $videoJob, $previewFrames = 0): array
+
+    /**
+     * Process video with async progress tracking
+     */
+    private function processWithAsyncTracking(Videojob $videoJob, string $cmd, bool $isPreview, ?int $extendFromJobId = null)
+    {
+        Log::info("Using async processing with progress tracking", ['job_id' => $videoJob->id]);
+        
+        try {
+            $progressParser = new EncodingProgressParser($videoJob->frame_count);
+            $asyncProcessor = new AsyncVideoProcessor(null, $progressParser);
+            
+            $success = $asyncProcessor->process($videoJob, $cmd, 7200);
+            
+            if ($success) {
+                $videoJob->refresh();
+
+                if ($videoJob->frame_count == 0) {
+                    $videoJob->frame_count++;
+                }
+
+                if (!$isPreview && !empty($videoJob->soundtrack_path)) {
+                    $this->mergeSoundtrack($videoJob);
+                }
+
+                $videoJob->attachResults();
+                $videoJob->save();
+                $videoJob->refresh();
+
+                // Extract first and last frames after successful processing
+                if (!$isPreview && file_exists($videoJob->getFinishedVideoPath())) {
+                    $frameExtractor = app(\App\Services\VideoJobs\FrameExtractor::class);
+                    $frameExtractor->extractAndSaveFrames($videoJob, $videoJob->getFinishedVideoPath());
+
+                    // If this is an extended job, stitch it with the base job's video
+                    if ($extendFromJobId !== null) {
+                        $baseJob = Videojob::find($extendFromJobId);
+                        if ($baseJob && file_exists($baseJob->getFinishedVideoPath())) {
+                            $videoStitcher = app(\App\Services\VideoJobs\VideoStitcher::class);
+                            $videoStitcher->stitchExtendedJob($baseJob, $videoJob);
+                        }
+                    }
+                }
+
+                Log::info("Paths: ", [
+                    'preview' => $videoJob->getMediaFilesForRevision('image'), 
+                    'animation' => $videoJob->getMediaFilesForRevision('animation'), 
+                    'finished_video' => $videoJob->getMediaFilesForRevision('video', 'finished')
+                ]);
+                
+                $videoJob->status = ($isPreview) ? 'preview' : 'finished';
+                $videoJob->save();
+            }
+            
+            return $success;
+            
+        } catch (\Exception $e) {
+            Log::error('Async processing error', [
+                'job_id' => $videoJob->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+    private function buildPreviewParameters(Videojob $videoJob, $previewFrames = 0): array
     {
         $params = [];
         if ($previewFrames > 0) {
@@ -263,7 +351,7 @@ class VideoProcessingService
         return $params;
     }
 
-    private function buildCommandLine(VideoJob $videoJob, $sourceFile, $outFile, $previewFrames = 0)
+    private function buildCommandLine(Videojob $videoJob, $sourceFile, $outFile, $previewFrames = 0)
     {
 
         $modelFile = ModelFile::find($videoJob->model_id);
@@ -311,8 +399,9 @@ class VideoProcessingService
         foreach ($params as $key => $val) {
             if ($key == 'prompt' || $key == 'negative_prompt') {
                 $cmdString .= sprintf("--%s=\"%s\" ", $key, $val);
-            } else
-            $cmdString .= sprintf('--%s=%s ', $key, $val);
+            } else {
+                $cmdString .= sprintf('--%s=%s ', $key, $val);
+            }
         }
         
         $processor = config('app.paths.image_processor_path');
@@ -468,18 +557,25 @@ class VideoProcessingService
     public function killProcess($sessionId)
     {
         try {
-            $pids = false;
+            $pids = [];
 
-            exec('ps aux | grep -i video2video | grep -i \"\-\-jobid=' . $sessionId . '\" | grep -v grep', $pids);
+            $search = sprintf('--jobid=%s', $sessionId);
+            exec(sprintf('ps -eo pid,command | grep -i video2video | grep -F "%s" | grep -v grep', $search), $pids);
 
-            if (empty($pids) || count($pids) < 1) {
+            if (empty($pids)) {
                 return;
-            } else {
+            }
 
-                Log::info("Killing process {$sessionId}", ['pids' => $pids]);
-                $command = sprintf("kill -9 %s", $pids[0]);
-                $process = \Illuminate\Support\Facades\Process::run($command);
-                Log::info($process->output());
+            foreach ($pids as $rawProcess) {
+                [$pid] = preg_split('/\s+/', trim($rawProcess), 2);
+
+                if (! is_numeric($pid)) {
+                    continue;
+                }
+
+                Log::info("Killing process {$sessionId}", ['pid' => $pid]);
+                $process = new Process(['kill', '-9', (int) $pid]);
+                $process->mustRun();
             }
         } catch (ProcessFailedException $exception) {
             throw new \Exception($exception->getMessage());
@@ -508,5 +604,22 @@ class VideoProcessingService
         }
 
         return $argStrings;
+    }
+
+    private function parseFrameRate($frameRate): float
+    {
+        if (is_numeric($frameRate)) {
+            return (float) $frameRate;
+        }
+
+        if (is_string($frameRate) && str_contains($frameRate, '/')) {
+            [$numerator, $denominator] = array_pad(explode('/', $frameRate, 2), 2, 0);
+
+            if ($denominator > 0) {
+                return (float) $numerator / (float) $denominator;
+            }
+        }
+
+        return 0.0;
     }
 }

@@ -41,7 +41,12 @@ class UploadController extends Controller
     {
         // Check if path is allowed
         if ($this->routeIsAllowed($resource, $field)) {
-            // TODO: Check if user has permissions
+            // Check if user has permissions to upload to this resource
+            if (!$this->userCanUploadToResource($request, $resource, $id)) {
+                return response()->json([
+                    'message' => 'You do not have permission to upload files to this resource.'
+                ], 403);
+            }
 
             $path = "{$resource}/{$id}/{$field}";
 
@@ -53,6 +58,43 @@ class UploadController extends Controller
         }
 
         abort(400);
+    }
+
+    /**
+     * Check if the authenticated user has permission to upload to the specified resource.
+     *
+     * @param UploadRequest $request
+     * @param string $resource
+     * @param int $id
+     * @return bool
+     */
+    protected function userCanUploadToResource(UploadRequest $request, string $resource, int $id): bool
+    {
+        $user = $request->user();
+        
+        if (!$user) {
+            return false;
+        }
+
+        // Check if user is admin (admins can upload to any resource)
+        if ($user->userRole && 
+            ($user->userRole->getType() === \App\Constant\UserRoleConstant::ADMINISTRATOR ||
+             $user->userRole->getType() === \App\Constant\UserRoleConstant::SUPER_ADMINISTRATOR)) {
+            return true;
+        }
+
+        // For users resource, user can only upload to their own profile
+        if ($resource === 'users') {
+            return $user->id === $id;
+        }
+
+        // For items resource, check if user owns the item
+        if ($resource === 'items') {
+            $item = \App\Models\Item::find($id);
+            return $item && $item->user_id === $user->id;
+        }
+
+        return false;
     }
 
     /**

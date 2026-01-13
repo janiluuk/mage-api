@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\SdInstanceUnavailableException;
 use App\Models\ModelFile;
 use App\Models\Videojob;
 use Illuminate\Support\Facades\Log;
@@ -10,6 +11,13 @@ use Symfony\Component\Process\Process;
 
 class DeforumProcessingService
 {
+    protected $sdInstanceService;
+
+    public function __construct(SdInstanceService $sdInstanceService)
+    {
+        $this->sdInstanceService = $sdInstanceService;
+    }
+
     public function parseJob(Videojob $videoJob, string $path)
     {
 
@@ -41,12 +49,12 @@ class DeforumProcessingService
         if ($width == $height && $width >= $max_dimension) {
             return [960, 960];
 
-        } else if ($width > $height) {
+        } elseif ($width > $height) {
             while ($width > $max_dimension) {
                 $height = ($height * $max_dimension) / $width;
                 $width = $max_dimension;
             }
-        } else if ($width < $height) {
+        } elseif ($width < $height) {
             while ($height > $max_dimension) {
                 $width = ($width * $max_dimension) / $height;
                 $height = $max_dimension;
@@ -92,11 +100,18 @@ class DeforumProcessingService
                 $running = true;
                 $client = new \GuzzleHttp\Client();
                 $execution_times = [];
-                $progresses = [];   
+                $progresses = [];
+                
+                // Get SD instance URL
+                $sdInstanceUrl = $this->sdInstanceService->getEnabledInstanceUrl('stable_diffusion_forge');
+                if (!$sdInstanceUrl) {
+                    throw SdInstanceUnavailableException::forType('stable_diffusion_forge');
+                }
+                
                 while ($running) {
 
                     // Using GuzzleHttp\Client to make an API request
-                    $response = $client->request('GET', 'http://192.168.2.100:7860/deforum_api/jobs/' . $first_job_id);
+                    $response = $client->request('GET', $sdInstanceUrl . '/deforum_api/jobs/' . $first_job_id);
                     $data = json_decode($response->getBody(), true);
                 
 
@@ -105,7 +120,7 @@ class DeforumProcessingService
                     $videoJob = Videojob::findOrFail($videoJob->id);
                     
                     if ($videoJob->status == 'cancelled' || $videoJob->status == 'error') {
-                        $response = $client->request('DELETE', 'http://192.168.2.100:7860/deforum_api/jobs/' . $first_job_id);
+                        $response = $client->request('DELETE', $sdInstanceUrl . '/deforum_api/jobs/' . $first_job_id);
                         Log::info("Deleted job {$first_job_id}: {$response->getBody()}");
                         $running = false;
                         
@@ -144,7 +159,7 @@ class DeforumProcessingService
                     
                     if ($data['phase'] === 'QUEUED' && $videoJob->status !== "approved") {
                         $videoJob->status = 'approved';
-                    } else if ($data['phase'] == 'GENERATING' && $videoJob->status != "processing") {
+                    } elseif ($data['phase'] == 'GENERATING' && $videoJob->status != "processing") {
                         $videoJob->status = 'processing';
                     }
 
@@ -198,6 +213,21 @@ class DeforumProcessingService
                 if ($videoJob->frame_count == 0)
                     $videoJob->frame_count++;
 
+                // Extract first and last frames after successful processing
+                if ($previewFrames == 0 && file_exists($videoJob->getFinishedVideoPath())) {
+                    $frameExtractor = app(\App\Services\VideoJobs\FrameExtractor::class);
+                    $frameExtractor->extractAndSaveFrames($videoJob, $videoJob->getFinishedVideoPath());
+
+                    // If this is an extended job, stitch it with the base job's video
+                    if ($extendFromJobId !== null) {
+                        $baseJob = Videojob::find($extendFromJobId);
+                        if ($baseJob && file_exists($baseJob->getFinishedVideoPath())) {
+                            $videoStitcher = app(\App\Services\VideoJobs\VideoStitcher::class);
+                            $videoStitcher->stitchExtendedJob($baseJob, $videoJob);
+                        }
+                    }
+                }
+
                 Log::info("Finished in {" . (time() - $time) . "} seconds :  {$videoJob->frame_count} frames on " . round($videoJob->frame_count / $elapsed) . "  frames/s speed. {output} ", ['output' => $process->getOutput()]);
 
 
@@ -226,7 +256,7 @@ class DeforumProcessingService
         }
     }
 
-    private function buildCommandLine(VideoJob $videoJob, $sourceFile, $outFile, $previewFrames = 0, ?int $extendFromJobId = null)
+    private function buildCommandLine(Videojob $videoJob, $sourceFile, $outFile, $previewFrames = 0, ?int $extendFromJobId = null)
     {
         if ($previewFrames < 5 && $previewFrames > 0 ) $previewFrames = 5;
 
@@ -236,7 +266,7 @@ class DeforumProcessingService
         $prompts = $this->applyPrompts($videoJob);
 
         $cmdString = '';
-        $json_settings=[];
+        $jsonSettings = [];
 
         $initImg = $this->resolveInitImage($videoJob, $extendFromJobId);
 
@@ -246,15 +276,15 @@ class DeforumProcessingService
             'json_settings_file' => '/www/api/scripts/zoom.json',
         ];
 
-        $json_settings['prompts'] = '{ "0": "' . addslashes($prompts[0]) .  ' --neg ' . addslashes($prompts[1]) . '" }';
-        $json_settings['checkpoint_schedule'] = '"0: (\"' . $modelFilename . '\"), 100: (\"' . $modelFilename . '\")"';
-        $json_settings['max_frames'] =  $previewFrames > 0 ? $previewFrames : (int)$videoJob->frame_count;
-        $json_settings['sd_model_hash'] = isset($file[1]) ? '"' . str_replace("]", "", $file[1]) . '"' : '""';
-        $json_settings['sd_model_name'] = '"' .trim($file[0]) . '"';
-        $json_settings['positive_prompts'] = '"' . addslashes($prompts[0]) . '"';
-        $json_settings['negative_prompts'] = '"' . addslashes($prompts[1]) . '"';
-        $json_settings['W'] = $videoJob->width > 0 ? $videoJob->width : 540;
-        $json_settings['H'] = $videoJob->height > 0 ? $videoJob->height : 960;
+        $jsonSettings['prompts'] = '{ "0": "' . addslashes($prompts[0]) .  ' --neg ' . addslashes($prompts[1]) . '" }';
+        $jsonSettings['checkpoint_schedule'] = '"0: (\"' . $modelFilename . '\"), 100: (\"' . $modelFilename . '\")"';
+        $jsonSettings['max_frames'] =  $previewFrames > 0 ? $previewFrames : (int)$videoJob->frame_count;
+        $jsonSettings['sd_model_hash'] = isset($file[1]) ? '"' . str_replace("]", "", $file[1]) . '"' : '""';
+        $jsonSettings['sd_model_name'] = '"' .trim($file[0]) . '"';
+        $jsonSettings['positive_prompts'] = '"' . addslashes($prompts[0]) . '"';
+        $jsonSettings['negative_prompts'] = '"' . addslashes($prompts[1]) . '"';
+        $jsonSettings['W'] = $videoJob->width > 0 ? $videoJob->width : 540;
+        $jsonSettings['H'] = $videoJob->height > 0 ? $videoJob->height : 960;
 
 
         $normalizedSettings = [
@@ -263,7 +293,7 @@ class DeforumProcessingService
                 'negative' => $prompts[1],
             ],
             'checkpoint_schedule' => $modelFilename,
-            'max_frames' => $json_settings['max_frames'],
+            'max_frames' => $jsonSettings['max_frames'],
             'sd_model_hash' => isset($file[1]) ? str_replace("]", "", $file[1]) : '',
             'sd_model_name' => trim($file[0]),
             'dimensions' => [
@@ -275,7 +305,7 @@ class DeforumProcessingService
         $videoJob->generation_parameters = json_encode([
             'model_id' => $videoJob->model_id,
             'prompts' => $normalizedSettings['prompts'],
-            'frame_count' => $json_settings['max_frames'],
+            'frame_count' => $jsonSettings['max_frames'],
             'sd_model_hash' => $normalizedSettings['sd_model_hash'],
             'sd_model_name' => $normalizedSettings['sd_model_name'],
             'dimensions' => $normalizedSettings['dimensions'],
@@ -289,11 +319,11 @@ class DeforumProcessingService
         ]);
         $videoJob->revision = md5($videoJob->generation_parameters);
 
-        //$json_settings['skip_video_creation'] = $previewFrames > 0 ? 'true' : 'false';
+        //$jsonSettings['skip_video_creation'] = $previewFrames > 0 ? 'true' : 'false';
 
         $json_param = '{';
         $comma = '';
-        foreach ($json_settings as $key  => $val) {
+        foreach ($jsonSettings as $key  => $val) {
             $json_param .= $comma . ' "' . $key . '": ' . $val;
             $comma = ',';
         }
@@ -304,8 +334,9 @@ class DeforumProcessingService
         foreach ($params as $key => $val) {
             if ($key == 'modelFile') {
                 $cmdString .= sprintf("--%s='%s' ", $key, $val);
-            } else
+            } else {
                 $cmdString .= sprintf('--%s=%s ', $key, $val);
+            }
         }
         $cmdString .= ' --json_settings=\''. $json_param . '\' ';
         $processor = config('app.paths.deforum_processor_path');
@@ -438,6 +469,12 @@ class DeforumProcessingService
             return $videoJob->getOriginalVideoPath();
         }
 
+        // If source job already has a last frame saved, use it
+        if (!empty($sourceJob->last_frame_path) && file_exists($sourceJob->last_frame_path)) {
+            return $sourceJob->last_frame_path;
+        }
+
+        // Otherwise, extract the last frame from the source video
         $sourcePath = $sourceJob->hasFinishedVideo() ? $sourceJob->getFinishedVideoPath() : $sourceJob->getOriginalVideoPath();
 
         if (! file_exists($sourcePath)) {
@@ -447,26 +484,19 @@ class DeforumProcessingService
         $targetDir = dirname($videoJob->getOriginalVideoPath());
         $initFramePath = sprintf('%s/%s_extend_init.png', $targetDir, $videoJob->id);
 
-        try {
-            $command = sprintf(
-                'ffmpeg -y -sseof -1 -i %s -vframes 1 %s',
-                escapeshellarg($sourcePath),
-                escapeshellarg($initFramePath)
-            );
+        $frameExtractor = app(\App\Services\VideoJobs\FrameExtractor::class);
+        $success = $frameExtractor->extractLastFrame($sourcePath, $initFramePath);
 
-            $process = Process::fromShellCommandline($command);
-            $process->mustRun();
-
+        if ($success && file_exists($initFramePath)) {
             return $initFramePath;
-        } catch (ProcessFailedException $exception) {
-            Log::warning('Failed to extract last frame for init image, falling back to original', [
-                'video_job_id' => $videoJob->id,
-                'source_job' => $extendFromJobId,
-                'error' => $exception->getMessage(),
-            ]);
-
-            return $videoJob->getOriginalVideoPath();
         }
+
+        Log::warning('Failed to extract last frame for init image, falling back to original', [
+            'video_job_id' => $videoJob->id,
+            'source_job' => $extendFromJobId,
+        ]);
+
+        return $videoJob->getOriginalVideoPath();
     }
     public function applyPrompts(Videojob $videoJob)
     {

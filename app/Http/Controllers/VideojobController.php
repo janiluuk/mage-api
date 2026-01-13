@@ -85,8 +85,8 @@ class VideojobController extends Controller
         $videoJob->seed = -1;
         $videoJob->frame_count = 90;
         $videoJob->user_id = auth('api')->id();
-        $videoJob->prompt = 'skull face, Halloween, (sharp teeth:1.4), (mouth open:1.3), (dark skin:1.2), scull, night, dim light, darkness, looking to the viewer, eyes looking straight,  <lora:LowRA:0.3> <lora:more_details:0.5>';
-        $videoJob->negative_prompt = 'bad-picture-chill-75v';
+        $videoJob->prompt = '';
+        $videoJob->negative_prompt = '';
         $videoJob->status = 'pending';
 
         $this->attachSoundtrack($videoJob, $request);
@@ -104,13 +104,13 @@ class VideojobController extends Controller
     
     public function generate(Request $request): JsonResponse
     {
-        $type = $request->input('type', 'vid2vid');
+        // Validate common parameters first
+        $request->validate([
+            'videoId' => 'required|integer|exists:video_jobs,id',
+            'type' => 'required|in:vid2vid,deforum',
+        ]);
 
-        if (!in_array($type, ['vid2vid', 'deforum'], true)) {
-            return response()->json([
-                'message' => 'Unsupported generation type.',
-            ], 422);
-        }
+        $type = $request->input('type');
 
         return $type === 'deforum'
             ? $this->generateDeforum($request)
@@ -152,14 +152,27 @@ private function generateDeforum(Request $request): JsonResponse
 
             $persistedParameters = json_decode((string) $baseJob->generation_parameters, true) ?? [];
 
+            // When extending, inherit model_id from base job (not overridable)
             $videoJob->model_id = $persistedParameters['model_id'] ?? $baseJob->model_id;
-            $videoJob->prompt = $persistedParameters['prompts']['positive'] ?? $baseJob->prompt;
-            $videoJob->negative_prompt = $persistedParameters['prompts']['negative'] ?? $baseJob->negative_prompt;
-            $videoJob->seed = $persistedParameters['seed'] ?? $baseJob->seed;
-            $videoJob->denoising = $persistedParameters['denoising'] ?? $baseJob->denoising;
+            
+            // These parameters can be overridden by request
+            $videoJob->prompt = $request->input('prompt', $persistedParameters['prompts']['positive'] ?? $baseJob->prompt);
+            $videoJob->negative_prompt = $request->input('negative_prompt', $persistedParameters['prompts']['negative'] ?? $baseJob->negative_prompt);
+            $videoJob->length = $request->input('length', $persistedParameters['length'] ?? $baseJob->length);
+            
+            // These parameters come from base job only
+            $videoJob->seed = $request->input('seed', $persistedParameters['seed'] ?? $baseJob->seed);
+            $videoJob->denoising = $request->input('denoising', $persistedParameters['denoising'] ?? $baseJob->denoising);
             $videoJob->fps = $persistedParameters['fps'] ?? $baseJob->fps;
             $videoJob->frame_count = $persistedParameters['frame_count'] ?? $baseJob->frame_count;
-            $videoJob->length = $persistedParameters['length'] ?? $baseJob->length;
+            $videoJob->width = $baseJob->width;
+            $videoJob->height = $baseJob->height;
+        } else {
+            $videoJob->model_id = $request->input('modelId', $videoJob->model_id);
+            $videoJob->prompt = trim((string) $request->input('prompt', $videoJob->prompt));
+            $videoJob->negative_prompt = trim((string) $request->input('negative_prompt', $videoJob->negative_prompt));
+            $videoJob->length = $request->input('length', $videoJob->length ?? 4);
+            $videoJob->denoising = $request->input('denoising', $videoJob->denoising);
         }
 
         if ($response = $this->assertOwner($videoJob)) {
@@ -178,11 +191,9 @@ private function generateDeforum(Request $request): JsonResponse
         $videoJob->fps = $videoJob->fps ?? 24;
         $videoJob->generator = 'deforum';
         $videoJob->seed = $seed;
-        $videoJob->length = $request->input('length', $videoJob->length ?? 4);
         $videoJob->frame_count = round($videoJob->length * $videoJob->fps);
         $videoJob->job_time = 3;
         $videoJob->estimated_time_left = ($videoJob->frame_count * 6) + 6;
-        $videoJob->denoising = $request->input('denoising', $videoJob->denoising);
         $videoJob->queued_at = Carbon::now();
         $videoJob->save();
 
@@ -220,6 +231,10 @@ private function generateDeforum(Request $request): JsonResponse
             'denoising' => 'required|numeric|between:0.1,1.0',
             'soundtrack_start_seconds' => 'nullable|numeric|min:0',
             'soundtrack_end_seconds' => 'nullable|numeric|gt:soundtrack_start_seconds',
+            'seed' => 'nullable|integer',
+            'negative_prompt' => 'nullable|string',
+            'controlnet' => 'nullable|array',
+            'extendFromJobId' => 'nullable|integer|exists:video_jobs,id',
         ]);
 
         $seed = $this->normalizeSeed((int) $request->input('seed', -1));
@@ -240,16 +255,11 @@ private function generateDeforum(Request $request): JsonResponse
             Log::info('Got controlnet params: ' . json_encode($controlnet), ['controlnet' => json_decode($videoJob->controlnet)]);
         }
 
-        $videoJob->model_id = $request->input('modelId');
-        $videoJob->prompt = trim((string) $request->input('prompt'));
-        $videoJob->negative_prompt = trim((string) $request->input('negative_prompt', ''));
-        $videoJob->cfg_scale = $request->input('cfgScale');
         $videoJob->seed = $seed;
         $videoJob->status = 'processing';
         $videoJob->progress = 5;
         $videoJob->job_time = 3;
         $videoJob->estimated_time_left = ($frameCount * 6) + 6;
-        $videoJob->denoising = $request->input('denoising');
         $videoJob->queued_at = Carbon::now();
         $videoJob->save();
 
@@ -257,7 +267,7 @@ private function generateDeforum(Request $request): JsonResponse
             ? $this->resolveQueueName('MEDIUM_PRIORITY_QUEUE', 'medium')
             : $this->resolveQueueName('HIGH_PRIORITY_QUEUE', 'high');
         Log::info("Dispatching job with framecount {$frameCount} to queue {$queueName}");
-        ProcessVideoJob::dispatch($videoJob, $frameCount)->onQueue($queueName);
+        ProcessVideoJob::dispatch($videoJob, $frameCount, $extendFromJobId)->onQueue($queueName);
 
         return response()->json([
             'id' => $videoJob->id,
@@ -304,12 +314,12 @@ private function generateDeforum(Request $request): JsonResponse
         $videoJob->save();
 
         $videoJob->refresh();
-        ProcessDeforumJob::dispatch($videoJob, 0)->onQueue($this->resolveQueueName('LOW_PRIORITY_QUEUE', 'low'));
+        ProcessDeforumJob::dispatch($videoJob, 0, null)->onQueue($this->resolveQueueName('LOW_PRIORITY_QUEUE', 'low'));
     } else {
         $videoJob->resetProgress('approved');
 
         $videoJob->refresh();
-        ProcessVideoJob::dispatch($videoJob, 0)->onQueue($this->resolveQueueName('LOW_PRIORITY_QUEUE', 'low'));
+        ProcessVideoJob::dispatch($videoJob, 0, null)->onQueue($this->resolveQueueName('LOW_PRIORITY_QUEUE', 'low'));
     }
 
     return response()->json([
@@ -322,13 +332,13 @@ private function generateDeforum(Request $request): JsonResponse
     ]);
 }
 
-public function cancelJob(Request $request): JsonResponse
+public function cancelJob(int $videoId): JsonResponse
     {
         if ($response = $this->guardAuthenticated()) {
             return $response;
         }
 
-        $videoJob = Videojob::findOrFail($request->input('videoId'));
+        $videoJob = Videojob::findOrFail($videoId);
 
         if ($response = $this->assertOwner($videoJob)) {
             return $response;
@@ -416,12 +426,20 @@ public function cancelJob(Request $request): JsonResponse
             ->orderBy('id')
             ->get();
 
+        // Optimize: Get global counts in a single query using conditional aggregation
+        $counts = \DB::table('video_jobs')
+            ->selectRaw('
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as processing,
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as queued
+            ', [Videojob::STATUS_PROCESSING, Videojob::STATUS_APPROVED])
+            ->first();
+
         return response()->json([
             'processing' => $processingJobs->map(fn (Videojob $job) => $this->serializeJobStatus($job)),
             'queue' => $queuedJobs->map(fn (Videojob $job) => $this->serializeJobStatus($job, true)),
             'counts' => [
-                'processing' => Videojob::where('status', Videojob::STATUS_PROCESSING)->count(),
-                'queued' => Videojob::where('status', Videojob::STATUS_APPROVED)->count(),
+                'processing' => $counts->processing ?? 0,
+                'queued' => $counts->queued ?? 0,
             ],
         ]);
     }
@@ -549,7 +567,9 @@ public function cancelJob(Request $request): JsonResponse
 
     private function resolveQueueName(string $envKey, string $default): string
     {
-        $queue = env($envKey);
+        // Note: Queue names should be defined in config/queue.php for proper config caching
+        // For now, using env() with a fallback. Consider moving to config file.
+        $queue = config("queue.names.{$envKey}", env($envKey));
 
         return ! empty($queue) ? $queue : $default;
     }

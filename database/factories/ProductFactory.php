@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Product;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ProductFactory extends Factory
@@ -14,7 +15,7 @@ class ProductFactory extends Factory
         return [
             'name' => $this->faker->sentence(),
             'description' => $this->faker->realText(),
-            'user_id' => rand(1, 10),
+            'user_id' => User::factory(),
             'price' => rand(99, 1000),
             'refresh_time' => rand(0, 100),
             'active' => rand(0, 1),
