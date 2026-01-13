@@ -181,9 +181,12 @@ private function generateDeforum(Request $request): JsonResponse
 
         $this->applySoundtrackWindow($videoJob, $request);
 
-        $videoJob->model_id = $request->input('modelId', $videoJob->model_id);
-        $videoJob->prompt = trim((string) $request->input('prompt', $videoJob->prompt));
-        $videoJob->negative_prompt = trim((string) $request->input('negative_prompt', $videoJob->negative_prompt));
+        // Only override core generation parameters from the request for non-extension jobs.
+        if (!$extendFromJobId) {
+            $videoJob->model_id = $request->input('modelId', $videoJob->model_id);
+            $videoJob->prompt = trim((string) $request->input('prompt', $videoJob->prompt));
+            $videoJob->negative_prompt = trim((string) $request->input('negative_prompt', $videoJob->negative_prompt));
+        }
         $videoJob->status = 'processing';
         $videoJob->progress = 5;
         $seed = $this->normalizeSeed((int) $request->input('seed', $videoJob->seed ?? -1));
@@ -224,11 +227,11 @@ private function generateDeforum(Request $request): JsonResponse
         }
 
         $request->validate([
-            'modelId' => 'required|integer',
-            'cfgScale' => 'required|integer|between:2,10',
-            'prompt' => 'required|string',
+            'modelId' => 'nullable|integer',
+            'cfgScale' => 'nullable|integer|between:2,10',
+            'prompt' => 'nullable|string',
             'frameCount' => 'numeric|between:1,20',
-            'denoising' => 'required|numeric|between:0.1,1.0',
+            'denoising' => 'nullable|numeric|between:0.1,1.0',
             'soundtrack_start_seconds' => 'nullable|numeric|min:0',
             'soundtrack_end_seconds' => 'nullable|numeric|gt:soundtrack_start_seconds',
             'seed' => 'nullable|integer',
@@ -237,6 +240,16 @@ private function generateDeforum(Request $request): JsonResponse
             'extendFromJobId' => 'nullable|integer|exists:video_jobs,id',
         ]);
 
+        // Validate that required fields are present if not extending
+        if (!$request->input('extendFromJobId')) {
+            $request->validate([
+                'modelId' => 'required|integer',
+                'cfgScale' => 'required|integer|between:2,10',
+                'prompt' => 'required|string',
+                'denoising' => 'required|numeric|between:0.1,1.0',
+            ]);
+        }
+
         $seed = $this->normalizeSeed((int) $request->input('seed', -1));
         $frameCount = $request->input('frameCount', 1);
 
@@ -244,6 +257,46 @@ private function generateDeforum(Request $request): JsonResponse
 
         if ($response = $this->assertOwner($videoJob)) {
             return $response;
+        }
+
+        $extendFromJobId = $request->input('extendFromJobId');
+        if ($extendFromJobId) {
+            $baseJob = Videojob::findOrFail($extendFromJobId);
+
+            if ($baseJob->generator === 'deforum') {
+                return response()->json(['message' => 'Cannot extend a deforum job as vid2vid'], 422);
+            }
+
+            if ($response = $this->assertOwner($baseJob)) {
+                return $response;
+            }
+
+            // Copy the last frame from the base job to use as init image
+            $baseJobPath = storage_path('app/public/jobs/' . $baseJob->id);
+            $newJobPath = storage_path('app/public/jobs/' . $videoJob->id);
+            
+            if (!file_exists($newJobPath)) {
+                mkdir($newJobPath, 0755, true);
+            }
+
+            $lastFramePath = $baseJobPath . '/frame_' . str_pad((string) ($baseJob->frame_count - 1), 5, '0', STR_PAD_LEFT) . '.png';
+            if (file_exists($lastFramePath)) {
+                copy($lastFramePath, $newJobPath . '/init.png');
+            }
+
+            // Inherit parameters from base job
+            $videoJob->model_id = $baseJob->model_id;
+            $videoJob->prompt = $request->input('prompt', $baseJob->prompt);
+            $videoJob->negative_prompt = $request->input('negative_prompt', $baseJob->negative_prompt);
+            $videoJob->cfg_scale = $request->input('cfgScale', $baseJob->cfg_scale);
+            $videoJob->denoising = $request->input('denoising', $baseJob->denoising);
+        } else {
+            // New job, use request parameters
+            $videoJob->model_id = $request->input('modelId');
+            $videoJob->prompt = trim((string) $request->input('prompt'));
+            $videoJob->negative_prompt = trim((string) $request->input('negative_prompt', ''));
+            $videoJob->cfg_scale = $request->input('cfgScale');
+            $videoJob->denoising = $request->input('denoising');
         }
 
         $this->applySoundtrackWindow($videoJob, $request);
