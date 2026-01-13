@@ -13,7 +13,7 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('sd_instances', function (Blueprint $table) {
+        Schema::create('generator_instances', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('url');
@@ -30,6 +30,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('sd_instances');
+        Schema::dropIfExists('generator_instances');
     }
 };

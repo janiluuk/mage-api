@@ -40,6 +40,7 @@ class ModelFileSchema extends Schema
             Str::make('filename'),
             Boolean::make('enabled'),
             Str::make('modelType'),
+            Str::make('instanceType'),
             Boolean::make('nsfw'),
             DateTime::make('createdAt')->sortable()->readOnly(),
             DateTime::make('updatedAt')->sortable()->readOnly(),

@@ -304,14 +304,73 @@ private function generateDeforum(Request $request): JsonResponse
 
         $this->applySoundtrackWindow($videoJob, $request);
 
+        // Handle job extension
+        $extendFromJobId = $request->input('extendFromJobId');
+        if ($extendFromJobId) {
+            $baseJob = Videojob::findOrFail($extendFromJobId);
+
+            if ($baseJob->generator === 'deforum') {
+                return response()->json(['message' => 'Cannot extend deforum jobs with vid2vid'], 422);
+            }
+
+            if ($response = $this->assertOwner($baseJob)) {
+                return $response;
+            }
+
+            // Use last frame of base job as init image for extension
+            if (!empty($baseJob->last_frame_path) && file_exists($baseJob->last_frame_path)) {
+                // Copy the last frame to use as the new job's original video
+                $videosPath = config('app.paths.videos', 'videos');
+                $targetPath = public_path($videosPath . '/' . $videoJob->id . '_extend_init.png');
+                
+                // Ensure directory exists
+                $targetDir = dirname($targetPath);
+                if (!is_dir($targetDir)) {
+                    mkdir($targetDir, 0755, true);
+                }
+                
+                if (copy($baseJob->last_frame_path, $targetPath)) {
+                    Log::info('Using last frame from base job as init image', [
+                        'base_job_id' => $baseJob->id,
+                        'last_frame' => $baseJob->last_frame_path,
+                        'target_path' => $targetPath,
+                    ]);
+                } else {
+                    Log::warning('Failed to copy last frame for init image', [
+                        'base_job_id' => $baseJob->id,
+                        'last_frame' => $baseJob->last_frame_path,
+                        'target_path' => $targetPath,
+                    ]);
+                }
+            }
+
+            $persistedParameters = json_decode((string) $baseJob->generation_parameters, true) ?? [];
+
+            // Set defaults from base job (these will be overridden if provided in request)
+            $videoJob->model_id = $request->input('modelId', $persistedParameters['model_id'] ?? $baseJob->model_id);
+            $videoJob->cfg_scale = $request->input('cfgScale', $persistedParameters['cfg_scale'] ?? $baseJob->cfg_scale);
+            $videoJob->denoising = $request->input('denoising', $persistedParameters['denoising_strength'] ?? $baseJob->denoising);
+            $videoJob->prompt = $request->input('prompt', $persistedParameters['prompt'] ?? $baseJob->prompt);
+            $videoJob->negative_prompt = $request->input('negative_prompt', $persistedParameters['negative_prompt'] ?? $baseJob->negative_prompt);
+            $videoJob->seed = $this->normalizeSeed((int) $request->input('seed', $persistedParameters['seed'] ?? $baseJob->seed));
+            $videoJob->fps = $persistedParameters['fps'] ?? $baseJob->fps;
+            $videoJob->width = $baseJob->width;
+            $videoJob->height = $baseJob->height;
+        } else {
+            $videoJob->model_id = $request->input('modelId');
+            $videoJob->cfg_scale = $request->input('cfgScale');
+            $videoJob->denoising = $request->input('denoising');
+            $videoJob->prompt = trim((string) $request->input('prompt'));
+            $videoJob->negative_prompt = trim((string) $request->input('negative_prompt', ''));
+            $videoJob->seed = $this->normalizeSeed((int) $request->input('seed', -1));
+        }
+
         $controlnet = $request->input('controlnet', []);
 
         if (! empty($controlnet)) {
             $videoJob->controlnet = json_encode($controlnet);
             Log::info('Got controlnet params: ' . json_encode($controlnet), ['controlnet' => json_decode($videoJob->controlnet)]);
         }
-
-        $videoJob->seed = $seed;
         $videoJob->status = 'processing';
         $videoJob->progress = 5;
         $videoJob->job_time = 3;
@@ -412,7 +471,15 @@ public function cancelJob(int $videoId): JsonResponse
 
     public function status(int $id): JsonResponse
     {
+        if ($response = $this->guardAuthenticated()) {
+            return $response;
+        }
+
         $videoJob = Videojob::findOrFail($id);
+
+        if ($response = $this->assertOwner($videoJob)) {
+            return $response;
+        }
 
         return response()->json([
             'id' => $videoJob->id,
