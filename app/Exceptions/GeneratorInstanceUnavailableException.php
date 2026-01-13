@@ -4,7 +4,7 @@ namespace App\Exceptions;
 
 use Exception;
 
-class SdInstanceUnavailableException extends Exception
+class GeneratorInstanceUnavailableException extends Exception
 {
     /**
      * Create a new exception instance.
@@ -15,8 +15,8 @@ class SdInstanceUnavailableException extends Exception
     public static function forType(?string $type = null): static
     {
         $message = $type
-            ? "No enabled Stable Diffusion instance of type '{$type}' is available"
-            : "No enabled Stable Diffusion instance is available";
+            ? "No enabled generator instance of type '{$type}' is available"
+            : "No enabled generator instance is available";
 
         return new static($message);
     }

@@ -88,6 +88,9 @@ workers should target the configured names (`HIGH_PRIORITY_QUEUE`, `MEDIUM_PRIOR
 php artisan queue:work beanstalkd --queue=critical,medium,low
 ```
 
+Queue names default to `high`, `medium`, and `low`. Override them with `HIGH_PRIORITY_QUEUE`, `MEDIUM_PRIORITY_QUEUE`, and
+`LOW_PRIORITY_QUEUE` in your environment as needed.
+
 ## API Reference
 
 ### Authentication Endpoints
@@ -98,6 +101,7 @@ php artisan queue:work beanstalkd --queue=critical,medium,low
 - `POST /api/auth/logout` — Invalidate current session (requires auth)
 - `POST /api/auth/forgot-password` — Request password reset email
 - `POST /api/auth/reset-password` — Reset password with token
+- `POST /api/auth/verify-email` — Verify user email with token
 - `GET /api/auth/me` — Get current user profile (requires auth)
 
 #### V2 API
@@ -133,7 +137,7 @@ API v2 mirrors these endpoints at `/api/v2/*`:
 #### Job Management
 - `POST /api/cancelJob/{videoId}` — Cancel pending or processing job
 - `GET /api/queue` — List all jobs for authenticated user (requires auth)
-- `GET /status/{videoId}` — Get detailed job status including:
+- `GET /api/video-jobs/{videoId}/status` — Get detailed job status (requires auth) including:
   - Status, progress, estimated time remaining
   - Queue position and wait time
   - Full generation parameters
@@ -204,6 +208,10 @@ Process ComfyUI workflows with custom inputs. All endpoints require authenticati
 - `GET /api/orders/sales` — Get user's sales (auth)
 - `PATCH /api/orders/confirm-order` — Confirm order by ID (auth)
 
+#### Payments
+- `POST /api/payment/create-intent` — Create a Stripe payment intent (auth)
+- `POST /api/webhooks/stripe` — Stripe webhook receiver
+
 #### Wallets & Finance
 - `GET /api/user-wallets` — Get wallets for current user (auth)
 - `GET /api/user-wallets/by-wallet-type-id/{walletTypeId}` — Get wallets by type (auth)
@@ -244,6 +252,8 @@ All administration endpoints require authentication and administrator role. Base
 - `PATCH /api/administration/admin-reset-user-password` — Reset user password
 - `PATCH /api/administration/change-user-data` — Update user account details
 - `PATCH /api/administration/change-password` — Change user password
+- `GET /api/administration/users/{userId}/data-stats` — User data statistics
+- `DELETE /api/administration/users/purge-data` — Purge user data
 
 #### Finance & Orders
 - `GET /api/administration/finance-operations/get-all` — Get all finance operations
@@ -253,12 +263,31 @@ All administration endpoints require authentication and administrator role. Base
 #### Support Administration
 - `POST /api/administration/support-requests` — Search support requests with criteria
 
+#### Generator Instance Management (Stable Diffusion Forge / ComfyUI)
+- `GET /api/administration/generator-instances` — List instances
+- `POST /api/administration/generator-instances` — Create instance
+- `GET /api/administration/generator-instances/{id}` — Get instance details
+- `PUT /api/administration/generator-instances/{id}` — Update instance
+- `PATCH /api/administration/generator-instances/{id}` — Update instance
+- `DELETE /api/administration/generator-instances/{id}` — Delete instance
+- `PATCH /api/administration/generator-instances/{id}/toggle` — Toggle instance
+
+Model files can be tagged with an `instanceType` (e.g., `stable_diffusion_forge`, `comfyui`) so jobs route to the right backend,
+such as `dreamshaper` → Stable Diffusion Forge and `flux` → ComfyUI.
+
 ### Utility Endpoints
 
 - `GET /api/status/{serviceName?}` — Check service status
 - `GET /api/csrf-token` — Get CSRF token
 - `GET /api/{providerName}/auth` — Initiate social auth
 - `GET /api/{providerName}/callback` — Social auth callback
+
+### Miscellaneous Endpoints
+
+- `GET /api/questions` — List FAQ questions
+- `GET /api/questions/{questionSlug}` — Get a question by slug
+- `GET /api/properties` — Get properties by category (query param: `categoryId`)
+- `GET /api/user-ratings/{userId?}` — Get user rating (auth)
 
 ## Common Tooling
 

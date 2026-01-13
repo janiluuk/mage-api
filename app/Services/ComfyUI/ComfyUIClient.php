@@ -2,8 +2,8 @@
 
 namespace App\Services\ComfyUI;
 
-use App\Exceptions\SdInstanceUnavailableException;
-use App\Services\SdInstanceService;
+use App\Exceptions\GeneratorInstanceUnavailableException;
+use App\Services\GeneratorInstanceService;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Support\Facades\Log;
@@ -11,30 +11,30 @@ use Illuminate\Support\Facades\Log;
 class ComfyUIClient
 {
     protected Client $httpClient;
-    protected SdInstanceService $sdInstanceService;
+    protected GeneratorInstanceService $generatorInstanceService;
     protected ?string $baseUrl = null;
 
-    public function __construct(SdInstanceService $sdInstanceService)
+    public function __construct(GeneratorInstanceService $generatorInstanceService)
     {
         $this->httpClient = new Client([
             'timeout' => 300,
             'connect_timeout' => 10,
         ]);
-        $this->sdInstanceService = $sdInstanceService;
+        $this->generatorInstanceService = $generatorInstanceService;
     }
 
     /**
      * Get the base URL for ComfyUI instance
      *
      * @return string
-     * @throws SdInstanceUnavailableException
+     * @throws GeneratorInstanceUnavailableException
      */
     protected function getBaseUrl(): string
     {
         if ($this->baseUrl === null) {
-            $url = $this->sdInstanceService->getEnabledInstanceUrl('comfyui');
+            $url = $this->generatorInstanceService->getEnabledInstanceUrl('comfyui');
             if (!$url) {
-                throw SdInstanceUnavailableException::forType('comfyui');
+                throw GeneratorInstanceUnavailableException::forType('comfyui');
             }
             $this->baseUrl = $url;
         }
