@@ -264,7 +264,7 @@ private function generateDeforum(Request $request): JsonResponse
             $baseJob = Videojob::findOrFail($extendFromJobId);
 
             if ($baseJob->generator === 'deforum') {
-                return response()->json(['message' => 'Cannot extend a deforum job as vid2vid'], 422);
+                return response()->json(['message' => 'Cannot extend deforum jobs with vid2vid'], 422);
             }
 
             if ($response = $this->assertOwner($baseJob)) {
@@ -290,6 +290,9 @@ private function generateDeforum(Request $request): JsonResponse
             $videoJob->negative_prompt = $request->input('negative_prompt', $baseJob->negative_prompt);
             $videoJob->cfg_scale = $request->input('cfgScale', $baseJob->cfg_scale);
             $videoJob->denoising = $request->input('denoising', $baseJob->denoising);
+            $videoJob->width = $baseJob->width;
+            $videoJob->height = $baseJob->height;
+            $videoJob->fps = $baseJob->fps;
         } else {
             // New job, use request parameters
             $videoJob->model_id = $request->input('modelId');
