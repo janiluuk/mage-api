@@ -1,0 +1,155 @@
+name: Create Release
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # Skip if this is a version bump commit to prevent infinite loops
+    if: "!contains(github.event.head_commit.message, 'chore: bump version')"
+    permissions:
+      contents: write
+      pull-requests: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+      - name: Get current version
+        id: current_version
+        run: |
+          if [ -f VERSION ]; then
+            VERSION=$(cat VERSION)
+          else
+            VERSION="0.0.0"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $VERSION"
+
+      - name: Get commit messages since last release
+        id: commits
+        run: |
+          # Get the last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [ -z "$LAST_TAG" ]; then
+            # No previous tags, get all commits
+            COMMITS=$(git log --pretty=format:"- %s" --no-merges)
+          else
+            # Get commits since last tag
+            COMMITS=$(git log ${LAST_TAG}..HEAD --pretty=format:"- %s" --no-merges)
+          fi
+
+          # Save to file for multiline handling
+          echo "$COMMITS" > /tmp/commits.txt
+          echo "Commits since last release:"
+          cat /tmp/commits.txt
+
+      - name: Determine version bump
+        id: bump
+        run: |
+          CURRENT_VERSION="${{ steps.current_version.outputs.version }}"
+
+          # Parse current version
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+
+          # Check commit messages for version bump hints
+          COMMITS=$(cat /tmp/commits.txt)
+
+          # Check for breaking changes (major version bump)
+          if echo "$COMMITS" | grep -qiE "(BREAKING CHANGE|breaking:|major:)"; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+            BUMP_TYPE="major"
+          # Check for features (minor version bump)
+          elif echo "$COMMITS" | grep -qiE "(feat:|feature:|minor:)"; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+            BUMP_TYPE="minor"
+          # Default to patch version bump
+          else
+            PATCH=$((PATCH + 1))
+            BUMP_TYPE="patch"
+          fi
+
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VERSION (${BUMP_TYPE} bump)"
+
+      - name: Update VERSION file
+        run: |
+          echo "${{ steps.bump.outputs.version }}" > VERSION
+          git add VERSION
+
+      - name: Update CHANGELOG
+        run: |
+          NEW_VERSION="${{ steps.bump.outputs.version }}"
+          BUMP_TYPE="${{ steps.bump.outputs.bump_type }}"
+          DATE=$(date +%Y-%m-%d)
+
+          # Read commits
+          COMMITS=$(cat /tmp/commits.txt)
+
+          # Create new changelog entry
+          {
+            echo "# Changelog"
+            echo ""
+            echo "All notable changes to this project will be documented in this file."
+            echo ""
+            echo "The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),"
+            echo "and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)."
+            echo ""
+            echo "## [Unreleased]"
+            echo ""
+            echo "## [${NEW_VERSION}] - ${DATE}"
+            echo ""
+            echo "### Changes"
+            echo "$COMMITS"
+            echo ""
+
+            # Append old changelog content (skip the [Unreleased] section)
+            if [ -f CHANGELOG.md ]; then
+              # Find all releases starting from the first semantic version tag
+              # Using extended regex for better portability
+              sed -n -E '/## \[[0-9]+\.[0-9]+\.[0-9]+\]/,$p' CHANGELOG.md
+            fi
+          } > CHANGELOG.md.new
+
+          mv CHANGELOG.md.new CHANGELOG.md
+          git add CHANGELOG.md
+
+      - name: Commit version bump
+        run: |
+          NEW_VERSION="${{ steps.bump.outputs.version }}"
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: bump version to ${NEW_VERSION}"
+            git push origin ${{ github.ref_name }}
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2.0.8
+        with:
+          tag_name: v${{ steps.bump.outputs.version }}
+          name: Release v${{ steps.bump.outputs.version }}
+          body_path: /tmp/commits.txt
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
