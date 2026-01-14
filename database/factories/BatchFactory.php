@@ -22,12 +22,7 @@ class BatchFactory extends Factory
             'user_id' => User::factory(),
             'name' => fake()->words(3, true),
             'description' => fake()->sentence(),
-            'status' => fake()->randomElement([
-                Batch::STATUS_PENDING,
-                Batch::STATUS_PROCESSING,
-                Batch::STATUS_COMPLETED,
-                Batch::STATUS_FAILED,
-            ]),
+            'status' => Batch::STATUS_PENDING,
             'total_jobs' => 0,
             'completed_jobs' => 0,
             'failed_jobs' => 0,

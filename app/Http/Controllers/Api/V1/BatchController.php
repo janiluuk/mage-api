@@ -71,9 +71,7 @@ class BatchController extends Controller
     public function show(Request $request, int $id): JsonResponse
     {
         $batch = Batch::where('user_id', $request->user()->id)
-            ->with(['videoJobs' => function ($query) {
-                $query->select(['id', 'filename', 'status', 'progress', 'original_filename']);
-            }])
+            ->with(['videoJobs'])
             ->findOrFail($id);
 
         return response()->json($batch);
