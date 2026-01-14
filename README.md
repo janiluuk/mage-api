@@ -145,6 +145,19 @@ API v2 mirrors these endpoints at `/api/v2/*`:
   - Full generation parameters
   - Model, prompt, and technical settings
 
+#### Video Job Operations (V1 API)
+- `POST /api/v1/video-jobs/add-soundtrack` — Add audio track to completed video job (requires auth)
+  - **Parameters**: `video_job_id`, `soundtrack` (file), optional `start_seconds`, `end_seconds`, `output_name`
+  - Adds audio overlay to finished video with optional time windowing
+  
+- `POST /api/v1/video-jobs/extend` — Create continuation of Deforum video job (requires auth)
+  - **Parameters**: `video_job_id`, optional `length`, `prompt`, `negative_prompt`, `seed`, `denoising`
+  - Creates new job that extends from completed Deforum animation
+  
+- `POST /api/v1/video-jobs/trim` — Trim/clip completed video job (requires auth)
+  - **Parameters**: `video_job_id`, `start_seconds`, `end_seconds`, optional `output_name`
+  - Creates new trimmed video job from specified time range
+
 #### Processing Status
 - `GET /api/video-jobs/processing/status` — Live overview of jobs (requires auth)
   - Processing jobs with real-time progress
@@ -188,6 +201,50 @@ Process ComfyUI workflows with custom inputs. All endpoints require authenticati
 - `GET /api/comfyui/image` — Download output image from ComfyUI (requires auth)
   - **Parameters**: `filename` (required), `subfolder` (optional), `type` (optional: output|input|temp)
   - **Returns**: Binary image data
+
+### Batch Processing API
+
+Manage and process multiple video jobs as a batch. All endpoints require authentication.
+
+- `GET /api/v1/batches` — List all batches for current user
+  - Query params: `status` (optional), `per_page` (optional)
+  
+- `POST /api/v1/batches` — Create new batch
+  - **Parameters**: `name` (required), `description` (optional), `settings` (optional)
+  
+- `GET /api/v1/batches/{id}` — Get batch details with associated jobs
+- `PUT /api/v1/batches/{id}` — Update batch (cannot update while processing)
+- `DELETE /api/v1/batches/{id}` — Delete batch (cannot delete while processing)
+
+- `POST /api/v1/batches/{id}/jobs` — Add video jobs to batch
+  - **Parameters**: `video_job_ids` (required array of integers)
+  
+- `DELETE /api/v1/batches/{id}/jobs` — Remove video jobs from batch
+  - **Parameters**: `video_job_ids` (required array of integers)
+  
+- `POST /api/v1/batches/{id}/process` — Start processing all jobs in batch
+- `GET /api/v1/batches/{id}/status` — Get real-time batch status and progress
+
+### Preset Management API
+
+Save and manage generation presets for quick reuse. All endpoints require authentication.
+
+- `GET /api/v1/presets` — List accessible presets (own + public)
+  - Query params: `category`, `type`, `favorites_only`, `own_only`, `per_page`
+  
+- `POST /api/v1/presets` — Create new preset
+  - **Parameters**: `name` (required), `type` (required: video/image/animation), `settings` (required), `description`, `category`, `is_public`, `is_favorite`
+  
+- `GET /api/v1/presets/{id}` — Get preset details
+- `PUT /api/v1/presets/{id}` — Update preset (own presets only)
+- `DELETE /api/v1/presets/{id}` — Delete preset (own presets only)
+
+- `POST /api/v1/presets/{id}/use` — Mark preset as used (increments usage count)
+- `POST /api/v1/presets/{id}/favorite` — Toggle favorite status
+- `POST /api/v1/presets/{id}/duplicate` — Duplicate preset to own collection
+  - **Parameters**: `name` (optional, defaults to "{original name} (Copy)")
+  
+- `GET /api/v1/presets/categories` — Get list of all preset categories
 
 ### GPU Credits & E-commerce
 
@@ -291,6 +348,26 @@ such as `dreamshaper` → Stable Diffusion Forge and `flux` → ComfyUI.
 - `GET /api/questions/{questionSlug}` — Get a question by slug
 - `GET /api/properties` — Get properties by category (query param: `categoryId`)
 - `GET /api/user-ratings/{userId?}` — Get user rating (auth)
+
+## Rate Limiting & Security
+
+All API endpoints are protected by rate limiting to prevent abuse:
+- **Default rate limit**: 60 requests per minute per user (authenticated) or IP address (unauthenticated)
+- **Custom rate limits**: Applied to specific endpoints as needed
+
+Rate limit information is included in response headers:
+- `X-RateLimit-Limit` - Maximum requests allowed
+- `X-RateLimit-Remaining` - Requests remaining in current window
+
+When the rate limit is exceeded, you'll receive a `429 Too Many Requests` response with a `retry_after` value in seconds.
+
+### Security Features
+- **JWT Authentication**: Required for most endpoints
+- **CSRF Protection**: Built-in Laravel CSRF protection for web routes
+- **Input Validation**: Comprehensive validation on all endpoints
+- **Authorization Checks**: Ensures users can only access/modify their own resources
+- **SQL Injection Prevention**: Parameterized queries via Eloquent ORM
+- **XSS Protection**: Automatic output escaping
 
 ## Common Tooling
 
