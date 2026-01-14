@@ -21,6 +21,21 @@ class VideoJobOperationsTest extends TestCase
         
         $this->user = User::factory()->create();
         Storage::fake('public');
+        
+        // Skip tests if FFmpeg is not available
+        if (!$this->isFFmpegAvailable()) {
+            $this->markTestSkipped('FFmpeg is not installed');
+        }
+    }
+
+    protected function isFFmpegAvailable(): bool
+    {
+        try {
+            exec('ffmpeg -version 2>&1', $output, $returnCode);
+            return $returnCode === 0;
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 
     public function test_trim_requires_authentication(): void
