@@ -7,6 +7,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-01-14
+
+### Changes
+- Add automated release workflow with semantic versioning and changelog generation (#33)
+- Create *.instructions.md
+- Implement video operations, batch processing, and preset management APIs (#32)
+- Add soundtrack ranges and attach-audio API (#25)
+- Fix failing tests: authentication, queue config, and route ordering (#31)
+- Rename SD instances to Generator instances and update services, migrations, and tests (#26)
+- Performance optimization: N+1 queries, caching, and database indexes (#24)
+- Remove obsolete implementation documentation files (#23)
+- Update dependencies and fix esbuild security vulnerability (#22)
+- Add ComfyUI workflow processing endpoints with separated client library (#21)
+- Complete unfinished GPU credit enrollment, add performance indexes, and comprehensive tests (#20)
+- Fix authentication status code and enum usage in payment tests (#19)
+- Implementation: Authorization, security fixes, Stripe payment integration, and test coverage (#18)
+- [WIP] Fix user data management tests for product table error (#17)
+- Add frame extraction and video stitching for job extension (#16)
+- [WIP] Add user data amount display and purge options (#15)
+- Implement async video processing with file system watching and concurrent job support (#14)
+- Fix: Restore SD instance routes lost in merge conflict
+- Add missing controlnet column migration
+- Fix test_generate_vid2vid_with_all_parameters 500 error
+- Address code review feedback: remove extra blank lines and use custom exception
+- Fix tests - remove validation tests that conflict with middleware, all tests passing
+- Fix remaining test failures
+- Add SD instance management: model, migration, controller, service, and tests
+- Change all vimage references to mage throughout the codebase
+- Fix test failures in VideojobGenerateParametersTest
+- Initial plan
+- Initial plan
+- Address code review feedback
+- Add comprehensive test coverage and performance optimizations
+- Fix CI: Add git identity configuration to conflict-check workflow
+- Add improvements summary document
+- Address code review feedback
+- Add comprehensive code review findings document
+- Fix route duplication and improve code quality
+- Initial plan
+- Add CI workflow and harden video processing helpers
+- Fix missing braces after else statements for consistent code style
+- Fix type hints, duplicate fields, routes, and coding style
+- Initial plan
+- Rename Docker directory to lowercase
+- Add processing status endpoints and DeforumationQT UI
+- Update routes more logical
+- Update README.md
+- Update docker-compose.yml
+- Add soundtrack uploads and refresh docker images
+- Fix video job endpoints and extend API coverage
+- Align deforum unique ID tests with extension context
+- Add deforum extension tests and update docs
+- Improve deforum queue handling and extend support
+- Add Python script tests to CI workflow
+- Add load-balanced WebUI client support and tests
+- Add WebUI API documentation
+- Add helper script for rebasing onto main
+- Add merge conflict check workflow
+- Improve merge conflict handling guidance
+- Add rebase guidance to README
+- Refactor video job flow and add docker helper
+- Add feature tests for videojob API endpoints
+- Stuff
+- Update
+- Stuff
+- Fixes for processing deforum
+- Fixes for deforum
+- Deforum
+- Gixes
+- Update deforum
+- Update deforum support
+- Add deforum
+- Fixes
+- Replace notfound image
+- Update
+- Move from bitbucket
+
 ## [1.0.0] - 2026-01-14
 
 ### Added
