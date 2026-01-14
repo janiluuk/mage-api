@@ -124,7 +124,8 @@ jobs:
             # Append old changelog content (skip the [Unreleased] section)
             if [ -f CHANGELOG.md ]; then
               # Find all releases starting from the first semantic version tag
-              sed -n '/## \[[0-9]\+\.[0-9]\+\.[0-9]\+\]/,$p' CHANGELOG.md
+              # Using extended regex for better portability
+              sed -n -E '/## \[[0-9]+\.[0-9]+\.[0-9]+\]/,$p' CHANGELOG.md
             fi
           } > CHANGELOG.md.new
 
