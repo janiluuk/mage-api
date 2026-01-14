@@ -164,10 +164,9 @@ class PresetController extends Controller
         
         $preset = Preset::accessibleByUser($userId)->findOrFail($id);
 
-        // Only increment if it's the user's own preset
-        if ($preset->user_id === $userId) {
-            $preset->markAsUsed();
-        }
+        // Track usage for all presets (own and public)
+        // This helps track preset popularity across all users
+        $preset->markAsUsed();
 
         return response()->json([
             'message' => 'Preset marked as used',

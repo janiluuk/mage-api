@@ -11,6 +11,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Symfony\Component\Process\Process;
+use Symfony\Component\Process\Exception\ProcessFailedException;
 
 /**
  * Controller for video job operations like soundtrack, extend, and trim
@@ -81,34 +83,36 @@ class VideoJobOperationsController extends Controller
 
             Log::info('Adding soundtrack to video job', [
                 'video_job_id' => $videoJob->id,
-                'command' => $ffmpegCmd
+                'command' => implode(' ', $ffmpegCmd)
             ]);
 
-            // Execute FFmpeg command
-            exec($ffmpegCmd . ' 2>&1', $output, $returnCode);
+            // Execute FFmpeg command using Symfony Process
+            $process = new Process($ffmpegCmd);
+            $process->setTimeout(600); // 10 minute timeout
+            $process->run();
 
-            if ($returnCode !== 0) {
+            if (!$process->isSuccessful()) {
                 Log::error('FFmpeg soundtrack addition failed', [
-                    'return_code' => $returnCode,
-                    'output' => implode("\n", $output)
+                    'exit_code' => $process->getExitCode(),
+                    'output' => $process->getOutput(),
+                    'error_output' => $process->getErrorOutput()
                 ]);
-                throw new \Exception('Failed to add soundtrack to video');
+                throw new ProcessFailedException($process);
             }
 
             // Save as new media on the video job
             $videoJob->addMedia($outputPath)
                 ->toMediaCollection('finished');
 
-            // Clean up temporary soundtrack file
-            Storage::disk('public')->delete($soundtrackPath);
-
-            // Update video job metadata
-            $videoJob->soundtrack_path = $absoluteSoundtrackPath;
-            $videoJob->soundtrack_url = Storage::disk('public')->url($soundtrackPath);
-            $videoJob->soundtrack_mimetype = $soundtrack->getMimeType();
+            // Update video job metadata - keep the original soundtrack reference
+            // Note: We don't update soundtrack_path/url since the file was temporary
+            // The soundtrack is now embedded in the video file
             $videoJob->soundtrack_start_seconds = $validated['start_seconds'] ?? null;
             $videoJob->soundtrack_end_seconds = $validated['end_seconds'] ?? null;
             $videoJob->save();
+
+            // Clean up temporary soundtrack file after successful processing
+            Storage::disk('public')->delete($soundtrackPath);
 
             return response()->json([
                 'message' => 'Soundtrack added successfully',
@@ -175,7 +179,17 @@ class VideoJobOperationsController extends Controller
             $newJob = new Videojob();
             
             // Inherit properties from base job
-            $persistedParameters = json_decode((string) $baseJob->generation_parameters, true) ?? [];
+            $persistedParameters = [];
+            if (!empty($baseJob->generation_parameters)) {
+                $persistedParameters = json_decode((string) $baseJob->generation_parameters, true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    Log::warning('Failed to decode generation_parameters', [
+                        'job_id' => $baseJob->id,
+                        'error' => json_last_error_msg()
+                    ]);
+                    $persistedParameters = [];
+                }
+            }
             
             $newJob->user_id = $request->user()->id;
             $newJob->generator = 'deforum';
@@ -277,31 +291,37 @@ class VideoJobOperationsController extends Controller
             }
 
             // Build FFmpeg trim command
-            $ffmpegCmd = sprintf(
-                'ffmpeg -i %s -ss %s -t %s -c:v libx264 -c:a aac -strict experimental %s',
-                escapeshellarg($videoPath),
-                escapeshellarg($startSeconds),
-                escapeshellarg($duration),
-                escapeshellarg($outputPath)
-            );
+            $ffmpegCmd = [
+                'ffmpeg',
+                '-i', $videoPath,
+                '-ss', (string) $startSeconds,
+                '-t', (string) $duration,
+                '-c:v', 'libx264',
+                '-c:a', 'aac',
+                '-strict', 'experimental',
+                $outputPath
+            ];
 
             Log::info('Trimming video job', [
                 'video_job_id' => $videoJob->id,
                 'start' => $startSeconds,
                 'end' => $endSeconds,
                 'duration' => $duration,
-                'command' => $ffmpegCmd
+                'command' => implode(' ', $ffmpegCmd)
             ]);
 
-            // Execute FFmpeg command
-            exec($ffmpegCmd . ' 2>&1', $output, $returnCode);
+            // Execute FFmpeg command using Symfony Process
+            $process = new Process($ffmpegCmd);
+            $process->setTimeout(600); // 10 minute timeout
+            $process->run();
 
-            if ($returnCode !== 0 || !file_exists($outputPath)) {
+            if (!$process->isSuccessful() || !file_exists($outputPath)) {
                 Log::error('FFmpeg trim failed', [
-                    'return_code' => $returnCode,
-                    'output' => implode("\n", $output)
+                    'exit_code' => $process->getExitCode(),
+                    'output' => $process->getOutput(),
+                    'error_output' => $process->getErrorOutput()
                 ]);
-                throw new \Exception('Failed to trim video');
+                throw new ProcessFailedException($process);
             }
 
             // Create new video job for trimmed version
@@ -377,38 +397,38 @@ class VideoJobOperationsController extends Controller
         string $outputPath,
         ?float $startSeconds = null,
         ?float $endSeconds = null
-    ): string {
-        $videoInput = escapeshellarg($videoPath);
-        $audioInput = escapeshellarg($audioPath);
-        $output = escapeshellarg($outputPath);
+    ): array {
+        $cmd = ['ffmpeg', '-i', $videoPath];
 
-        // If audio timing is specified, use complex filter
+        // If audio timing is specified, trim the audio before mixing
         if ($startSeconds !== null && $endSeconds !== null) {
             $duration = $endSeconds - $startSeconds;
-            return sprintf(
-                'ffmpeg -i %s -ss %s -t %s -i %s -c:v copy -c:a aac -strict experimental -map 0:v:0 -map 1:a:0 -shortest %s',
-                $videoInput,
-                escapeshellarg($startSeconds),
-                escapeshellarg($duration),
-                $audioInput,
-                $output
-            );
+            $cmd = array_merge($cmd, [
+                '-ss', (string) $startSeconds,
+                '-t', (string) $duration,
+                '-i', $audioPath,
+            ]);
         } elseif ($startSeconds !== null) {
-            return sprintf(
-                'ffmpeg -i %s -ss %s -i %s -c:v copy -c:a aac -strict experimental -map 0:v:0 -map 1:a:0 -shortest %s',
-                $videoInput,
-                escapeshellarg($startSeconds),
-                $audioInput,
-                $output
-            );
+            $cmd = array_merge($cmd, [
+                '-ss', (string) $startSeconds,
+                '-i', $audioPath,
+            ]);
         } else {
-            // Simple audio overlay
-            return sprintf(
-                'ffmpeg -i %s -i %s -c:v copy -c:a aac -strict experimental -map 0:v:0 -map 1:a:0 -shortest %s',
-                $videoInput,
-                $audioInput,
-                $output
-            );
+            // No trimming, just add the audio
+            $cmd = array_merge($cmd, ['-i', $audioPath]);
         }
+
+        // Mix video and audio, using shortest stream
+        $cmd = array_merge($cmd, [
+            '-c:v', 'copy',
+            '-c:a', 'aac',
+            '-strict', 'experimental',
+            '-map', '0:v:0',
+            '-map', '1:a:0',
+            '-shortest',
+            $outputPath
+        ]);
+
+        return $cmd;
     }
 }
