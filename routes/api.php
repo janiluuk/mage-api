@@ -36,6 +36,9 @@ use App\Http\Controllers\Api\Admin\FileAdminController;
 use App\Http\Controllers\Api\GeneratorInstanceController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ComfyUIWorkflowController;
+use App\Http\Controllers\Api\V1\VideoJobOperationsController;
+use App\Http\Controllers\Api\V1\BatchController;
+use App\Http\Controllers\Api\V1\PresetController;
 use LaravelJsonApi\Laravel\Routing\Relationships;
 
 /*
@@ -102,6 +105,33 @@ JsonApiRoute::server('v2')->prefix('v2')->resources(function (ResourceRegistrar 
 
 Route::prefix('v1')->middleware('auth:api')->group(function () {
     Route::post('/uploads/{resource}/{id}/{field}', UploadController::class);
+    
+    // Video job operations
+    Route::post('/video-jobs/add-soundtrack', [VideoJobOperationsController::class, 'addSoundtrack']);
+    Route::post('/video-jobs/extend', [VideoJobOperationsController::class, 'extend']);
+    Route::post('/video-jobs/trim', [VideoJobOperationsController::class, 'trim']);
+    
+    // Batch processing routes
+    Route::get('/batches', [BatchController::class, 'index']);
+    Route::post('/batches', [BatchController::class, 'store']);
+    Route::get('/batches/{id}', [BatchController::class, 'show']);
+    Route::put('/batches/{id}', [BatchController::class, 'update']);
+    Route::delete('/batches/{id}', [BatchController::class, 'destroy']);
+    Route::post('/batches/{id}/jobs', [BatchController::class, 'addJobs']);
+    Route::delete('/batches/{id}/jobs', [BatchController::class, 'removeJobs']);
+    Route::post('/batches/{id}/process', [BatchController::class, 'process']);
+    Route::get('/batches/{id}/status', [BatchController::class, 'status']);
+    
+    // Preset management routes
+    Route::get('/presets/categories', [PresetController::class, 'categories']);
+    Route::get('/presets', [PresetController::class, 'index']);
+    Route::post('/presets', [PresetController::class, 'store']);
+    Route::get('/presets/{id}', [PresetController::class, 'show']);
+    Route::put('/presets/{id}', [PresetController::class, 'update']);
+    Route::delete('/presets/{id}', [PresetController::class, 'destroy']);
+    Route::post('/presets/{id}/use', [PresetController::class, 'markAsUsed']);
+    Route::post('/presets/{id}/favorite', [PresetController::class, 'toggleFavorite']);
+    Route::post('/presets/{id}/duplicate', [PresetController::class, 'duplicate']);
 });
 
 Route::post('/upload', [VideojobController::class, 'upload'])->middleware('api');
