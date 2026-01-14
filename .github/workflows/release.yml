@@ -119,9 +119,10 @@ jobs:
             echo "$COMMITS"
             echo ""
 
-            # Append old changelog content (skip header)
+            # Append old changelog content (skip the [Unreleased] section)
             if [ -f CHANGELOG.md ]; then
-              sed -n '/## \[/,$p' CHANGELOG.md | tail -n +2
+              # Find all releases starting from the first version tag
+              sed -n '/## \[[0-9]/,$p' CHANGELOG.md
             fi
           } > CHANGELOG.md.new
 
@@ -140,7 +141,7 @@ jobs:
           fi
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2.0.8
         with:
           tag_name: v${{ steps.bump.outputs.version }}
           name: Release v${{ steps.bump.outputs.version }}
