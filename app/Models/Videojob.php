@@ -178,6 +178,16 @@ class Videojob extends Model implements HasMedia
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    /**
+     * Get the batches that include this video job.
+     */
+    public function batches()
+    {
+        return $this->belongsToMany(Batch::class, 'batch_video_job', 'video_job_id', 'batch_id')
+            ->withPivot(['order', 'status', 'started_at', 'completed_at', 'error_message'])
+            ->withTimestamps();
+    }
+
     public function modelfile()
     {
         return $this->belongsTo(ModelFile::class, 'model_id');
