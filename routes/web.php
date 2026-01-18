@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Controllers\VideojobController;
 use App\Http\Controllers\Admin\FileBrowserController;
+use App\Http\Controllers\Admin\BeatMatchVideoController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -37,7 +38,15 @@ Route::view('/deforumation-qt', 'deforumation-qt')->name('deforumation.qt');
 ctf0\MediaManager\MediaRoutes::routes();
 
 Route::middleware(['AuthorizationChecker', 'IsAdministratorChecker'])
-    ->get('/administration/files', [FileBrowserController::class, 'index'])
-    ->name('admin.files');
+    ->group(function () {
+        Route::get('/administration/files', [FileBrowserController::class, 'index'])
+            ->name('admin.files');
+        Route::get('/administration/beat-match-video', [BeatMatchVideoController::class, 'index'])
+            ->name('admin.beat-match-video');
+        Route::post('/administration/beat-match-video/process', [BeatMatchVideoController::class, 'process'])
+            ->name('admin.beat-match-video.process');
+        Route::get('/administration/beat-match-video/status/{id}', [BeatMatchVideoController::class, 'status'])
+            ->name('admin.beat-match-video.status');
+    });
 
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 

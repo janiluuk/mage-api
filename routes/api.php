@@ -39,6 +39,7 @@ use App\Http\Controllers\Api\ComfyUIWorkflowController;
 use App\Http\Controllers\Api\V1\VideoJobOperationsController;
 use App\Http\Controllers\Api\V1\BatchController;
 use App\Http\Controllers\Api\V1\PresetController;
+use App\Http\Controllers\Api\V1\CustomJobController;
 use LaravelJsonApi\Laravel\Routing\Relationships;
 
 /*
@@ -88,7 +89,7 @@ JsonApiRoute::server('v1')
           
     });    
 
-Route::prefix('v2')->middleware('json.api')->group(function () {
+Route::prefix('v2')->group(function () {
     Route::post('/login', LoginController::class)->name('login');
     Route::post('/logout', LogoutController::class)->middleware('auth:api');
     Route::post('/register', RegisterController::class);
@@ -110,6 +111,10 @@ Route::prefix('v1')->middleware('auth:api')->group(function () {
     Route::post('/video-jobs/add-soundtrack', [VideoJobOperationsController::class, 'addSoundtrack']);
     Route::post('/video-jobs/extend', [VideoJobOperationsController::class, 'extend']);
     Route::post('/video-jobs/trim', [VideoJobOperationsController::class, 'trim']);
+    
+    // Custom job processing
+    Route::post('/custom-jobs/process', [CustomJobController::class, 'process']);
+    Route::get('/custom-jobs/{id}/status', [CustomJobController::class, 'status']);
     
     // Batch processing routes
     Route::get('/batches', [BatchController::class, 'index']);
@@ -155,6 +160,13 @@ Route::middleware('auth:api')->prefix('files')->group(function () {
     Route::post('{id}/transcode', [FileController::class, 'transcode']);
     Route::post('{id}/attach-audio', [FileController::class, 'attachAudio']);
     Route::get('quota', [FileController::class, 'quota']);
+    
+    // Tag-related endpoints
+    Route::get('by-tags', [FileController::class, 'byTags']);
+    Route::get('by-tag/{tagId}', [FileController::class, 'byTag']);
+    Route::post('{id}/tags', [FileController::class, 'attachTags']);
+    Route::put('{id}/tags', [FileController::class, 'syncTags']);
+    Route::delete('{id}/tags/{tagId}', [FileController::class, 'detachTag']);
 });
 
 Route::get('/csrf-token', function () {

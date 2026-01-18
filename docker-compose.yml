@@ -56,3 +56,14 @@ services:
   redis:
     image: redis:7.0.2-alpine
     container_name: laravel-redis
+
+  uvr5:
+    image: upseem/uvr5-cli-no-ui:latest
+    container_name: laravel-uvr5
+    restart: unless-stopped
+    pull_policy: always  # Always pull latest image to ensure dependencies are downloaded
+    volumes:
+      - ./filestorage/temp:/temp
+      - ./filestorage/processed:/processed
+    # Note: This container runs on-demand via docker run commands
+    # The image will be pulled automatically when docker-compose up is run
