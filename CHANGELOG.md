@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-01-18
+
+### Changes
+- Enhance video job processing and improve API error responses
+- Refactor video processing logic and enhance error handling
+
 ## [1.0.2] - 2026-01-18
 
 ### Changes
