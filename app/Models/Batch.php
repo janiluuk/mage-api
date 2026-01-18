@@ -6,10 +6,19 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Database\Factories\BatchFactory;
 
 class Batch extends Model
 {
     use HasFactory;
+    
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory()
+    {
+        return BatchFactory::new();
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -64,7 +73,7 @@ class Batch extends Model
     public function videoJobs(): BelongsToMany
     {
         return $this->belongsToMany(Videojob::class, 'batch_video_job', 'batch_id', 'video_job_id')
-            ->withPivot(['order', 'status', 'started_at', 'completed_at', 'error_message'])
+            ->withPivot(['order', 'status', 'started_at', 'completed_at', 'error_message', 'description'])
             ->withTimestamps()
             ->orderBy('batch_video_job.order');
     }
