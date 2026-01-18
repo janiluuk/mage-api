@@ -20,6 +20,9 @@
 		},
 		{
 			"path": "../bin"
+		},
+		{
+			"path": "../mage-app"
 		}
 	],
 	"settings": {

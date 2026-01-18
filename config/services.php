@@ -55,5 +55,11 @@ return [
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
     ],
 
+    'uvr5' => [
+        'docker_image' => env('UVR5_DOCKER_IMAGE', 'upseem/uvr5-cli-no-ui:latest'),
+        'base_url' => env('UVR5_BASE_URL'),
+        'use_docker' => env('UVR5_USE_DOCKER', true),
+        'python_path' => env('UVR5_PYTHON_PATH', 'python3'),
+    ],
 
 ];

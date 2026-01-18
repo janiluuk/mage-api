@@ -40,6 +40,20 @@ Laravel 10 API that powers video production, AI studio experiences, and GPU reso
   - Real-time status monitoring and result retrieval
   - Support for image and video outputs
   - Workflow validation and error handling
+- **Custom Jobs System**: Flexible job processing framework for specialized video/audio tasks
+  - **Beat Match Music Video**: Synchronize video cuts to bass beats in audio
+    - Adjustable cut intensity (1-3)
+    - Direction control (forward, backward, random)
+    - Speed factor adjustment (0.1-2.0)
+    - Time range selection (start/end time)
+  - **Audio Track Split**: Separate audio into multiple stems using UVR5
+    - Multiple model support (MDX-Net, VR-Arch, Demucs)
+    - Output format options (WAV, MP3, AAC, M4A, FLAC)
+    - Vocal split mode (separate lead/background vocals)
+    - Input from file upload or existing job_id
+    - Project-based file selection
+  - Extensible validator system for custom input validation
+  - Flexible file input handling (direct upload, project_id, job_id)
 
 ### 💰 GPU Credits & E-commerce
 - **Product catalog**: Categories and GPU credit packages
@@ -68,6 +82,8 @@ Laravel 10 API that powers video production, AI studio experiences, and GPU reso
 - MySQL/MariaDB and Redis
 - Beanstalkd (queue)
 - FFmpeg binaries on the host (for merging and transcoding)
+- Docker (optional, for UVR5 audio separation via container)
+- Python 3.8+ (optional, for UVR5 if not using Docker)
 
 ## Setup
 ```bash
@@ -90,6 +106,16 @@ FILES_BASE_DIR=user-files  # Where user assets are nested inside the disk
 FILES_QUOTA_BYTES=1073741824  # 1 GB quota per user by default
 ```
 
+### UVR5 Audio Separation configuration
+For audio track splitting, configure UVR5 in `.env`:
+```
+UVR5_DOCKER_IMAGE=upseem/uvr5-cli-no-ui:latest  # Docker image for UVR5
+UVR5_USE_DOCKER=true                            # Use Docker (recommended) or local Python
+UVR5_PYTHON_PATH=python3                        # Python path if not using Docker
+```
+
+The UVR5 Docker image will be pulled automatically on first use. Ensure Docker is running for audio track splitting jobs.
+
 Queue names default to `high`, `medium`, and `low`. Override them with `HIGH_PRIORITY_QUEUE`, `MEDIUM_PRIORITY_QUEUE`, and
 `LOW_PRIORITY_QUEUE` in your environment as needed.
 
@@ -105,6 +131,7 @@ Queue names default to `high`, `medium`, and `low`. Override them with `HIGH_PRI
 - `POST /api/auth/reset-password` — Reset password with token
 - `POST /api/auth/verify-email` — Verify user email with token
 - `GET /api/auth/me` — Get current user profile (requires auth)
+  - **Returns**: User information including `userRole` (0=REGISTERED, 1=ADMINISTRATOR, 2=SUPER_ADMINISTRATOR) and `isAdmin` (boolean) for admin menu visibility
 
 #### V2 API
 API v2 mirrors these endpoints at `/api/v2/*`:
@@ -115,6 +142,35 @@ API v2 mirrors these endpoints at `/api/v2/*`:
 - `POST /api/v2/password-reset`
 - `GET /api/v2/me` — Get current user profile
 - `PATCH /api/v2/me` — Update current user profile
+
+### Custom Jobs API
+
+The Custom Jobs API provides a flexible framework for specialized video and audio processing tasks.
+
+#### Process Custom Job
+- `POST /api/v1/custom-jobs/process` — Process a custom job (requires auth)
+  - **Parameters**:
+    - `job_type` (required): Job type (`beat-match`, `audio-track-split`)
+    - `input_type` (required): `files` (direct upload) or `project` (files from project)
+    - `options` (required, object): Job-specific options (see below)
+    - For `input_type=files`: `audio_file` (required file), `video_files` (array, required for beat-match)
+    - For `input_type=project`: `project_id` (required integer)
+  - **Beat Match Options**:
+    - `cut_intensity` (optional, 1-3): Intensity of cuts
+    - `direction` (optional): `forward`, `backward`, `random`
+    - `speed_factor` (optional, 0.1-2.0): Video speed multiplier
+    - `start_time` (optional, numeric): Start time in seconds
+    - `end_time` (optional, numeric): End time in seconds (must be > start_time)
+  - **Audio Track Split Options**:
+    - `model` (optional, string): UVR5 model name (e.g., `MDX-Net-InstVoc_HQ_3`)
+    - `output_format` (optional): `wav`, `mp3`, `aac`, `m4a`, `flac` (default: `wav`)
+    - `vocal_split_mode` (optional, boolean): Enable vocal splitting
+    - `job_id` (optional, integer): Use audio from existing job output
+  - **Returns**: Job ID, status, and queue information
+
+#### Get Job Status
+- `GET /api/v1/custom-jobs/{id}/status` — Get custom job status (requires auth)
+  - **Returns**: Status, progress, estimated time, URL, error information
 
 ### Video Job Endpoints
 

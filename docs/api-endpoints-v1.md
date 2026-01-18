@@ -1,5 +1,157 @@
 # API Endpoints Documentation
 
+## Custom Jobs API
+
+The Custom Jobs API provides a flexible framework for specialized video and audio processing tasks. All endpoints require authentication.
+
+### Process Custom Job
+Submit and process a custom job (beat-match music video, audio track split, etc.).
+
+**Endpoint:** `POST /api/v1/custom-jobs/process`
+
+**Authentication:** Required (Bearer Token)
+
+**Request Parameters:**
+- `job_type` (required, string) - Job type: `beat-match` or `audio-track-split`
+- `input_type` (required, string) - Input source: `files` (direct upload) or `project` (files from project)
+- `options` (required, object) - Job-specific options (see below)
+- `audio_file` (required if `input_type=files`, file) - Audio file (mp3, wav, aac, m4a, flac, max 50MB)
+- `video_files` (required if `job_type=beat-match` and `input_type=files`, array of files) - Video files (mp4, mov, webm, max 200MB each)
+- `project_id` (required if `input_type=project`, integer) - Project ID containing source files
+
+**Beat Match Options:**
+- `cut_intensity` (optional, integer, 1-3) - Intensity of cuts synchronized to beats
+- `direction` (optional, string) - Cut direction: `forward`, `backward`, `random` (default: `random`)
+- `speed_factor` (optional, numeric, 0.1-2.0) - Video speed multiplier (default: 1.0)
+- `start_time` (optional, numeric, >= 0) - Start time in seconds (default: 0)
+- `end_time` (optional, numeric, > start_time) - End time in seconds
+
+**Audio Track Split Options:**
+- `model` (optional, string) - UVR5 model name (e.g., `MDX-Net-InstVoc_HQ_3`, default: `MDX-Net-InstVoc_HQ_3`)
+- `output_format` (optional, string) - Output format: `wav`, `mp3`, `aac`, `m4a`, `flac` (default: `wav`)
+- `vocal_split_mode` (optional, boolean) - Enable vocal splitting (separate lead/background vocals)
+- `job_id` (optional, integer) - Use audio from existing job output instead of uploading file
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Custom job queued successfully",
+  "job_id": 123,
+  "status": "approved"
+}
+```
+
+**Error Responses:**
+- `401` - Unauthenticated
+- `422` - Validation error (unsupported job type, missing files, invalid options, etc.)
+- `500` - Server error
+
+**Example Request (Beat Match):**
+```json
+POST /api/v1/custom-jobs/process
+Content-Type: multipart/form-data
+
+{
+  "job_type": "beat-match",
+  "input_type": "files",
+  "options": {
+    "cut_intensity": 2,
+    "direction": "random",
+    "speed_factor": 1.0,
+    "start_time": 0,
+    "end_time": 60
+  },
+  "audio_file": <file>,
+  "video_files": [<file1>, <file2>]
+}
+```
+
+**Example Request (Audio Track Split with file upload):**
+```json
+POST /api/v1/custom-jobs/process
+Content-Type: multipart/form-data
+
+{
+  "job_type": "audio-track-split",
+  "input_type": "files",
+  "options": {
+    "model": "MDX-Net-InstVoc_HQ_3",
+    "output_format": "wav",
+    "vocal_split_mode": true
+  },
+  "audio_file": <file>
+}
+```
+
+**Example Request (Audio Track Split with job_id):**
+```json
+POST /api/v1/custom-jobs/process
+
+{
+  "job_type": "audio-track-split",
+  "input_type": "files",
+  "options": {
+    "model": "MDX-Net-InstVoc_HQ_3",
+    "output_format": "wav",
+    "job_id": 456
+  }
+}
+```
+
+**Example Request (Audio Track Split with project):**
+```json
+POST /api/v1/custom-jobs/process
+
+{
+  "job_type": "audio-track-split",
+  "input_type": "project",
+  "options": {
+    "model": "MDX-Net-InstVoc_HQ_3",
+    "output_format": "mp3"
+  },
+  "project_id": 789
+}
+```
+
+---
+
+### Get Custom Job Status
+Get the current status and progress of a custom job.
+
+**Endpoint:** `GET /api/v1/custom-jobs/{id}/status`
+
+**Authentication:** Required (Bearer Token)
+
+**Response (200):**
+```json
+{
+  "id": 123,
+  "status": "processing",
+  "progress": 45,
+  "estimated_time_left": 120,
+  "job_time": 60,
+  "url": "https://example.com/processed/output.mp4",
+  "error": null
+}
+```
+
+**Status Values:**
+- `pending` - Job is queued but not yet started
+- `approved` - Job is approved and queued for processing
+- `processing` - Job is currently being processed
+- `finished` - Job completed successfully
+- `error` - Job failed with an error
+
+**Error Responses:**
+- `401` - Unauthenticated
+- `403` - Unauthorized (not the job owner)
+- `404` - Job not found
+
+**Note:** For audio track split jobs with multiple outputs, check `generation_parameters.output_files` for all generated tracks.
+
+---
+
 ## Video Job Operations
 
 ### Add Soundtrack to Video Job
@@ -558,6 +710,56 @@ POST /api/auth/login
   "password": "password"
 }
 ```
+
+---
+
+### Get Current User Profile
+
+Get the authenticated user's profile information, including role information for admin menu visibility.
+
+**Endpoint:** `GET /api/auth/me`
+
+**Authentication:** Required (Bearer Token)
+
+**Response (200):**
+```json
+{
+  "data": {
+    "id": 1,
+    "email": "user@example.com",
+    "login": "username",
+    "profile_image": "https://example.com/image.jpg",
+    "online": true,
+    "confirmSendEmail": true,
+    "balance": 1000,
+    "google_id": null,
+    "discord_id": null,
+    "stripe_id": null,
+    "roles": ["user"],
+    "userRole": 0,
+    "isAdmin": false,
+    "passwordResetAdmin": false,
+    "createdAt": "2026-01-13T12:00:00Z"
+  }
+}
+```
+
+**User Role Values:**
+- `0` - REGISTERED (regular user)
+- `1` - ADMINISTRATOR
+- `2` - SUPER_ADMINISTRATOR
+
+**Fields:**
+- `userRole` (integer|null) - The user's role type (0, 1, or 2)
+- `isAdmin` (boolean) - Convenient flag indicating if user is administrator or super administrator
+- `roles` (array) - Array of role names from Spatie Permission package
+
+**Error Responses:**
+- `401` - Unauthenticated
+
+**Note:** The `isAdmin` field is `true` for both ADMINISTRATOR (1) and SUPER_ADMINISTRATOR (2) roles. Use this field in your frontend to show/hide admin menu items.
+
+---
 
 ---
 
