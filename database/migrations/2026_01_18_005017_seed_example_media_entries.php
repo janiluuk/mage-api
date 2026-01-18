@@ -20,6 +20,7 @@ return new class extends Migration
         
         if (!$userId) {
             $userData = [
+                'name' => 'Admin User',
                 'login' => 'admin',
                 'email' => 'admin@jsonapi.com',
                 'password' => Hash::make('secret'),
@@ -27,9 +28,24 @@ return new class extends Migration
                 'updated_at' => now(),
             ];
             
-            // Only include user_role_id if the column exists
+            // Only include fields if the columns exist
             if (Schema::hasColumn('users', 'user_role_id')) {
                 $userData['user_role_id'] = 1;
+            }
+            if (Schema::hasColumn('users', 'email_verified_at')) {
+                $userData['email_verified_at'] = now();
+            }
+            if (Schema::hasColumn('users', 'online')) {
+                $userData['online'] = 0;
+            }
+            if (Schema::hasColumn('users', 'confirm_send_email')) {
+                $userData['confirm_send_email'] = 1;
+            }
+            if (Schema::hasColumn('users', 'password_reset_admin')) {
+                $userData['password_reset_admin'] = false;
+            }
+            if (Schema::hasColumn('users', 'balance')) {
+                $userData['balance'] = 0;
             }
             
             $userId = DB::table('users')->insertGetId($userData);
