@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-01-18
+
+### Changes
+- Refactor tag synchronization in FileController
+- Update tag synchronization logic in FileController
+- Add default user data in migration for example media entries
+
 ## [1.0.5] - 2026-01-18
 
 ### Changes
