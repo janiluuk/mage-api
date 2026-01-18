@@ -230,15 +230,18 @@ class FileController extends Controller
 
     public function syncTags(Request $request, int $id)
     {
+        // Allow empty array to remove all tags
+        // Use 'present' instead of 'required' to accept empty arrays
         $data = $request->validate([
-            'tag_ids' => ['required', 'array'],
+            'tag_ids' => ['present', 'array'],
             'tag_ids.*' => ['integer', 'exists:tags,id'],
         ]);
 
         $file = $this->findOwnedFile($request->user()->id, $id);
         
         // Sync tags (replace all existing tags)
-        $file->tags()->sync($data['tag_ids']);
+        // Empty array is allowed to remove all tags
+        $file->tags()->sync($data['tag_ids'] ?? []);
 
         return response()->json([
             'message' => 'Tags synced successfully',
