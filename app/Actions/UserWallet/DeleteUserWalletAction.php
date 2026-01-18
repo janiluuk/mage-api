@@ -31,5 +31,8 @@ final class DeleteUserWalletAction
         }
 
         $this->userWalletRepositoryInterface->delete($userWallet);
+
+        // Clear user wallet cache to reflect deleted wallet
+        GetUserWalletsForCurrentUserAction::clearUserWalletCache(Auth::id());
     }
 }

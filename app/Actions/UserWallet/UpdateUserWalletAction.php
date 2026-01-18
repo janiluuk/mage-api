@@ -35,6 +35,9 @@ final class UpdateUserWalletAction
 
         $updatedUserWallet = $this->userWalletRepositoryInterface->update($updateUserWallet);
 
+        // Clear user wallet cache to reflect updated wallet
+        GetUserWalletsForCurrentUserAction::clearUserWalletCache(Auth::id());
+
         return new UpdateUserWalletResponse($updatedUserWallet);
     }
 }
