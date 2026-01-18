@@ -11,7 +11,10 @@ class AuthorizationChecker
 {
     public function handle(Request $request, Closure $next)
     {
-        if (!Auth::id()) {
+        // Check both web and api guards for web routes
+        $user = Auth::guard('web')->user() ?? Auth::guard('api')->user();
+        
+        if (!$user) {
             throw new UserNotAuthorizedException();
         }
 

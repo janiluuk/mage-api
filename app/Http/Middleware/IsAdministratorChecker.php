@@ -12,7 +12,8 @@ class IsAdministratorChecker
 {
     public function handle(Request $request, Closure $next)
     {
-        $user = Auth::user();
+        // Check both web and api guards for web routes
+        $user = Auth::guard('web')->user() ?? Auth::guard('api')->user();
         
         if (!$user || !$user->userRole) {
             throw new AccessDeniedException();

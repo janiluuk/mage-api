@@ -40,6 +40,8 @@ use App\Http\Controllers\Api\V1\VideoJobOperationsController;
 use App\Http\Controllers\Api\V1\BatchController;
 use App\Http\Controllers\Api\V1\PresetController;
 use App\Http\Controllers\Api\V1\CustomJobController;
+use App\Http\Controllers\Api\V1\StoryController;
+use App\Http\Controllers\Api\V1\DeforumController;
 use LaravelJsonApi\Laravel\Routing\Relationships;
 
 /*
@@ -137,6 +139,27 @@ Route::prefix('v1')->middleware('auth:api')->group(function () {
     Route::post('/presets/{id}/use', [PresetController::class, 'markAsUsed']);
     Route::post('/presets/{id}/favorite', [PresetController::class, 'toggleFavorite']);
     Route::post('/presets/{id}/duplicate', [PresetController::class, 'duplicate']);
+    
+    // Story management routes
+    Route::get('/story', [StoryController::class, 'index']);
+    Route::post('/story/generate', [StoryController::class, 'generate']);
+    Route::get('/story/{id}', [StoryController::class, 'show']);
+    Route::put('/story/{id}', [StoryController::class, 'update']);
+    Route::put('/story/{id}/jobs/order', [StoryController::class, 'updateJobOrder']);
+    Route::post('/story/{id}/jobs', [StoryController::class, 'assignJobs']);
+    Route::delete('/story/{id}/jobs', [StoryController::class, 'removeJobs']);
+    
+    // Story batch operations (legacy endpoints, kept for compatibility)
+    Route::get('/story/batch/{batchId}', [StoryController::class, 'getBatchStatus']);
+    Route::post('/story/batch/{batchId}/pause', [StoryController::class, 'pauseBatch']);
+    Route::post('/story/batch/{batchId}/resume', [StoryController::class, 'resumeBatch']);
+    Route::delete('/story/batch/{batchId}', [StoryController::class, 'cancelBatch']);
+    Route::post('/story/batch/{batchId}/frames', [StoryController::class, 'persistFrame']);
+    Route::post('/story/share', [StoryController::class, 'createShareLink']);
+    
+    // Deforum Live Control routes
+    Route::post('/deforum/live', [DeforumController::class, 'sendLiveUpdate']);
+    Route::get('/deforum/live/status', [DeforumController::class, 'getLiveStatus']);
 });
 
 Route::post('/upload', [VideojobController::class, 'upload'])->middleware('api');
@@ -200,6 +223,7 @@ Route::prefix('/administration')->group(function () {
         Route::patch('/change-password', [UserController::class, 'changePassword']);
         Route::get('/users/{userId}/data-stats', [UserController::class, 'getUserDataStats']);
         Route::delete('/users/purge-data', [UserController::class, 'purgeUserData']);
+        Route::get('/stats', [\App\Http\Controllers\Api\V1\StatsController::class, 'getStats']);
         
         // Generator instance management routes
         Route::get('/generator-instances', [GeneratorInstanceController::class, 'index']);
@@ -209,6 +233,11 @@ Route::prefix('/administration')->group(function () {
         Route::patch('/generator-instances/{id}', [GeneratorInstanceController::class, 'update']);
         Route::delete('/generator-instances/{id}', [GeneratorInstanceController::class, 'destroy']);
         Route::patch('/generator-instances/{id}/toggle', [GeneratorInstanceController::class, 'toggle']);
+
+        // Instance status and monitoring routes
+        Route::get('/instances/status', [\App\Http\Controllers\Admin\InstanceStatusController::class, 'status']);
+        Route::get('/instances/{id}/metrics-history', [\App\Http\Controllers\Admin\InstanceStatusController::class, 'metricsHistory']);
+        Route::get('/instances/{id}/job-history', [\App\Http\Controllers\Admin\InstanceStatusController::class, 'jobHistory']);
     });
 });
 

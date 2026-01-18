@@ -93,6 +93,9 @@ class Videojob extends Model implements HasMedia
         'url',
         'first_frame_path',
         'last_frame_path',
+        'encoding_status',
+        'encoding_started_at',
+        'encoding_completed_at',
     ];
     protected $dates = ['queued_at'];
     public function verifyAndCleanPreviews()
@@ -184,8 +187,9 @@ class Videojob extends Model implements HasMedia
     public function batches()
     {
         return $this->belongsToMany(Batch::class, 'batch_video_job', 'video_job_id', 'batch_id')
-            ->withPivot(['order', 'status', 'started_at', 'completed_at', 'error_message'])
-            ->withTimestamps();
+            ->withPivot(['order', 'status', 'started_at', 'completed_at', 'error_message', 'description'])
+            ->withTimestamps()
+            ->orderBy('batch_video_job.order');
     }
 
     public function modelfile()

@@ -16,8 +16,13 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-
        // $schedule->job(new ProcessVideoJob(new \App\Models\Videojob))->everyMinute();
+
+       // Collect instance metrics every minute
+       $schedule->command('instances:collect-metrics')->everyMinute();
+
+       // Cleanup stale instance jobs every hour
+       $schedule->command('instances:cleanup-stale-jobs')->hourly();
     }
 
 

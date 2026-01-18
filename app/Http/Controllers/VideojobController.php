@@ -6,6 +6,7 @@ use App\Jobs\ProcessDeforumJob;
 use App\Jobs\ProcessVideoJob;
 use App\Models\Videojob;
 use App\Services\VideoProcessingService;
+use App\Services\LoadBalancerService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,10 +16,12 @@ use Illuminate\Support\Facades\Storage;
 class VideojobController extends Controller
 {
     private VideoProcessingService $videoProcessingService;
+    private LoadBalancerService $loadBalancer;
 
-    public function __construct(VideoProcessingService $videoProcessingService)
+    public function __construct(VideoProcessingService $videoProcessingService, LoadBalancerService $loadBalancer)
     {
         $this->videoProcessingService = $videoProcessingService;
+        $this->loadBalancer = $loadBalancer;
     }
 
     public function upload(Request $request): JsonResponse
@@ -199,6 +202,13 @@ private function generateDeforum(Request $request): JsonResponse
         $videoJob->estimated_time_left = ($videoJob->frame_count * 6) + 6;
         $videoJob->queued_at = Carbon::now();
         $videoJob->save();
+
+        // Assign instance for load balancing
+        $instanceType = 'stable_diffusion_forge'; // Deforum uses SD instances
+        $instance = $this->loadBalancer->selectInstance($instanceType);
+        if ($instance) {
+            $this->loadBalancer->assignJobToInstance($videoJob->id, $instance);
+        }
 
         $queueName = $frameCount > 1
             ? $this->resolveQueueName('MEDIUM_PRIORITY_QUEUE', 'medium')
@@ -399,6 +409,13 @@ private function generateDeforum(Request $request): JsonResponse
         $videoJob->queued_at = Carbon::now();
         $videoJob->save();
 
+        // Assign instance for load balancing (vid2vid uses SD instances)
+        $instanceType = 'stable_diffusion_forge';
+        $instance = $this->loadBalancer->selectInstance($instanceType);
+        if ($instance) {
+            $this->loadBalancer->assignJobToInstance($videoJob->id, $instance);
+        }
+
         $queueName = $frameCount > 1
             ? $this->resolveQueueName('MEDIUM_PRIORITY_QUEUE', 'medium')
             : $this->resolveQueueName('HIGH_PRIORITY_QUEUE', 'high');
@@ -449,10 +466,24 @@ private function generateDeforum(Request $request): JsonResponse
         $videoJob->frame_count = round($videoJob->length * $videoJob->fps);
         $videoJob->save();
 
+        // Assign instance for load balancing
+        $instanceType = 'stable_diffusion_forge';
+        $instance = $this->loadBalancer->selectInstance($instanceType);
+        if ($instance) {
+            $this->loadBalancer->assignJobToInstance($videoJob->id, $instance);
+        }
+        
         $videoJob->refresh();
         ProcessDeforumJob::dispatch($videoJob, 0, null)->onQueue($this->resolveQueueName('LOW_PRIORITY_QUEUE', 'low'));
     } else {
         $videoJob->resetProgress('approved');
+
+        // Assign instance for load balancing
+        $instanceType = 'stable_diffusion_forge';
+        $instance = $this->loadBalancer->selectInstance($instanceType);
+        if ($instance) {
+            $this->loadBalancer->assignJobToInstance($videoJob->id, $instance);
+        }
 
         $videoJob->refresh();
         ProcessVideoJob::dispatch($videoJob, 0, null)->onQueue($this->resolveQueueName('LOW_PRIORITY_QUEUE', 'low'));
@@ -468,7 +499,7 @@ private function generateDeforum(Request $request): JsonResponse
     ]);
 }
 
-public function cancelJob($videoId): JsonResponse
+    public function cancelJob($videoId): JsonResponse
     {
         if ($response = $this->guardAuthenticated()) {
             return $response;
@@ -481,6 +512,9 @@ public function cancelJob($videoId): JsonResponse
         }
 
         $videoJob->resetProgress('cancelled');
+        
+        // Mark instance job as cancelled for load balancing
+        $this->loadBalancer->markJobAsCancelled($videoJob->id);
 
         return response()->json([
             'status' => $videoJob->status,

@@ -17,8 +17,13 @@ use App\Http\Controllers\Admin\BeatMatchVideoController;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('login');
 });
+
+// Authentication Routes
+Route::get('/login', [App\Http\Controllers\Auth\LoginController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [App\Http\Controllers\Auth\LoginController::class, 'login']);
+Route::post('/logout', [App\Http\Controllers\Auth\LoginController::class, 'logout'])->name('logout');
 
 Route::get('/csrf-token', function() {
     return response()->json([
@@ -47,6 +52,8 @@ Route::middleware(['AuthorizationChecker', 'IsAdministratorChecker'])
             ->name('admin.beat-match-video.process');
         Route::get('/administration/beat-match-video/status/{id}', [BeatMatchVideoController::class, 'status'])
             ->name('admin.beat-match-video.status');
+        Route::get('/administration/instances', [\App\Http\Controllers\Admin\InstanceManagementController::class, 'index'])
+            ->name('admin.instances');
     });
 
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
