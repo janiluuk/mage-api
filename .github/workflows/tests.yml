@@ -16,22 +16,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: secret
-          MYSQL_DATABASE: mage
-          MYSQL_USER: mage
-          MYSQL_PASSWORD: secret
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -40,7 +24,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: mbstring, pdo, pdo_mysql, bcmath, gd, exif, pcntl
+          extensions: mbstring, pdo, pdo_mysql, pdo_sqlite, bcmath, gd, exif, pcntl, sqlite3
           coverage: none
 
       - name: Copy .env file
@@ -51,14 +35,10 @@ jobs:
           else
             touch .env
           fi
+          # phpunit.xml already configures SQLite for testing
+          # These env vars are just for Laravel initialization
           echo "APP_KEY=" >> .env
           echo "APP_ENV=testing" >> .env
-          echo "DB_CONNECTION=mysql" >> .env
-          echo "DB_HOST=127.0.0.1" >> .env
-          echo "DB_PORT=3306" >> .env
-          echo "DB_DATABASE=mage" >> .env
-          echo "DB_USERNAME=mage" >> .env
-          echo "DB_PASSWORD=secret" >> .env
           echo "JWT_SECRET=testing-secret-key-for-github-actions" >> .env
           echo "QUEUE_CONNECTION=sync" >> .env
           echo "CACHE_DRIVER=array" >> .env
