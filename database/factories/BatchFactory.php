@@ -12,58 +12,31 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 class BatchFactory extends Factory
 {
     /**
+     * The name of the factory's corresponding model.
+     *
+     * @var string
+     */
+    protected $model = Batch::class;
+
+    /**
      * Define the model's default state.
      *
      * @return array<string, mixed>
      */
-    public function definition()
+    public function definition(): array
     {
         return [
             'user_id' => User::factory(),
-            'name' => fake()->words(3, true),
-            'description' => fake()->sentence(),
+            'name' => $this->faker->words(3, true),
+            'description' => $this->faker->sentence(),
             'status' => Batch::STATUS_PENDING,
             'total_jobs' => 0,
             'completed_jobs' => 0,
             'failed_jobs' => 0,
             'progress' => 0,
-            'settings' => [],
-            'started_at' => null,
-            'completed_at' => null,
+            'settings' => [
+                'prompt' => $this->faker->sentence(),
+            ],
         ];
-    }
-
-    /**
-     * Indicate that the batch is pending.
-     */
-    public function pending()
-    {
-        return $this->state(fn (array $attributes) => [
-            'status' => Batch::STATUS_PENDING,
-        ]);
-    }
-
-    /**
-     * Indicate that the batch is processing.
-     */
-    public function processing()
-    {
-        return $this->state(fn (array $attributes) => [
-            'status' => Batch::STATUS_PROCESSING,
-            'started_at' => now(),
-        ]);
-    }
-
-    /**
-     * Indicate that the batch is completed.
-     */
-    public function completed()
-    {
-        return $this->state(fn (array $attributes) => [
-            'status' => Batch::STATUS_COMPLETED,
-            'progress' => 100,
-            'started_at' => now()->subHour(),
-            'completed_at' => now(),
-        ]);
     }
 }
