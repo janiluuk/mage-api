@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.9] - 2026-01-18
+
+### Changes
+- Enhance instance management and monitoring capabilities
+- Add instance management and metrics collection features
+
 ## [1.0.8] - 2026-01-18
 
 ### Changes
