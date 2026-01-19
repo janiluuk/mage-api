@@ -86,7 +86,8 @@ class VideoJobResource extends JsonApiResource
         return [
             $this->relation('user'),
             $this->relation('modelfile'),
-            $this->relation('media')            
+            $this->relation('media'),
+            $this->relation('batches'),
         ];
     }
 

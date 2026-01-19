@@ -155,6 +155,21 @@ class VideoJobSchema extends Schema
             SortCountable::make($this, 'created_at'),
         ];
     }
+    
+    /**
+     * Get the allowed include paths.
+     *
+     * @return iterable
+     */
+    public function includePaths(): iterable
+    {
+        return [
+            'batches',
+            'user',
+            'modelfile',
+        ];
+    }
+    
     /**
      * Determine if the resource is authorizable.
      *

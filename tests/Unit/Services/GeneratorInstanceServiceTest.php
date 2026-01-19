@@ -92,7 +92,7 @@ class GeneratorInstanceServiceTest extends TestCase
         $this->assertEquals('http://comfy.local:7860', $comfyUrl);
     }
 
-    public function test_get_enabled_instance_url_returns_random_instance_when_multiple_enabled(): void
+    public function test_get_enabled_instance_url_uses_load_balancing_when_multiple_enabled(): void
     {
         // Create multiple enabled instances with different load levels
         $instance1 = GeneratorInstance::factory()->create([
