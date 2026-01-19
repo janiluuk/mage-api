@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.12] - 2026-01-19
+
+### Changes
+- refactor: enhance CustomJobController and update API schemas
+- chore: remove unused API documentation for endpoint comparison
+
+## [1.0.11] - 2026-01-19
+
+### Changes
+- Remove API Endpoint Review document as it is no longer needed for endpoint comparison and implementation tracking.
+- chore: improve code readability with additional blank lines
+
+## [1.0.10] - 2026-01-19
+
+### Changes
+- chore: add blank lines for code readability in multiple files
+
+## [1.0.9] - 2026-01-18
+
+### Changes
+- Enhance instance management and monitoring capabilities
+- Add instance management and metrics collection features
+
+## [1.0.8] - 2026-01-18
+
+### Changes
+- Implement load balancing and instance monitoring features
+
 ## [1.0.7] - 2026-01-18
 
 ### Changes
