@@ -51,15 +51,31 @@ class Handler extends ExceptionHandler
             // Map custom error codes to HTTP status codes
             $httpStatusCode = $this->mapErrorCodeToHttpStatus($exception->getCode());
             
-            return new JsonResponse(
-                [
-                    'error' => [
-                        'message' => $exception->getMessage(),
-                        'code' => $exception->getCode(),
+            // Check if this is an API request (by path or Accept header)
+            $isApiRequest = $request->expectsJson() || $request->is('api/*');
+            
+            // For API requests, return JSON response
+            if ($isApiRequest) {
+                return new JsonResponse(
+                    [
+                        'error' => [
+                            'message' => $exception->getMessage(),
+                            'code' => $exception->getCode(),
+                        ],
                     ],
-                ],
-                $httpStatusCode
-            );
+                    $httpStatusCode
+                );
+            }
+            
+            // For web requests, let the parent handle it (will redirect to login if needed)
+            // But we need to convert BaseException to something Laravel understands
+            if ($httpStatusCode === JsonResponse::HTTP_UNAUTHORIZED) {
+                // Convert to AuthenticationException for proper handling
+                return parent::render($request, new AuthenticationException($exception->getMessage()));
+            }
+            
+            // For other HTTP codes, use abort
+            abort($httpStatusCode, $exception->getMessage());
         }
 
         return parent::render($request, $exception);
@@ -94,11 +110,17 @@ class Handler extends ExceptionHandler
 
     protected function unauthenticated($request, AuthenticationException $exception): Response
     {
-        return new JsonResponse([
-                                    'error' => [
-                                        'message' => $exception->getMessage(),
-                                    ],
-                                ], JsonResponse::HTTP_UNAUTHORIZED);
+        // Check if this is an API request
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return new JsonResponse([
+                'error' => [
+                    'message' => $exception->getMessage(),
+                ],
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+        
+        // For web requests, redirect to login
+        return redirect()->guest(route('login'));
     }
 
     protected function invalidJson($request, ValidationException $exception): JsonResponse
