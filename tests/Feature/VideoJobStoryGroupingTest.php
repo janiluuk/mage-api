@@ -38,7 +38,9 @@ class VideoJobStoryGroupingTest extends TestCase
 
         // Request video jobs with batches included
         $response = $this->actingAs($this->user, 'api')
-            ->getJson('/api/v1/video-jobs?include=batches');
+            ->get('/api/v1/video-jobs?include=batches', [
+                'Accept' => 'application/vnd.api+json'
+            ]);
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
@@ -105,7 +107,9 @@ class VideoJobStoryGroupingTest extends TestCase
 
         // Request video jobs with batches included
         $response = $this->actingAs($this->user, 'api')
-            ->getJson('/api/v1/video-jobs?include=batches');
+            ->get('/api/v1/video-jobs?include=batches', [
+                'Accept' => 'application/vnd.api+json'
+            ]);
 
         $response->assertStatus(200);
 
@@ -143,7 +147,9 @@ class VideoJobStoryGroupingTest extends TestCase
 
         // Request video jobs with batches included
         $response = $this->actingAs($this->user, 'api')
-            ->getJson('/api/v1/video-jobs?include=batches');
+            ->get('/api/v1/video-jobs?include=batches', [
+                'Accept' => 'application/vnd.api+json'
+            ]);
 
         $response->assertStatus(200);
 
