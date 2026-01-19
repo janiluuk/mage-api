@@ -23,7 +23,7 @@ class BatchProcessingTest extends TestCase
 
     public function test_list_batches_requires_authentication(): void
     {
-        $response = $this->getJson('/api/v1/batches');
+        $response = $this->getJson('/api/batches');
 
         $response->assertStatus(401);
     }
@@ -34,7 +34,7 @@ class BatchProcessingTest extends TestCase
         Batch::factory()->count(2)->create(); // Other user's batches
 
         $response = $this->actingAs($this->user, 'api')
-            ->getJson('/api/v1/batches');
+            ->getJson('/api/batches');
 
         $response->assertStatus(200)
             ->assertJsonCount(3, 'data');
@@ -47,7 +47,7 @@ class BatchProcessingTest extends TestCase
         Batch::factory()->for($this->user, 'user')->create(['status' => 'completed']);
 
         $response = $this->actingAs($this->user, 'api')
-            ->getJson('/api/v1/batches?status=processing');
+            ->getJson('/api/batches?status=processing');
 
         $response->assertStatus(200)
             ->assertJsonCount(1, 'data')
@@ -56,7 +56,7 @@ class BatchProcessingTest extends TestCase
 
     public function test_create_batch_requires_authentication(): void
     {
-        $response = $this->postJson('/api/v1/batches', [
+        $response = $this->postJson('/api/batches', [
             'name' => 'Test Batch',
         ]);
 
@@ -66,7 +66,7 @@ class BatchProcessingTest extends TestCase
     public function test_create_batch_validates_name(): void
     {
         $response = $this->actingAs($this->user, 'api')
-            ->postJson('/api/v1/batches', []);
+            ->postJson('/api/batches', []);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['name']);
@@ -75,7 +75,7 @@ class BatchProcessingTest extends TestCase
     public function test_create_batch_creates_batch(): void
     {
         $response = $this->actingAs($this->user, 'api')
-            ->postJson('/api/v1/batches', [
+            ->postJson('/api/batches', [
                 'name' => 'Test Batch',
                 'description' => 'Test description',
             ]);
