@@ -83,8 +83,6 @@ JsonApiRoute::server('v1')
             $relationships->hasOne('role');
         })->only('index');
 
-        $server->resource('batches', JsonApiController::class);
-
         $server->resource('tags', JsonApiController::class)->relationships(function ($relationships) {
             $relationships->hasMany('items');
         });
