@@ -23,6 +23,9 @@ class BeatMatchMusicVideoTest extends TestCase
         // Seed Spatie roles for tests that use role assignment
         $this->seed(\Database\Seeders\PermissionsSeeder::class);
         
+        // Clear permission cache to ensure roles are available
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        
         Queue::fake();
         Storage::fake('local');
     }
