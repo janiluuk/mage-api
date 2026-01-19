@@ -104,6 +104,10 @@ class AuthUserInfoTest extends TestCase
         // V2 uses JSON:API format, check that user data includes role info
         $responseData = $response->json();
         $this->assertArrayHasKey('data', $responseData);
+        
+        // Verify the role relationship is present
+        $this->assertArrayHasKey('relationships', $responseData['data']);
+        $this->assertArrayHasKey('role', $responseData['data']['relationships']);
     }
 }
 

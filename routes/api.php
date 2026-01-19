@@ -98,7 +98,9 @@ Route::prefix('v2')->group(function () {
 });
 
 JsonApiRoute::server('v2')->prefix('v2')->resources(function (ResourceRegistrar $server) {
-
+    $server->resource('users', JsonApiController::class)->relationships(function ($relationships) {
+        $relationships->hasOne('role');
+    });
 
     Route::get('me', [MeController::class, 'readProfile']);
     Route::patch('me', [MeController::class, 'updateProfile']);
