@@ -22,7 +22,7 @@ class ComfyUIClientTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->generatorInstanceService = new GeneratorInstanceService();
+        $this->generatorInstanceService = app(GeneratorInstanceService::class);
     }
 
     public function test_queue_prompt_sends_workflow_to_comfyui(): void
