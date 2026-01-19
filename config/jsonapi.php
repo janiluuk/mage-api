@@ -40,6 +40,7 @@ return [
         'categories' => \App\Models\Category::class,
         'tags' => \App\Models\Tag::class,
         'generators' => \App\Models\Generator::class,
+        'batches' => \App\Models\Batch::class,
     ],
 ];
 
