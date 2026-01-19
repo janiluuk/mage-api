@@ -98,15 +98,15 @@ class GeneratorInstanceServiceTest extends TestCase
         $instance1 = GeneratorInstance::factory()->create([
             'enabled' => true,
             'type' => 'stable_diffusion_forge',
-            'current_queue_length' => 5,
-            'current_processing_count' => 2,
+            'queue_size' => 5,
+            'processing_count' => 2,
         ]);
         
         $instance2 = GeneratorInstance::factory()->create([
             'enabled' => true,
             'type' => 'stable_diffusion_forge',
-            'current_queue_length' => 2,
-            'current_processing_count' => 1,
+            'queue_size' => 2,
+            'processing_count' => 1,
         ]);
 
         // With load balancing, the least loaded instance should be selected
