@@ -462,10 +462,17 @@ class StoryController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
+        try {
+            $user = $request->user();
+            
+            if (!$user) {
+                return response()->json([
+                    'error' => 'Unauthenticated'
+                ], 401);
+            }
 
-        $query = Batch::where('user_id', $user->id)
-            ->orderBy('created_at', 'desc');
+            $query = Batch::where('user_id', $user->id)
+                ->orderBy('created_at', 'desc');
 
         // Filter by status if provided
         if ($request->has('status')) {
@@ -477,9 +484,19 @@ class StoryController extends Controller
             $query->where('name', 'LIKE', '%' . $request->input('search') . '%');
         }
 
-        $stories = $query->paginate($request->input('per_page', 15));
+            $stories = $query->paginate($request->input('per_page', 15));
 
-        return response()->json($stories);
+            return response()->json($stories);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Story index error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'error' => 'Failed to retrieve stories',
+                'message' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
     }
 
     /**
@@ -488,20 +505,27 @@ class StoryController extends Controller
      */
     public function show(Request $request, int $id): JsonResponse
     {
-        $user = $request->user();
+        try {
+            $user = $request->user();
+            
+            if (!$user) {
+                return response()->json([
+                    'error' => 'Unauthenticated'
+                ], 401);
+            }
 
-        $story = Batch::where('user_id', $user->id)
-            ->with(['videoJobs' => function ($query) {
-                $query->orderBy('batch_video_job.order');
-            }])
-            ->findOrFail($id);
+            $story = Batch::where('user_id', $user->id)
+                ->with(['videoJobs' => function ($query) {
+                    $query->orderBy('batch_video_job.order');
+                }])
+                ->findOrFail($id);
 
-        // Update progress
-        if (method_exists($story, 'updateProgress')) {
-            $story->updateProgress();
-        }
+            // Update progress
+            if (method_exists($story, 'updateProgress')) {
+                $story->updateProgress();
+            }
 
-        $response = [
+            $response = [
             'id' => $story->id,
             'name' => $story->name,
             'description' => $story->description,
@@ -528,9 +552,24 @@ class StoryController extends Controller
                     'pivot_status' => $job->pivot->status,
                 ];
             })->values(),
-        ];
+            ];
 
-        return response()->json($response);
+            return response()->json($response);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'error' => 'Story not found'
+            ], 404);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Story show error: ' . $e->getMessage(), [
+                'story_id' => $id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'error' => 'Failed to retrieve story',
+                'message' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
     }
 
     /**

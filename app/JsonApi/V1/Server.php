@@ -11,6 +11,7 @@ use App\JsonApi\V1\Items\ItemSchema;
 use App\JsonApi\V1\Roles\RoleSchema;
 use App\JsonApi\V1\Generators\GeneratorSchema;
 use App\JsonApi\V1\Permissions\PermissionSchema;
+use App\JsonApi\V1\Batches\BatchSchema;
 
 use App\JsonApi\V1\Users\UserSchema;
 
@@ -49,7 +50,8 @@ class Server extends BaseServer
             CategorySchema::class,
             ItemSchema::class,
 	    GeneratorSchema::class,
-            PermissionSchema::class
+            PermissionSchema::class,
+            BatchSchema::class,
 
         ];
     }
