@@ -94,21 +94,21 @@ class CustomJobController extends Controller
             } elseif ($baseValidated['input_type'] === 'project') {
                 if (!$isAudioOnly) {
                     // Get video files from project (for beat-match)
-                    $projectFiles = UserFile::where('project_id', $inputValidated['project_id'])
-                        ->where('user_id', $user->id)
-                        ->whereIn('mime_type', ['video/mp4', 'video/quicktime', 'video/webm'])
-                        ->get();
+                $projectFiles = UserFile::where('project_id', $inputValidated['project_id'])
+                    ->where('user_id', $user->id)
+                    ->whereIn('mime_type', ['video/mp4', 'video/quicktime', 'video/webm'])
+                    ->get();
 
-                    if ($projectFiles->isEmpty()) {
-                        return response()->json([
-                            'message' => 'No video files found in the specified project'
-                        ], 422);
-                    }
+                if ($projectFiles->isEmpty()) {
+                    return response()->json([
+                        'message' => 'No video files found in the specified project'
+                    ], 422);
+                }
 
-                    foreach ($projectFiles as $file) {
-                        $filePath = Storage::disk($file->disk ?? 'local')->path($file->path);
-                        if (file_exists($filePath)) {
-                            $videoFiles[] = $filePath;
+                foreach ($projectFiles as $file) {
+                    $filePath = Storage::disk($file->disk ?? 'local')->path($file->path);
+                    if (file_exists($filePath)) {
+                        $videoFiles[] = $filePath;
                         }
                     }
                 }
@@ -136,15 +136,15 @@ class CustomJobController extends Controller
             } else {
                 // Handle file uploads
                 if ($request->hasFile('audio_file')) {
-                    $audioFile = $request->file('audio_file')->store('temp/custom-jobs', 'local');
-                    $audioFile = Storage::disk('local')->path($audioFile);
+                $audioFile = $request->file('audio_file')->store('temp/custom-jobs', 'local');
+                $audioFile = Storage::disk('local')->path($audioFile);
                 }
 
                 if (!$isAudioOnly && $request->hasFile('video_files')) {
                     // Handle video files only for beat-match jobs
-                    foreach ($request->file('video_files') as $videoFile) {
-                        $videoPath = $videoFile->store('temp/custom-jobs', 'local');
-                        $videoFiles[] = Storage::disk('local')->path($videoPath);
+                foreach ($request->file('video_files') as $videoFile) {
+                    $videoPath = $videoFile->store('temp/custom-jobs', 'local');
+                    $videoFiles[] = Storage::disk('local')->path($videoPath);
                     }
                 }
             }
