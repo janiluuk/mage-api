@@ -31,8 +31,8 @@ class InstanceStatusApiTest extends TestCase
     {
         $response = $this->getJson('/api/administration/instances/status');
 
-        // The middleware returns 400 for authentication failures
-        $response->assertStatus(400);
+        // The middleware returns 401 for authentication failures on API routes
+        $response->assertStatus(401);
     }
 
     public function test_can_get_instance_status_as_admin(): void

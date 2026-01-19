@@ -20,6 +20,9 @@ class BeatMatchMusicVideoTest extends TestCase
     {
         parent::setUp();
         
+        // Seed Spatie roles for tests that use role assignment
+        $this->seed(\Database\Seeders\PermissionsSeeder::class);
+        
         Queue::fake();
         Storage::fake('local');
     }
