@@ -52,6 +52,7 @@ class Videojob extends Model implements HasMedia
      * @var array
      */
     protected $fillable = [
+        'user_id',
         'filename',
         'original_filename',
         'original_url',

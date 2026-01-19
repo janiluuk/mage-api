@@ -59,7 +59,6 @@ class AudioTrackSplitServiceTest extends TestCase
                 'model' => 'MDX-Net-InstVoc_HQ_3',
                 'output_format' => 'wav',
             ],
-        ], [
             'audio_file' => $audioFile,
         ]);
 
@@ -229,7 +228,6 @@ class AudioTrackSplitServiceTest extends TestCase
             'job_type' => 'audio-track-split',
             'input_type' => 'files',
             'options' => [],
-        ], [
             'audio_file' => UploadedFile::fake()->create('test.txt', 100), // Invalid type
         ]);
 
@@ -489,7 +487,6 @@ class AudioTrackSplitServiceTest extends TestCase
             'options' => [
                 'output_format' => 'invalid_format', // Invalid format
             ],
-        ], [
             'audio_file' => UploadedFile::fake()->create('test.wav', 100),
         ]);
 
