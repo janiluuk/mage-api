@@ -248,3 +248,4 @@ This document reviews all API endpoints called by mage-app and compares them wit
 5. ⏳ Write integration tests
 6. ⏳ Update API documentation
 
+
