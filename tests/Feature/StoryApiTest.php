@@ -18,7 +18,7 @@ class StoryApiTest extends TestCase
         $this->user = User::factory()->create();
     }
 
-    public function test_story_generate_requires_authentication(): void
+    public function testStoryGenerateRequiresAuthentication(): void
     {
         $response = $this->postJson('/api/v1/story/generate', [
             'config' => ['prompt' => 'test'],
@@ -27,7 +27,7 @@ class StoryApiTest extends TestCase
         $response->assertStatus(401);
     }
 
-    public function test_story_generate_creates_batch_and_jobs(): void
+    public function testStoryGenerateCreatesBatchAndJobs(): void
     {
         $response = $this->actingAs($this->user, 'api')->postJson('/api/v1/story/generate', [
             'name' => 'Test Story',
@@ -55,7 +55,7 @@ class StoryApiTest extends TestCase
         $this->assertEquals(5, $batch->videoJobs()->count());
     }
 
-    public function test_story_generate_validates_config(): void
+    public function testStoryGenerateValidatesConfig(): void
     {
         $response = $this->actingAs($this->user, 'api')->postJson('/api/v1/story/generate', []);
 
@@ -63,7 +63,7 @@ class StoryApiTest extends TestCase
         $response->assertJsonValidationErrors(['config']);
     }
 
-    public function test_get_batch_status_returns_batch_info(): void
+    public function testGetBatchStatusReturnsBatchInfo(): void
     {
         $batch = Batch::factory()->create([
             'user_id' => $this->user->id,
@@ -91,7 +91,7 @@ class StoryApiTest extends TestCase
         ]);
     }
 
-    public function test_get_batch_status_checks_ownership(): void
+    public function testGetBatchStatusChecksOwnership(): void
     {
         $otherUser = User::factory()->create();
         $batch = Batch::factory()->create(['user_id' => $otherUser->id]);
@@ -101,7 +101,7 @@ class StoryApiTest extends TestCase
         $response->assertStatus(404);
     }
 
-    public function test_pause_batch_stops_processing(): void
+    public function testPauseBatchStopsProcessing(): void
     {
         $batch = Batch::factory()->create([
             'user_id' => $this->user->id,
@@ -117,7 +117,7 @@ class StoryApiTest extends TestCase
         $this->assertEquals('paused', $batch->status);
     }
 
-    public function test_pause_batch_requires_processing_status(): void
+    public function testPauseBatchRequiresProcessingStatus(): void
     {
         $batch = Batch::factory()->create([
             'user_id' => $this->user->id,
@@ -130,7 +130,7 @@ class StoryApiTest extends TestCase
         $response->assertJson(['message' => 'Batch is not processing']);
     }
 
-    public function test_resume_batch_starts_processing(): void
+    public function testResumeBatchStartsProcessing(): void
     {
         $batch = Batch::factory()->create([
             'user_id' => $this->user->id,
@@ -146,7 +146,7 @@ class StoryApiTest extends TestCase
         $this->assertEquals(Batch::STATUS_PROCESSING, $batch->status);
     }
 
-    public function test_resume_batch_requires_paused_status(): void
+    public function testResumeBatchRequiresPausedStatus(): void
     {
         $batch = Batch::factory()->create([
             'user_id' => $this->user->id,
@@ -159,7 +159,7 @@ class StoryApiTest extends TestCase
         $response->assertJson(['message' => 'Batch is not paused']);
     }
 
-    public function test_cancel_batch_cancels_all_jobs(): void
+    public function testCancelBatchCancelsAllJobs(): void
     {
         $batch = Batch::factory()->create([
             'user_id' => $this->user->id,
@@ -185,7 +185,7 @@ class StoryApiTest extends TestCase
         $this->assertEquals(Videojob::STATUS_CANCELLED, $videoJob->status);
     }
 
-    public function test_persist_frame_saves_frame_data(): void
+    public function testPersistFrameSavesFrameData(): void
     {
         $batch = Batch::factory()->create(['user_id' => $this->user->id]);
         $videoJob = Videojob::factory()->create(['user_id' => $this->user->id]);
@@ -206,7 +206,7 @@ class StoryApiTest extends TestCase
         $this->assertArrayHasKey('metadata', $videoJob->generation_parameters);
     }
 
-    public function test_persist_frame_checks_job_belongs_to_batch(): void
+    public function testPersistFrameChecksJobBelongsToBatch(): void
     {
         $batch = Batch::factory()->create(['user_id' => $this->user->id]);
         $videoJob = Videojob::factory()->create(['user_id' => $this->user->id]);
@@ -220,7 +220,7 @@ class StoryApiTest extends TestCase
         $response->assertJson(['message' => 'Video job does not belong to this batch']);
     }
 
-    public function test_create_share_link_generates_token(): void
+    public function testCreateShareLinkGeneratesToken(): void
     {
         $batch = Batch::factory()->create(['user_id' => $this->user->id]);
 
@@ -244,7 +244,7 @@ class StoryApiTest extends TestCase
         $this->assertNotEmpty($batch->settings['share']['token']);
     }
 
-    public function test_extend_generation_creates_new_batch(): void
+    public function testExtendGenerationCreatesNewBatch(): void
     {
         $sourceBatch = Batch::factory()->create([
             'user_id' => $this->user->id,

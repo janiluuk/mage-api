@@ -49,6 +49,7 @@ class VideoJobSchema extends Schema
             Str::make('original_filename'),
             BelongsTo::make('modelfile')->type('model-files')->readOnly(),
             BelongsTo::make('user')->type('users')->readOnly(),
+            BelongsToMany::make('batches')->type('batches')->readOnly(),
             MorphToMany::make('media', [
                 BelongsToMany::make('finished'),
                 BelongsToMany::make('original'),
