@@ -43,7 +43,7 @@ class InstanceStatusController extends Controller
                         'id' => $job->id,
                         'video_job_id' => $job->video_job_id,
                         'processing_time_seconds' => $job->processing_time_seconds,
-                        'completed_at' => $job->completed_at?->toISOString(),
+                        'completed_at' => $job->completed_at?->toIso8601String(),
                     ];
                 });
 
@@ -61,8 +61,8 @@ class InstanceStatusController extends Controller
                 'cpu_utilization' => $instance->cpu_utilization,
                 'memory_utilization' => $instance->memory_utilization,
                 'health_status' => $instance->health_status,
-                'last_health_check_at' => $instance->last_health_check_at?->toISOString(),
-                'last_queue_check_at' => $instance->last_queue_check_at?->toISOString(),
+                'last_health_check_at' => $instance->last_health_check_at?->toIso8601String(),
+                'last_queue_check_at' => $instance->last_queue_check_at?->toIso8601String(),
                 'current_job' => $currentJob ? [
                     'id' => $currentJob->id,
                     'video_job_id' => $currentJob->video_job_id,
@@ -72,7 +72,7 @@ class InstanceStatusController extends Controller
                         'status' => $currentJob->videoJob->status,
                         'progress' => $currentJob->videoJob->progress,
                     ] : null,
-                    'started_at' => $currentJob->started_at?->toISOString(),
+                    'started_at' => $currentJob->started_at?->toIso8601String(),
                 ] : null,
                 'recent_jobs' => $recentJobs,
             ];
@@ -115,7 +115,7 @@ class InstanceStatusController extends Controller
                 return [
                     'id' => $job->id,
                     'filename' => $job->original_filename,
-                    'started_at' => $job->encoding_started_at?->toISOString(),
+                    'started_at' => $job->encoding_started_at?->toIso8601String(),
                     'status' => $job->status,
                     'progress' => $job->progress,
                 ];
@@ -187,9 +187,9 @@ class InstanceStatusController extends Controller
                     'id' => $job->id,
                     'video_job_id' => $job->video_job_id,
                     'processing_time_seconds' => $job->processing_time_seconds,
-                    'assigned_at' => $job->assigned_at?->toISOString(),
-                    'started_at' => $job->started_at?->toISOString(),
-                    'completed_at' => $job->completed_at?->toISOString(),
+                    'assigned_at' => $job->assigned_at?->toIso8601String(),
+                    'started_at' => $job->started_at?->toIso8601String(),
+                    'completed_at' => $job->completed_at?->toIso8601String(),
                     'video_job' => $job->videoJob ? [
                         'id' => $job->videoJob->id,
                         'prompt' => $job->videoJob->prompt,

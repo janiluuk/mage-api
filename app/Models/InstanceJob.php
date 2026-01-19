@@ -59,7 +59,7 @@ class InstanceJob extends Model
      */
     public function instance(): BelongsTo
     {
-        return $this->belongsTo(GeneratorInstance::class);
+        return $this->belongsTo(GeneratorInstance::class, 'instance_id');
     }
 
     /**
