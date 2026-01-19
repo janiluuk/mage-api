@@ -41,5 +41,3 @@ return new class extends Migration
         Schema::dropIfExists('instance_metrics_history');
     }
 };
-
-
