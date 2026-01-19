@@ -17,11 +17,14 @@ class InstanceStatusApiTest extends TestCase
     {
         parent::setUp();
 
+        $this->seed(\Database\Seeders\PermissionsSeeder::class);
+
         // Create admin user
         $this->adminUser = User::factory()->create([
             'email' => 'admin@test.com',
-            'user_role_id' => 1, // Administrator
         ]);
+        
+        $this->adminUser->assignRole('administrator');
     }
 
     public function test_can_get_instance_status_without_authentication(): void

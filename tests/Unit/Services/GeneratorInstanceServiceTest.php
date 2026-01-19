@@ -4,6 +4,7 @@ namespace Tests\Unit\Services;
 
 use App\Models\GeneratorInstance;
 use App\Services\GeneratorInstanceService;
+use App\Services\LoadBalancerService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -16,7 +17,8 @@ class GeneratorInstanceServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new GeneratorInstanceService();
+        $loadBalancer = app(LoadBalancerService::class);
+        $this->service = new GeneratorInstanceService($loadBalancer);
     }
 
     public function test_get_enabled_instance_url_returns_url_of_enabled_instance(): void
