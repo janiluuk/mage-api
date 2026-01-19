@@ -25,11 +25,15 @@ class OrderManagementTest extends TestCase
         $this->markTestSkipped('Order API endpoints not implemented yet');
         
         $user = User::factory()->create();
-        $product = Product::factory()->create([
-            'price' => 50.00,
-        ]);
+        $product = Product::factory()->create(
+            [
+                'price' => 50.00,
+            ]
+        );
 
-        $response = $this->actingAs($user, 'api')->postJson('/api/orders', [
+        $response = $this->actingAs($user, 'api')->postJson(
+            '/api/orders',
+            [
             'products' => [
                 [
                     'product_id' => $product->id,
@@ -37,11 +41,14 @@ class OrderManagementTest extends TestCase
                 ]
             ],
             'payment_method' => OrderPaymentConstant::STRIPE,
-        ]);
+            ]
+        );
 
         // Check response
         if ($response->status() === 201 || $response->status() === 200) {
-            $response->assertJsonStructure(['id', 'status', 'total_cost']);
+            $response->assertJsonStructure(
+                ['id', 'status', 'total_cost']
+            );
         }
     }
 
@@ -49,19 +56,22 @@ class OrderManagementTest extends TestCase
     {
         $user = User::factory()->create();
         
-        $product = Product::factory()->create([
-        ]);
+        $product = Product::factory()->create();
 
-        $order = Order::factory()->create([
-            'user_id' => $user->id,
-        ]);
+        $order = Order::factory()->create(
+            [
+                'user_id' => $user->id,
+            ]
+        );
 
-        OrderItem::factory()->create([
+        OrderItem::factory()->create(
+            [
             'order_id' => $order->id,
             'product_id' => $product->id,
             'quantity' => 1,
             'unit_price' => $product->price,
-        ]);
+            ]
+        );
 
         // Test relationships
         $this->assertInstanceOf(User::class, $order->user);
@@ -76,9 +86,11 @@ class OrderManagementTest extends TestCase
 
     public function test_order_status_transitions(): void
     {
-        $order = Order::factory()->create([
-            'status' => OrderStatusConstant::UNPAID,
-        ]);
+        $order = Order::factory()->create(
+            [
+                'status' => OrderStatusConstant::UNPAID,
+            ]
+        );
 
         $this->assertEquals(OrderStatusConstant::UNPAID, $order->status);
 
@@ -92,11 +104,13 @@ class OrderManagementTest extends TestCase
 
     public function test_order_calculates_total_cost_correctly(): void
     {
-        $order = Order::factory()->create([
-            'product_cost' => 100.00,
-            'delivery_cost' => 10.00,
-            'total_cost' => 110.00,
-        ]);
+        $order = Order::factory()->create(
+            [
+                'product_cost' => 100.00,
+                'delivery_cost' => 10.00,
+                'total_cost' => 110.00,
+            ]
+        );
 
         $this->assertEquals(110.00, $order->total_cost);
         $this->assertEquals(100.00, $order->product_cost);
@@ -107,21 +121,27 @@ class OrderManagementTest extends TestCase
     {
         $user = User::factory()->create();
         
-        $products = Product::factory()->count(3)->create([
-            'price' => 25.00,
-        ]);
+        $products = Product::factory()->count(3)->create(
+            [
+                'price' => 25.00,
+            ]
+        );
 
-        $order = Order::factory()->create([
-            'user_id' => $user->id,
-        ]);
+        $order = Order::factory()->create(
+            [
+                'user_id' => $user->id,
+            ]
+        );
 
         foreach ($products as $product) {
-            OrderItem::factory()->create([
+            OrderItem::factory()->create(
+                [
                 'order_id' => $order->id,
                 'product_id' => $product->id,
                 'quantity' => 2,
                 'unit_price' => $product->price,
-            ]);
+                ]
+            );
         }
 
         $order->refresh();
@@ -136,10 +156,12 @@ class OrderManagementTest extends TestCase
 
     public function test_order_item_calculates_subtotal(): void
     {
-        $orderItem = OrderItem::factory()->create([
-            'quantity' => 3,
-            'unit_price' => 15.50,
-        ]);
+        $orderItem = OrderItem::factory()->create(
+            [
+                'quantity' => 3,
+                'unit_price' => 15.50,
+            ]
+        );
 
         // Calculate subtotal
         $subtotal = $orderItem->quantity * $orderItem->unit_price;
@@ -149,9 +171,11 @@ class OrderManagementTest extends TestCase
     public function test_order_belongs_to_user(): void
     {
         $user = User::factory()->create();
-        $order = Order::factory()->create([
-            'user_id' => $user->id,
-        ]);
+        $order = Order::factory()->create(
+            [
+                'user_id' => $user->id,
+            ]
+        );
 
         $this->assertInstanceOf(User::class, $order->user);
         $this->assertEquals($user->id, $order->user->id);
@@ -165,9 +189,11 @@ class OrderManagementTest extends TestCase
         $user1 = User::factory()->create();
         $user2 = User::factory()->create();
         
-        $order = Order::factory()->create([
-            'user_id' => $user1->id,
-        ]);
+        $order = Order::factory()->create(
+            [
+                'user_id' => $user1->id,
+            ]
+        );
 
         $response = $this->actingAs($user2, 'api')
             ->getJson("/api/orders/{$order->id}");
@@ -178,20 +204,24 @@ class OrderManagementTest extends TestCase
 
     public function test_order_with_promo_code(): void
     {
-        $order = Order::factory()->create([
-            'promo_code_id' => null, // Or create a promo code
-            'product_cost' => 100.00,
-            'total_cost' => 100.00,
-        ]);
+        $order = Order::factory()->create(
+            [
+                'promo_code_id' => null, // Or create a promo code
+                'product_cost' => 100.00,
+                'total_cost' => 100.00,
+            ]
+        );
 
         $this->assertNull($order->promo_code_id);
     }
 
     public function test_order_payment_method_enum(): void
     {
-        $order = Order::factory()->create([
-            'payment_method' => OrderPaymentConstant::STRIPE,
-        ]);
+        $order = Order::factory()->create(
+            [
+                'payment_method' => OrderPaymentConstant::STRIPE,
+            ]
+        );
 
         $this->assertEquals(OrderPaymentConstant::STRIPE, $order->payment_method);
     }

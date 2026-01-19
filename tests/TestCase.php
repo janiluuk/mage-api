@@ -14,11 +14,19 @@ abstract class TestCase extends BaseTestCase
         
         // Ensure test environment uses correct database configuration
         // This is set in CreatesApplication, but we ensure it's correct here too
-        if (($_ENV['APP_ENV'] ?? env('APP_ENV')) === 'testing') {
-            $dbConnection = $_ENV['DB_CONNECTION'] ?? env('DB_CONNECTION', 'sqlite');
-            $dbDatabase = $_ENV['DB_DATABASE'] ?? env('DB_DATABASE', ':memory:');  
-            if ($dbConnection === 'sqlite') {
-                config(['database.connections.sqlite.database' => $dbDatabase]);
+        // Use config() instead of env() since app is already bootstrapped
+        if (app()->environment('testing')) {
+            $dbConnection = config('database.default', 'sqlite');
+            $dbDatabase = config(
+                'database.connections.sqlite.database',
+                ':memory:'
+            );
+            if ($dbConnection === 'sqlite' 
+                && !file_exists($dbDatabase) 
+                && $dbDatabase !== ':memory:'
+            ) {
+                // Ensure SQLite database file exists if using file-based database
+                touch($dbDatabase);
             }
         }
     }
