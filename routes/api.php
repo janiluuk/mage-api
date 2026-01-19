@@ -102,7 +102,7 @@ Route::prefix('v2')->group(function () {
 
 JsonApiRoute::server('v2')->prefix('v2')->resources(function (ResourceRegistrar $server) {
     $server->resource('users', JsonApiController::class)->relationships(function ($relationships) {
-        $relationships->hasOne('role');
+        $relationships->hasOne('userRole');
     });
 
     Route::get('me', [MeController::class, 'readProfile']);

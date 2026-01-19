@@ -7,6 +7,7 @@ use Carbon\Carbon;
 use LaravelJsonApi\Eloquent\Contracts\Paginator;
 use LaravelJsonApi\Eloquent\Fields\DateTime;
 use LaravelJsonApi\Eloquent\Fields\ID;
+use LaravelJsonApi\Eloquent\Fields\Relations\BelongsTo;
 use LaravelJsonApi\Eloquent\Fields\Str;
 use LaravelJsonApi\Eloquent\Filters\WhereIdIn;
 use LaravelJsonApi\Eloquent\Pagination\PagePagination;
@@ -31,6 +32,7 @@ class UserSchema extends Schema
     {
         return [
             ID::make(),
+            BelongsTo::make('userRole')->type('roles')->readOnly(),
             Str::make('name')->sortable(),
             Str::make('email')->sortable(),
             Str::make('password')->hidden(),
