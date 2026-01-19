@@ -16,6 +16,8 @@ class StoryApiTest extends TestCase
     {
         parent::setUp();
         $this->user = User::factory()->create();
+        // Create a default model file for story generation tests
+        \App\Models\ModelFile::factory()->create(['id' => 1]);
     }
 
     public function testStoryGenerateRequiresAuthentication(): void
