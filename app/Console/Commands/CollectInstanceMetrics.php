@@ -44,3 +44,4 @@ class CollectInstanceMetrics extends Command
     }
 }
 
+
