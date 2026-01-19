@@ -525,7 +525,6 @@ class BeatMatchMusicVideoTest extends TestCase
                 'direction' => 'random',
                 'speed_factor' => 1.0,
             ],
-        ], [
             'audio_file' => $audioFile,
             'video_files' => $videoFiles,
         ]);
