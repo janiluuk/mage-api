@@ -30,6 +30,8 @@ class AudioTrackSplitJobValidator implements JobValidatorInterface
             ];
         } else {
             // For project input type, project_id is always required
+            // Note: We don't validate exists:user_files,project_id here because
+            // the controller will validate project ownership and file existence
             return [
                 'project_id' => 'required|integer',
             ];
