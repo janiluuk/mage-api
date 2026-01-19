@@ -58,8 +58,7 @@ class AudioTrackSplitServiceTest extends TestCase
             'options' => json_encode([
                 'model' => 'MDX-Net-InstVoc_HQ_3',
                 'output_format' => 'wav',
-            ]),
-        ], [], [
+            ],
             'audio_file' => $audioFile,
         ], [
             'Accept' => 'application/json',
@@ -495,8 +494,7 @@ class AudioTrackSplitServiceTest extends TestCase
             'input_type' => 'files',
             'options' => json_encode([
                 'output_format' => 'invalid_format', // Invalid format
-            ]),
-        ], [], [
+            ],
             'audio_file' => UploadedFile::fake()->create('test.wav', 100),
         ], [
             'Accept' => 'application/json',

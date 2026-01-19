@@ -83,6 +83,9 @@ JsonApiRoute::server('v1')
             $relationships->hasOne('role');
         })->only('index');
 
+        // Note: Batches use REST API endpoints in v1 prefix group below, not JSON:API
+        // $server->resource('batches', JsonApiController::class);
+
         $server->resource('tags', JsonApiController::class)->relationships(function ($relationships) {
             $relationships->hasMany('items');
         });
@@ -99,7 +102,7 @@ Route::prefix('v2')->group(function () {
 
 JsonApiRoute::server('v2')->prefix('v2')->resources(function (ResourceRegistrar $server) {
     $server->resource('users', JsonApiController::class)->relationships(function ($relationships) {
-        $relationships->hasOne('role');
+        $relationships->hasOne('userRole');
     });
 
     Route::get('me', [MeController::class, 'readProfile']);
