@@ -42,6 +42,8 @@ use App\Http\Controllers\Api\V1\PresetController;
 use App\Http\Controllers\Api\V1\CustomJobController;
 use App\Http\Controllers\Api\V1\StoryController;
 use App\Http\Controllers\Api\V1\DeforumController;
+use App\Http\Controllers\Api\V1\VideoEditorProjectController;
+use App\Http\Controllers\Api\V1\VideoExportController;
 use LaravelJsonApi\Laravel\Routing\Relationships;
 
 /*
@@ -163,6 +165,15 @@ Route::prefix('v1')->middleware('auth:api')->group(function () {
     // Deforum Live Control routes
     Route::post('/deforum/live', [DeforumController::class, 'sendLiveUpdate']);
     Route::get('/deforum/live/status', [DeforumController::class, 'getLiveStatus']);
+    
+    // Video Editor Project routes
+    Route::apiResource('video-editor-projects', VideoEditorProjectController::class);
+    
+    // Video Export routes
+    Route::post('/video-export', [VideoExportController::class, 'store']);
+    Route::get('/video-export/{id}', [VideoExportController::class, 'show']);
+    Route::get('/video-export/{id}/stream', [VideoExportController::class, 'stream']); // SSE endpoint
+    Route::delete('/video-export/{id}', [VideoExportController::class, 'destroy']);
 });
 
 Route::post('/upload', [VideojobController::class, 'upload'])->middleware('api');

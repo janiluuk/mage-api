@@ -17,9 +17,7 @@ use App\Repositories\Product\Criterion\CategoryIdCriterion;
  *
  * @category  App
  * @package   App\Actions\Product
- * @author    Your Name <your.email@example.com>
  * @license   https://opensource.org/licenses/MIT MIT License
- * @link      https://example.com
  */
 final class GetProductsByUserAction
 {

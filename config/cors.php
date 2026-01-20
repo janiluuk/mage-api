@@ -15,13 +15,16 @@ return [
     |
     */
 
-    'paths' => ['/*','/api/upload','storage/*', 'api/*', 'sanctum/csrf-cookie'],
+    'paths' => ['api/*', '/api/upload', 'storage/*', 'sanctum/csrf-cookie'],
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    'allowed_origins' => [
+        env('FRONTEND_URL', 'http://localhost:8080'),
+        env('APP_URL', 'http://localhost'),
+    ],
 
-    'allowed_origins_patterns' => ['*'],
+    'allowed_origins_patterns' => [],
 
     'allowed_headers' => ['*'],
 

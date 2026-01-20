@@ -154,18 +154,14 @@ class CustomJobController extends Controller
 
                     foreach ($projectFiles as $file) {
                         $fileDisk = $file->disk ?? 'local';
-                        if ($fileDisk === 'local') {
-                            $filePath = storage_path('app/' . $file->path);
-                        } else {
-                            // For non-local disks, use path() method
-                            /**
-                             * Get filesystem adapter for non-local disk
-                             *
-                             * @var \Illuminate\Filesystem\FilesystemAdapter $adapter
-                             */
-                            $adapter = Storage::disk($fileDisk);
-                            $filePath = $adapter->path($file->path);
-                        }
+                        // Use Storage::disk()->path() for consistent path handling
+                        /**
+                         * Get filesystem adapter for the disk
+                         *
+                         * @var \Illuminate\Filesystem\FilesystemAdapter $adapter
+                         */
+                        $adapter = Storage::disk($fileDisk);
+                        $filePath = $adapter->path($file->path);
                         if (file_exists($filePath)) {
                             $videoFiles[] = $filePath;
                         }
@@ -203,18 +199,14 @@ class CustomJobController extends Controller
                 }
 
                 $audioDisk = $audioFiles->disk ?? 'local';
-                if ($audioDisk === 'local') {
-                    $audioFile = storage_path('app/' . $audioFiles->path);
-                } else {
-                    // For non-local disks, use path() method
-                    /**
-                     * Get filesystem adapter for non-local disk
-                     *
-                     * @var \Illuminate\Filesystem\FilesystemAdapter $adapter
-                     */
-                    $adapter = Storage::disk($audioDisk);
-                    $audioFile = $adapter->path($audioFiles->path);
-                }
+                // Use Storage::disk()->path() for consistent path handling
+                /**
+                 * Get filesystem adapter for the disk
+                 *
+                 * @var \Illuminate\Filesystem\FilesystemAdapter $adapter
+                 */
+                $adapter = Storage::disk($audioDisk);
+                $audioFile = $adapter->path($audioFiles->path);
 
                 if (!file_exists($audioFile)) {
                     return response()->json(
@@ -230,7 +222,12 @@ class CustomJobController extends Controller
                 if ($request->hasFile('audio_file')) {
                     $audioFilePath = $request->file('audio_file')
                         ->store('temp/custom-jobs', 'local');
-                    $audioFile = storage_path('app/' . $audioFilePath);
+                    // Use Storage::disk()->path() for consistent path handling
+                    /**
+                     * @var \Illuminate\Filesystem\FilesystemAdapter $localDisk
+                     */
+                    $localDisk = Storage::disk('local');
+                    $audioFile = $localDisk->path($audioFilePath);
                 }
 
                 if (!$isAudioOnly && $request->hasFile('video_files')) {
@@ -238,7 +235,12 @@ class CustomJobController extends Controller
                     foreach ($request->file('video_files') as $videoFile) {
                         $videoPath = $videoFile
                             ->store('temp/custom-jobs', 'local');
-                        $videoFiles[] = storage_path('app/' . $videoPath);
+                        // Use Storage::disk()->path() for consistent path handling
+                        /**
+                         * @var \Illuminate\Filesystem\FilesystemAdapter $localDisk
+                         */
+                        $localDisk = Storage::disk('local');
+                        $videoFiles[] = $localDisk->path($videoPath);
                     }
                 }
             }
