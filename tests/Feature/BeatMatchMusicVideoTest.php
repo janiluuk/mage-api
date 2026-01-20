@@ -342,7 +342,7 @@ class BeatMatchMusicVideoTest extends TestCase
                 'generation_parameters' => [
                     'input_files' => [
                         'audio_file' => '/nonexistent/audio.wav',
-                        'video_files' => [],
+                        'video_files' => ['/some/video.mp4'], // Add a video file so it passes the first check
                     ],
                 ],
             ])
@@ -351,7 +351,7 @@ class BeatMatchMusicVideoTest extends TestCase
         $service = new \App\Services\BeatMatchMusicVideoService();
 
         $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('Audio file not found');
+        $this->expectExceptionMessageMatches('/Audio file not found/');
         $service->startProcess($videoJob);
     }
 

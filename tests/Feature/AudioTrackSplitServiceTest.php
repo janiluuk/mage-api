@@ -452,13 +452,19 @@ class AudioTrackSplitServiceTest extends TestCase
 
         // Create a project with audio file
         $projectId = 123;
+        
+        // Create the actual file on disk
+        Storage::fake('local');
+        $audioPath = 'processed/test-audio.wav';
+        Storage::disk('local')->put($audioPath, 'fake audio content');
+        
         $userFile = UserFile::factory()
             ->for($user, 'user')
             ->state([
                 'project_id' => $projectId,
                 'mime_type' => 'audio/wav',
                 'disk' => 'local',
-                'path' => 'processed/test-audio.wav',
+                'path' => $audioPath,
             ])
             ->create();
 
