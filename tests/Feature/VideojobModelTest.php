@@ -87,7 +87,9 @@ class VideojobModelTest extends TestCase
         $url = $videoJob->getUrl();
 
         $this->assertNotNull($url);
-        $this->assertStringContainsString($media->getPath(), $url);
+        // getUrl() returns getFullUrl() which is a URL, not a path
+        $this->assertStringContainsString('test-video', $url);
+        $this->assertEquals($media->getFullUrl(), $url);
     }
 
     public function test_get_url_returns_database_url_when_no_finished_media(): void

@@ -145,7 +145,7 @@ class VideoJobOperationsController extends Controller
     public function extend(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'video_job_id' => 'required|integer|exists:video_jobs,id',
+            'video_job_id' => 'required|integer',
             'length' => 'nullable|numeric|between:1,20',
             'prompt' => 'nullable|string|max:2000',
             'negative_prompt' => 'nullable|string|max:2000',
@@ -153,6 +153,7 @@ class VideoJobOperationsController extends Controller
             'denoising' => 'nullable|numeric|between:0,1',
         ]);
 
+        // findOrFail will return 404 if not found
         $baseJob = Videojob::findOrFail($validated['video_job_id']);
 
         // Check authorization
@@ -246,12 +247,13 @@ class VideoJobOperationsController extends Controller
     public function trim(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'video_job_id' => 'required|integer|exists:video_jobs,id',
+            'video_job_id' => 'required|integer',
             'start_seconds' => 'required|numeric|min:0',
             'end_seconds' => 'required|numeric|gt:start_seconds',
             'output_name' => 'nullable|string|max:255',
         ]);
 
+        // findOrFail will return 404 if not found
         $videoJob = Videojob::findOrFail($validated['video_job_id']);
 
         // Check authorization
