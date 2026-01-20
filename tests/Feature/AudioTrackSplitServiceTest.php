@@ -224,7 +224,7 @@ class AudioTrackSplitServiceTest extends TestCase
     public function test_audio_track_split_validates_file_types(): void
     {
         $user = User::factory()->create();
-
+        
         $this->actingAs($user, 'api');
 
         $response = $this->post('/api/v1/custom-jobs/process', [
@@ -454,7 +454,8 @@ class AudioTrackSplitServiceTest extends TestCase
         // Create a project with audio file
         $projectId = 123;
         
-        // Create a fake audio file in storage
+        // Create the actual file on disk
+        Storage::fake('local');
         $audioPath = 'processed/test-audio.wav';
         Storage::disk('local')->put($audioPath, 'fake audio content');
         
