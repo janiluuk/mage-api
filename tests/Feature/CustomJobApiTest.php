@@ -191,7 +191,7 @@ class CustomJobApiTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user, 'api')->call('POST', '/api/v1/custom-jobs/process', [
+        $response = $this->actingAs($user, 'api')->post('/api/v1/custom-jobs/process', [
             'job_type' => 'beat-match',
             'input_type' => 'files',
             'options' => json_encode(['cut_intensity' => 2]), // Add valid options
@@ -279,7 +279,7 @@ class CustomJobApiTest extends TestCase
             UploadedFile::fake()->create('test-video-1.mp4', 500),
         ];
 
-        $response = $this->actingAs($user, 'api')->call('POST', '/api/v1/custom-jobs/process', [
+        $response = $this->actingAs($user, 'api')->post('/api/v1/custom-jobs/process', [
             'job_type' => 'beat-match',
             'input_type' => 'files',
             'options' => json_encode(['cut_intensity' => 2]), // Add valid options
