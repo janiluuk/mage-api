@@ -130,4 +130,14 @@ class Handler extends ExceptionHandler
             'errors' => $exception->errors(),
         ], $exception->status);
     }
+
+    protected function convertValidationExceptionToResponse(ValidationException $e, $request)
+    {
+        // Always return JSON for API routes and administration routes
+        if ($request->is('api/*') || $request->is('administration/*')) {
+            return $this->invalidJson($request, $e);
+        }
+
+        return parent::convertValidationExceptionToResponse($e, $request);
+    }
 }
