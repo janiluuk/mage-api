@@ -229,35 +229,40 @@ class BeatMatchMusicVideoTest extends TestCase
         ];
 
         $this->actingAs($user, 'api');
-
-        $response = $this->post('/administration/beat-match-video/process', [
-            'audio_file' => $audioFile,
-            'video_files' => $videoFiles,
-            'cut_intensity' => 1,
-        ], [
-            'Accept' => 'application/json',
-        ]);
-
-        $response->assertOk();
-
-        // Verify files were stored
-        $jobId = $response->json('job_id');
-        $videoJob = Videojob::find($jobId);
-        $params = $videoJob->generation_parameters;
         
-        $this->assertFileExists($params['audio_file']);
-        $this->assertCount(4, $params['video_files']);
-        foreach ($params['video_files'] as $videoFile) {
-            $this->assertFileExists($videoFile);
-        }
-        
-        // Clean up the temporary files after test
-        if (file_exists($params['audio_file'])) {
-            unlink($params['audio_file']);
-        }
-        foreach ($params['video_files'] as $videoFile) {
-            if (file_exists($videoFile)) {
-                unlink($videoFile);
+        $filesToCleanup = [];
+
+        try {
+            $response = $this->post('/administration/beat-match-video/process', [
+                'audio_file' => $audioFile,
+                'video_files' => $videoFiles,
+                'cut_intensity' => 1,
+            ], [
+                'Accept' => 'application/json',
+            ]);
+
+            $response->assertOk();
+
+            // Verify files were stored
+            $jobId = $response->json('job_id');
+            $videoJob = Videojob::find($jobId);
+            $params = $videoJob->generation_parameters;
+            
+            // Store files for cleanup
+            $filesToCleanup[] = $params['audio_file'];
+            $filesToCleanup = array_merge($filesToCleanup, $params['video_files']);
+            
+            $this->assertFileExists($params['audio_file']);
+            $this->assertCount(4, $params['video_files']);
+            foreach ($params['video_files'] as $videoFile) {
+                $this->assertFileExists($videoFile);
+            }
+        } finally {
+            // Clean up temporary files regardless of test outcome
+            foreach ($filesToCleanup as $file) {
+                if (file_exists($file)) {
+                    unlink($file);
+                }
             }
         }
     }
