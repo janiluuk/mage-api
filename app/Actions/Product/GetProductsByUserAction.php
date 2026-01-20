@@ -4,11 +4,23 @@ declare(strict_types=1);
 
 namespace App\Actions\Product;
 
-use Auth;
+use Illuminate\Support\Facades\Auth;
 use App\Repositories\Product\Criterion\UserIdCriterion;
 use App\Repositories\Product\ProductRepositoryInterface;
 use App\Repositories\Product\Criterion\CategoryIdCriterion;
 
+/**
+ * Action to retrieve products for the authenticated user.
+ *
+ * This action fetches products belonging to the currently authenticated user,
+ * optionally filtered by category, with support for custom ordering.
+ *
+ * @category  App
+ * @package   App\Actions\Product
+ * @author    Your Name <your.email@example.com>
+ * @license   https://opensource.org/licenses/MIT MIT License
+ * @link      https://example.com
+ */
 final class GetProductsByUserAction
 {
     private ProductRepositoryInterface $productRepositoryInterface;
@@ -21,6 +33,7 @@ final class GetProductsByUserAction
 
     public function execute(GetProductsByUserRequest $request): GetProductsByUserResponse
     {
+        $criteria = [];
         $criteria[] = new UserIdCriterion(Auth::id());
 
         if ($request->getCategoryId()) {

@@ -8,6 +8,9 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 interface ProductRepositoryInterface
 {
+    public const DEFAULT_ORDER_TYPE = 'id';
+    public const DEFAULT_ORDER_DIRECTION = 'DESC';
+
     public function save(Product $product): Product;
 
     public function update(Product $product): Product;

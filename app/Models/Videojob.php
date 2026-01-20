@@ -14,6 +14,14 @@ use Spatie\Image\Manipulations;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @property int $id
+ * @property string $status
+ * @property int|null $progress
+ * @property int|null $estimated_time_left
+ * @property int|null $job_time
+ * @property string|null $url
+ */
 class Videojob extends Model implements HasMedia
 {
     use InteractsWithMedia;
@@ -151,7 +159,7 @@ class Videojob extends Model implements HasMedia
         return $this->morphManyMedia()->where('collection_name', static::MEDIA_ORIGINAL);
     }
 
-    public function registerMediaConversions(Media $media = null): void
+    public function registerMediaConversions(?Media $media = null): void
     {
         $this
             ->addMediaConversion('thumbnail')
@@ -482,8 +490,8 @@ class Videojob extends Model implements HasMedia
     public function getUrl()
     {
         $finished = $this->getMedia("finished");
-        if (!empty($finished)) {
-            return $finished[0]->getFullUrl();
+        if ($finished->isNotEmpty()) {
+            return $finished->first()->getFullUrl();
         }
         return $this->url;
     }

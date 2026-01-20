@@ -10,9 +10,7 @@
     "require": {
         "php": "^8.2",
         "bensampo/laravel-enum": "^6.6",
-        "ctf0/media-manager": "^4.0",
         "doctrine/dbal": "^3.6",
-        "fruitcake/laravel-cors": "dev-develop",
         "guzzlehttp/guzzle": "^7.2",
         "laravel-json-api/laravel": "^3.0",
         "laravel/framework": "^10.0",

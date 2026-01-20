@@ -40,7 +40,12 @@ Route::post('/finalize', [VideojobController::class, 'finalize']);
 Route::get('/status/{id}', [VideojobController::class, 'status']);
 Route::get('/queue', [VideojobController::class, 'getVideoJobs'])->middleware('auth:api');
 Route::view('/deforumation-qt', 'deforumation-qt')->name('deforumation.qt');
-ctf0\MediaManager\MediaRoutes::routes();
+// NOTE: ctf0/media-manager package has been removed as it was abandoned
+// If media manager functionality is needed, consider migrating to an alternative like:
+// - spatie/laravel-medialibrary (already installed) for model attachments
+// - A custom file manager implementation
+// - Another maintained media manager package
+// ctf0\MediaManager\MediaRoutes::routes();
 
 Route::middleware(['AuthorizationChecker', 'IsAdministratorChecker'])
     ->group(function () {
