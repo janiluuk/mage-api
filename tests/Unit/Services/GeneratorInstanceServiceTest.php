@@ -4,6 +4,7 @@ namespace Tests\Unit\Services;
 
 use App\Models\GeneratorInstance;
 use App\Services\GeneratorInstanceService;
+use App\Services\LoadBalancerService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -16,7 +17,8 @@ class GeneratorInstanceServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new GeneratorInstanceService();
+        $loadBalancer = app(LoadBalancerService::class);
+        $this->service = new GeneratorInstanceService($loadBalancer);
     }
 
     public function test_get_enabled_instance_url_returns_url_of_enabled_instance(): void
@@ -90,22 +92,28 @@ class GeneratorInstanceServiceTest extends TestCase
         $this->assertEquals('http://comfy.local:7860', $comfyUrl);
     }
 
-    public function test_get_enabled_instance_url_returns_random_instance_when_multiple_enabled(): void
+    public function test_get_enabled_instance_url_uses_load_balancing_when_multiple_enabled(): void
     {
-        GeneratorInstance::factory()->count(5)->create([
+        // Create multiple enabled instances with different load levels
+        $instance1 = GeneratorInstance::factory()->create([
             'enabled' => true,
             'type' => 'stable_diffusion_forge',
+            'queue_size' => 5,
+            'processing_count' => 2,
+        ]);
+        
+        $instance2 = GeneratorInstance::factory()->create([
+            'enabled' => true,
+            'type' => 'stable_diffusion_forge',
+            'queue_size' => 2,
+            'processing_count' => 1,
         ]);
 
-        $urls = [];
-        for ($i = 0; $i < 20; $i++) {
-            $url = $this->service->getEnabledInstanceUrl('stable_diffusion_forge');
-            $urls[$url] = true;
-        }
-
-        // With 20 iterations and 5 instances, we should get at least 2 different URLs
-        // (statistically almost certain)
-        $this->assertGreaterThanOrEqual(2, count($urls));
+        // With load balancing, the least loaded instance should be selected
+        $url = $this->service->getEnabledInstanceUrl('stable_diffusion_forge');
+        
+        // Should return instance2 as it has lower load (2+1=3 vs 5+2=7)
+        $this->assertStringContainsString($instance2->url, $url);
     }
 
     public function test_get_enabled_instance_returns_instance_model(): void

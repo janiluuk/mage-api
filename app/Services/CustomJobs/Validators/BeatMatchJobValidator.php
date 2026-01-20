@@ -17,7 +17,7 @@ class BeatMatchJobValidator implements JobValidatorInterface
         ];
     }
 
-    public function getInputFileValidationRules(string $inputType): array
+    public function getInputFileValidationRules(string $inputType, bool $hasJobId = false): array
     {
         if ($inputType === 'files') {
             return [

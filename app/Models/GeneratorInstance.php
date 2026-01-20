@@ -70,7 +70,7 @@ class GeneratorInstance extends Model
      */
     public function instanceJobs()
     {
-        return $this->hasMany(InstanceJob::class);
+        return $this->hasMany(InstanceJob::class, 'instance_id');
     }
 
     /**

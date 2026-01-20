@@ -20,6 +20,12 @@ class BeatMatchMusicVideoTest extends TestCase
     {
         parent::setUp();
         
+        // Seed Spatie roles for tests that use role assignment
+        $this->seed(\Database\Seeders\PermissionsSeeder::class);
+        
+        // Clear permission cache to ensure roles are available
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        
         Queue::fake();
         Storage::fake('local');
     }
@@ -107,7 +113,7 @@ class BeatMatchMusicVideoTest extends TestCase
 
         $this->actingAs($user, 'api');
 
-        $response = $this->post('/administration/beat-match-video/process', [
+        $response = $this->postJson('/administration/beat-match-video/process', [
             // Missing required fields
         ]);
 
@@ -122,7 +128,7 @@ class BeatMatchMusicVideoTest extends TestCase
 
         $this->actingAs($user, 'api');
 
-        $response = $this->post('/administration/beat-match-video/process', [
+        $response = $this->postJson('/administration/beat-match-video/process', [
             'audio_file' => UploadedFile::fake()->create('test.txt', 100), // Invalid type
             'video_files' => [UploadedFile::fake()->create('test.pdf', 100)], // Invalid type
             'cut_intensity' => 1,
@@ -213,8 +219,7 @@ class BeatMatchMusicVideoTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('administrator');
 
-        Storage::fake('local');
-
+        // Don't use Storage::fake() since we need to test actual file storage
         $audioFile = UploadedFile::fake()->create('test-audio.wav', 100);
         $videoFiles = [
             UploadedFile::fake()->create('test-video-1.mp4', 500),
@@ -224,24 +229,41 @@ class BeatMatchMusicVideoTest extends TestCase
         ];
 
         $this->actingAs($user, 'api');
-
-        $response = $this->post('/administration/beat-match-video/process', [
-            'audio_file' => $audioFile,
-            'video_files' => $videoFiles,
-            'cut_intensity' => 1,
-        ]);
-
-        $response->assertOk();
-
-        // Verify files were stored
-        $jobId = $response->json('job_id');
-        $videoJob = Videojob::find($jobId);
-        $params = $videoJob->generation_parameters;
         
-        $this->assertFileExists($params['audio_file']);
-        $this->assertCount(4, $params['video_files']);
-        foreach ($params['video_files'] as $videoFile) {
-            $this->assertFileExists($videoFile);
+        $filesToCleanup = [];
+
+        try {
+            $response = $this->post('/administration/beat-match-video/process', [
+                'audio_file' => $audioFile,
+                'video_files' => $videoFiles,
+                'cut_intensity' => 1,
+            ], [
+                'Accept' => 'application/json',
+            ]);
+
+            $response->assertOk();
+
+            // Verify files were stored
+            $jobId = $response->json('job_id');
+            $videoJob = Videojob::find($jobId);
+            $params = $videoJob->generation_parameters;
+            
+            // Store files for cleanup
+            $filesToCleanup[] = $params['audio_file'];
+            $filesToCleanup = array_merge($filesToCleanup, $params['video_files']);
+            
+            $this->assertFileExists($params['audio_file']);
+            $this->assertCount(4, $params['video_files']);
+            foreach ($params['video_files'] as $videoFile) {
+                $this->assertFileExists($videoFile);
+            }
+        } finally {
+            // Clean up temporary files regardless of test outcome
+            foreach ($filesToCleanup as $file) {
+                if (file_exists($file)) {
+                    unlink($file);
+                }
+            }
         }
     }
 
@@ -336,7 +358,7 @@ class BeatMatchMusicVideoTest extends TestCase
                 'generation_parameters' => [
                     'input_files' => [
                         'audio_file' => '/nonexistent/audio.wav',
-                        'video_files' => [],
+                        'video_files' => ['/some/video.mp4'], // Add a video file so it passes the first check
                     ],
                 ],
             ])
@@ -345,7 +367,7 @@ class BeatMatchMusicVideoTest extends TestCase
         $service = new \App\Services\BeatMatchMusicVideoService();
 
         $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('Audio file not found');
+        $this->expectExceptionMessageMatches('/Audio file not found/');
         $service->startProcess($videoJob);
     }
 
@@ -434,7 +456,7 @@ class BeatMatchMusicVideoTest extends TestCase
 
         $this->actingAs($user, 'api');
 
-        $response = $this->post('/administration/beat-match-video/process', [
+        $response = $this->postJson('/administration/beat-match-video/process', [
             'audio_file' => UploadedFile::fake()->create('test-audio.wav', 100),
             'video_files' => [UploadedFile::fake()->create('test-video.mp4', 500)],
             'cut_intensity' => 5, // Invalid: should be 1-3
@@ -451,7 +473,7 @@ class BeatMatchMusicVideoTest extends TestCase
 
         $this->actingAs($user, 'api');
 
-        $response = $this->post('/administration/beat-match-video/process', [
+        $response = $this->postJson('/administration/beat-match-video/process', [
             'audio_file' => UploadedFile::fake()->create('test-audio.wav', 100),
             'video_files' => [UploadedFile::fake()->create('test-video.mp4', 500)],
             'cut_intensity' => 1,
@@ -469,7 +491,7 @@ class BeatMatchMusicVideoTest extends TestCase
 
         $this->actingAs($user, 'api');
 
-        $response = $this->post('/administration/beat-match-video/process', [
+        $response = $this->postJson('/administration/beat-match-video/process', [
             'audio_file' => UploadedFile::fake()->create('test-audio.wav', 100),
             'video_files' => [UploadedFile::fake()->create('test-video.mp4', 500)],
             'cut_intensity' => 1,
@@ -487,7 +509,7 @@ class BeatMatchMusicVideoTest extends TestCase
 
         $this->actingAs($user, 'api');
 
-        $response = $this->post('/administration/beat-match-video/process', [
+        $response = $this->postJson('/administration/beat-match-video/process', [
             'audio_file' => UploadedFile::fake()->create('test-audio.wav', 100),
             'video_files' => [UploadedFile::fake()->create('test-video.mp4', 500)],
             'cut_intensity' => 1,
@@ -519,7 +541,6 @@ class BeatMatchMusicVideoTest extends TestCase
                 'direction' => 'random',
                 'speed_factor' => 1.0,
             ],
-        ], [
             'audio_file' => $audioFile,
             'video_files' => $videoFiles,
         ]);

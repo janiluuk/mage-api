@@ -6,6 +6,7 @@ use App\Exceptions\GeneratorInstanceUnavailableException;
 use App\Models\GeneratorInstance;
 use App\Services\ComfyUI\ComfyUIClient;
 use App\Services\GeneratorInstanceService;
+use App\Services\LoadBalancerService;
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
@@ -22,7 +23,8 @@ class ComfyUIClientTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->generatorInstanceService = new GeneratorInstanceService();
+        $loadBalancer = app(LoadBalancerService::class);
+        $this->generatorInstanceService = new GeneratorInstanceService($loadBalancer);
     }
 
     public function test_queue_prompt_sends_workflow_to_comfyui(): void

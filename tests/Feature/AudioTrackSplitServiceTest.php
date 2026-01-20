@@ -52,15 +52,17 @@ class AudioTrackSplitServiceTest extends TestCase
 
         $this->actingAs($user, 'api');
 
-        $response = $this->postJson('/api/v1/custom-jobs/process', [
+        $response = $this->call('POST', '/api/v1/custom-jobs/process', [
             'job_type' => 'audio-track-split',
             'input_type' => 'files',
-            'options' => [
+            'options' => json_encode([
                 'model' => 'MDX-Net-InstVoc_HQ_3',
                 'output_format' => 'wav',
-            ],
-        ], [
+            ]),
+        ], [], [
             'audio_file' => $audioFile,
+        ], [
+            'Accept' => 'application/json',
         ]);
 
         $response->assertOk()
@@ -222,15 +224,19 @@ class AudioTrackSplitServiceTest extends TestCase
     public function test_audio_track_split_validates_file_types(): void
     {
         $user = User::factory()->create();
-
+        
         $this->actingAs($user, 'api');
 
-        $response = $this->postJson('/api/v1/custom-jobs/process', [
+        $response = $this->post('/api/v1/custom-jobs/process', [
             'job_type' => 'audio-track-split',
             'input_type' => 'files',
-            'options' => [],
-        ], [
+            'options' => json_encode([
+                'model' => 'MDX-Net-InstVoc_HQ_3',
+                'output_format' => 'wav',
+            ]),
             'audio_file' => UploadedFile::fake()->create('test.txt', 100), // Invalid type
+        ], [
+            'Accept' => 'application/json',
         ]);
 
         $response->assertStatus(422)
@@ -443,15 +449,23 @@ class AudioTrackSplitServiceTest extends TestCase
     {
         $user = User::factory()->create();
 
+        Storage::fake('local');
+
         // Create a project with audio file
         $projectId = 123;
+        
+        // Create the actual file on disk
+        Storage::fake('local');
+        $audioPath = 'processed/test-audio.wav';
+        Storage::disk('local')->put($audioPath, 'fake audio content');
+        
         $userFile = UserFile::factory()
             ->for($user, 'user')
             ->state([
                 'project_id' => $projectId,
                 'mime_type' => 'audio/wav',
                 'disk' => 'local',
-                'path' => 'processed/test-audio.wav',
+                'path' => $audioPath,
             ])
             ->create();
 
@@ -483,18 +497,20 @@ class AudioTrackSplitServiceTest extends TestCase
 
         $this->actingAs($user, 'api');
 
-        $response = $this->postJson('/api/v1/custom-jobs/process', [
+        $response = $this->call('POST', '/api/v1/custom-jobs/process', [
             'job_type' => 'audio-track-split',
             'input_type' => 'files',
-            'options' => [
+            'options' => json_encode([
                 'output_format' => 'invalid_format', // Invalid format
-            ],
-        ], [
+            ]),
+        ], [], [
             'audio_file' => UploadedFile::fake()->create('test.wav', 100),
+        ], [
+            'Accept' => 'application/json',
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['options.output_format']);
+            ->assertJsonValidationErrors(['output_format']);
     }
 }
 

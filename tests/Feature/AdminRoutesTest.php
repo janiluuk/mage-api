@@ -106,6 +106,7 @@ class AdminRoutesTest extends TestCase
             ->postJson('/api/administration/generator-instances', [
                 'name' => 'Test Instance',
                 'url' => 'http://test.example.com',
+                'type' => 'stable_diffusion_forge',
             ]);
         $response->assertStatus(201);
     }
