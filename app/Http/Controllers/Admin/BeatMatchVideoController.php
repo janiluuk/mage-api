@@ -63,7 +63,7 @@ class BeatMatchVideoController extends Controller
                 'direction' => $validated['direction'] ?? 'random',
                 'speed_factor' => (float)($validated['speed_factor'] ?? 1.0),
                 'start_time' => (float)($validated['start_time'] ?? 0.0),
-                'end_time' => $validated['end_time'] !== null ? (float)$validated['end_time'] : null,
+                'end_time' => isset($validated['end_time']) ? (float)$validated['end_time'] : null,
             ];
             $videoJob->save();
 
