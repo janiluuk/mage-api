@@ -12,10 +12,6 @@ use Illuminate\Validation\Rule;
 
 class FileController extends Controller
 {
-    public function __construct(private readonly FileManager $files)
-    {
-    }
-
     public function index(Request $request): LengthAwarePaginator
     {
         $userId = $request->user()->id;
@@ -44,7 +40,7 @@ class FileController extends Controller
         return $query->paginate($request->integer('per_page', 15));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, FileManager $files)
     {
         $data = $request->validate([
             'file' => ['required', 'file'],
@@ -53,7 +49,7 @@ class FileController extends Controller
         ]);
 
         try {
-            $file = $this->files->upload(
+            $file = $files->upload(
                 $data['file'],
                 $request->user()->id,
                 $data['project_id'] ?? null,
@@ -66,27 +62,27 @@ class FileController extends Controller
         return response()->json($file, 201);
     }
 
-    public function destroy(Request $request, int $id)
+    public function destroy(Request $request, FileManager $files, int $id)
     {
         $file = $this->findOwnedFile($request->user()->id, $id);
-        $this->files->delete($file);
+        $files->delete($file);
 
         return response()->json(['message' => 'File deleted']);
     }
 
-    public function unzip(Request $request, int $id)
+    public function unzip(Request $request, FileManager $files, int $id)
     {
         $file = $this->findOwnedFile($request->user()->id, $id);
         try {
-            $files = $this->files->unzip($file);
+            $unzipped = $files->unzip($file);
         } catch (\Throwable $throwable) {
             return response()->json(['message' => $throwable->getMessage()], 422);
         }
 
-        return response()->json(['message' => 'Archive unpacked', 'files' => $files]);
+        return response()->json(['message' => 'Archive unpacked', 'files' => $unzipped]);
     }
 
-    public function merge(Request $request)
+    public function merge(Request $request, FileManager $files)
     {
         $data = $request->validate([
             'file_ids' => ['required', 'array', 'min:2'],
@@ -96,20 +92,20 @@ class FileController extends Controller
         ]);
 
         $userId = $request->user()->id;
-        $files = UserFile::where('user_id', $userId)
+        $userFiles = UserFile::where('user_id', $userId)
             ->whereIn('id', $data['file_ids'])
             ->get();
 
-        if ($files->count() !== count($data['file_ids'])) {
+        if ($userFiles->count() !== count($data['file_ids'])) {
             return response()->json(['message' => 'One or more files were not found'], 404);
         }
 
-        if ($files->contains(fn (UserFile $file) => $file->type !== 'video')) {
+        if ($userFiles->contains(fn (UserFile $file) => $file->type !== 'video')) {
             return response()->json(['message' => 'Only video files can be merged'], 422);
         }
 
         try {
-            $merged = $this->files->mergeVideos($files->all(), $userId, $data['project_id'] ?? null, $data['output_name'] ?? null);
+            $merged = $files->mergeVideos($userFiles->all(), $userId, $data['project_id'] ?? null, $data['output_name'] ?? null);
         } catch (\Throwable $throwable) {
             return response()->json(['message' => $throwable->getMessage()], 422);
         }
@@ -117,7 +113,7 @@ class FileController extends Controller
         return response()->json($merged, 201);
     }
 
-    public function import(Request $request, int $id)
+    public function import(Request $request, FileManager $files, int $id)
     {
         $data = $request->validate([
             'project_id' => ['required', 'string'],
@@ -125,7 +121,7 @@ class FileController extends Controller
 
         $file = $this->findOwnedFile($request->user()->id, $id);
         try {
-            $copy = $this->files->importToProject($file, $data['project_id']);
+            $copy = $files->importToProject($file, $data['project_id']);
         } catch (\Throwable $throwable) {
             return response()->json(['message' => $throwable->getMessage()], 422);
         }
@@ -133,7 +129,7 @@ class FileController extends Controller
         return response()->json($copy, 201);
     }
 
-    public function transcode(Request $request, int $id)
+    public function transcode(Request $request, FileManager $files, int $id)
     {
         $data = $request->validate([
             'format' => ['required', 'string', Rule::in(['mp4', 'mov', 'webm', 'mp3', 'aac'])],
@@ -143,7 +139,7 @@ class FileController extends Controller
 
         $file = $this->findOwnedFile($request->user()->id, $id);
         try {
-            $transcoded = $this->files->transcode(
+            $transcoded = $files->transcode(
                 $file,
                 $data['format'],
                 $data['width'] ?? null,
@@ -156,7 +152,7 @@ class FileController extends Controller
         return response()->json($transcoded, 201);
     }
 
-    public function attachAudio(Request $request, int $id)
+    public function attachAudio(Request $request, FileManager $files, int $id)
     {
         $data = $request->validate([
             'audio_file_id' => ['required', 'integer'],
@@ -170,7 +166,7 @@ class FileController extends Controller
         $audio = $this->findOwnedFile($userId, $data['audio_file_id']);
 
         try {
-            $merged = $this->files->attachAudioToVideo(
+            $merged = $files->attachAudioToVideo(
                 $video,
                 $audio,
                 $userId,

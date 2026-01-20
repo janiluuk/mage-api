@@ -16,17 +16,24 @@ class AudioTrackSplitJobValidator implements JobValidatorInterface
         ];
     }
 
-    public function getInputFileValidationRules(string $inputType): array
+    public function getInputFileValidationRules(string $inputType, bool $hasJobId = false): array
     {
         if ($inputType === 'files') {
+            // If job_id is provided, audio_file is optional (will use existing job output)
+            if ($hasJobId) {
+                return [
+                    'audio_file' => 'nullable|file|mimes:mp3,wav,aac,m4a,flac|max:51200',
+                ];
+            }
             return [
                 'audio_file' => 'required|file|mimes:mp3,wav,aac,m4a,flac|max:51200',
             ];
         } else {
-            // For project input type, validate project_id
-            // Also allow job_id in options for audio-track-split
+            // For project input type, project_id is always required
+            // Note: We don't validate exists:user_files,project_id here because
+            // the controller will validate project ownership and file existence
             return [
-                'project_id' => 'required_without:job_id|integer|exists:user_files,project_id',
+                'project_id' => 'required|integer',
             ];
         }
     }

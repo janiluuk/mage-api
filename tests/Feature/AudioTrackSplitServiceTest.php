@@ -52,14 +52,17 @@ class AudioTrackSplitServiceTest extends TestCase
 
         $this->actingAs($user, 'api');
 
-        $response = $this->postJson('/api/v1/custom-jobs/process', [
+        $response = $this->call('POST', '/api/v1/custom-jobs/process', [
             'job_type' => 'audio-track-split',
             'input_type' => 'files',
-            'options' => [
+            'options' => json_encode([
                 'model' => 'MDX-Net-InstVoc_HQ_3',
                 'output_format' => 'wav',
-            ],
+            ]),
+        ], [], [
             'audio_file' => $audioFile,
+        ], [
+            'Accept' => 'application/json',
         ]);
 
         $response->assertOk()
@@ -224,11 +227,17 @@ class AudioTrackSplitServiceTest extends TestCase
 
         $this->actingAs($user, 'api');
 
-        $response = $this->postJson('/api/v1/custom-jobs/process', [
+        $response = $this->call('POST', '/api/v1/custom-jobs/process', [
             'job_type' => 'audio-track-split',
             'input_type' => 'files',
-            'options' => [],
+            'options' => json_encode([
+                'model' => 'MDX-Net-InstVoc_HQ_3',
+                'output_format' => 'wav',
+            ]),
+        ], [], [
             'audio_file' => UploadedFile::fake()->create('test.txt', 100), // Invalid type
+        ], [
+            'Accept' => 'application/json',
         ]);
 
         $response->assertStatus(422)
@@ -481,17 +490,20 @@ class AudioTrackSplitServiceTest extends TestCase
 
         $this->actingAs($user, 'api');
 
-        $response = $this->postJson('/api/v1/custom-jobs/process', [
+        $response = $this->call('POST', '/api/v1/custom-jobs/process', [
             'job_type' => 'audio-track-split',
             'input_type' => 'files',
-            'options' => [
+            'options' => json_encode([
                 'output_format' => 'invalid_format', // Invalid format
-            ],
+            ]),
+        ], [], [
             'audio_file' => UploadedFile::fake()->create('test.wav', 100),
+        ], [
+            'Accept' => 'application/json',
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['options.output_format']);
+            ->assertJsonValidationErrors(['output_format']);
     }
 }
 

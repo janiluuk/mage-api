@@ -70,10 +70,14 @@ class StoryController extends Controller
             // Create video jobs for story generation
             $frameCount = $validated['frame_count'] ?? 10;
             $jobs = [];
+            
+            // Get or use default model_id for story generation
+            $modelId = $validated['config']['model_id'] ?? \App\Models\ModelFile::first()?->id ?? 1;
 
             for ($i = 0; $i < $frameCount; $i++) {
                 $videoJob = Videojob::create([
                     'user_id' => $user->id,
+                    'model_id' => $modelId,
                     'filename' => sprintf('story_%d_frame_%d', $batch->id, $i),
                     'original_filename' => sprintf('frame_%d.mp4', $i),
                     'prompt' => $validated['config']['prompt'] ?? '',

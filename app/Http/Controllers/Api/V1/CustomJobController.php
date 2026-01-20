@@ -101,8 +101,12 @@ class CustomJobController extends Controller
         }
 
         // Validate input files based on job type validator
+        // Check if job_id is provided in options before validating files
+        $hasJobId = isset($baseValidated['options']['job_id']) && !empty($baseValidated['options']['job_id']);
+        
         $inputRules = $validator->getInputFileValidationRules(
-            $baseValidated['input_type']
+            $baseValidated['input_type'],
+            $hasJobId
         );
         $inputValidated = $request->validate($inputRules);
 
