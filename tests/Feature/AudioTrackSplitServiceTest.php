@@ -224,7 +224,7 @@ class AudioTrackSplitServiceTest extends TestCase
     public function test_audio_track_split_validates_file_types(): void
     {
         $user = User::factory()->create();
-
+        
         $this->actingAs($user, 'api');
 
         $response = $this->call('POST', '/api/v1/custom-jobs/process', [
