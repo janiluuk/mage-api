@@ -192,17 +192,17 @@ class VideoExportService
 
         // Validate input paths before adding to command
         foreach ($inputPaths as $inputPath) {
+            // Check for path traversal attempts first (before realpath resolves them)
+            if (strpos($inputPath, '..') !== false) {
+                throw new \InvalidArgumentException('Invalid input file path: path traversal not allowed');
+            }
+            
             // Ensure path is within temporary directory
             $realPath = realpath($inputPath);
             $tempDir = sys_get_temp_dir();
             
             if (!$realPath || !str_starts_with($realPath, $tempDir)) {
                 throw new \InvalidArgumentException('Invalid input file path: path must be within temporary directory');
-            }
-            
-            // Check for path traversal attempts
-            if (strpos($inputPath, '..') !== false) {
-                throw new \InvalidArgumentException('Invalid input file path: path traversal not allowed');
             }
             
             // Verify file exists and is readable
@@ -221,7 +221,7 @@ class VideoExportService
         $filterComplex = $this->buildFilterComplex($job->filter_graph);
         if ($filterComplex) {
             // Validate filter complex doesn't contain shell injection attempts
-            if (preg_match('/[;&|`$()]/', $filterComplex)) {
+            if (preg_match('/[;&|`$()<>{}\\\\\\r\\n]/', $filterComplex)) {
                 throw new \InvalidArgumentException('Invalid filter graph: contains potentially dangerous characters');
             }
             

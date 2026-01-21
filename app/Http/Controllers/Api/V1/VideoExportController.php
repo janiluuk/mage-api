@@ -68,11 +68,6 @@ class VideoExportController extends Controller
             $service = app(VideoExportService::class);
             $jobId = (int) $job->id;
             
-            // Validate job ID is a positive integer
-            if ($jobId <= 0) {
-                throw new \InvalidArgumentException('Invalid job ID');
-            }
-            
             // Process job in background
             // TODO: Use Laravel queue system (Queue::push()) for production
             // For now, use exec to run in background on Linux/Unix systems
