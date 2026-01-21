@@ -527,7 +527,11 @@ class Videojob extends Model implements HasMedia
         }
 
         $info = [];
-        $queuedAt = $this->queued_at ?? now()->timestamp;
+        // Ensure we have a properly formatted timestamp for DB comparison
+        $queuedAt = $this->queued_at;
+        if (!$queuedAt) {
+            $queuedAt = now();
+        }
 
         // Optimize: Single query to get both counts
         $counts = DB::table('video_jobs')
