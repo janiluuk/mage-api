@@ -532,8 +532,8 @@ class Videojob extends Model implements HasMedia
         // Optimize: Single query to get both counts
         $counts = DB::table('video_jobs')
             ->selectRaw('
-                COUNT(CASE WHEN status = ? THEN 1 END) as processing,
-                COUNT(CASE WHEN status = ? THEN 1 END) as approved
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as processing,
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as approved
             ', [self::STATUS_PROCESSING, self::STATUS_APPROVED])
             ->first();
 
