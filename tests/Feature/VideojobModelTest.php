@@ -401,9 +401,9 @@ class VideojobModelTest extends TestCase
         $videoJob->verifyAndCleanPreviews();
 
         $videoJob->refresh();
-        $this->assertFalse($videoJob->preview_animation);
-        $this->assertFalse($videoJob->preview_img);
-        $this->assertFalse($videoJob->url);
+        $this->assertNull($videoJob->preview_animation);
+        $this->assertNull($videoJob->preview_img);
+        $this->assertNull($videoJob->url);
     }
 
     public function test_verify_and_clean_previews_preserves_valid_files(): void

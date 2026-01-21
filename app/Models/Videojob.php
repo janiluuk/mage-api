@@ -113,16 +113,16 @@ class Videojob extends Model implements HasMedia
         if (!$this->hasPreviewAnimation() && !empty($this->preview_animation)) {
             Log::info('Removing preview animation due to missing file', ['file' => $this->getPreviewAnimationPath()]);
 
-            $this->preview_animation = false;
+            $this->preview_animation = null;
         }
         if (!$this->hasPreviewImage() && !empty($this->preview_img)) {
             Log::info('Removing preview image due to missing file', ['file' => $this->getPreviewImagePath()]);
 
-            $this->preview_img = false;
+            $this->preview_img = null;
         }
         if (!$this->hasFinishedVideo() && !empty($this->url)) {
             Log::info('Removing finished video due to missing file', ['file' => $this->getFinishedVideoPath()]);
-            $this->url = false;
+            $this->url = null;
         }
         $this->save();
         return;
@@ -534,11 +534,11 @@ class Videojob extends Model implements HasMedia
             ->selectRaw('
                 SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as processing,
                 SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as approved
-            ', [self::STATUS_PROCESSING, self::STATUS_APPROVED])
+            ', ['processing', 'approved'])
             ->first();
 
-        $info['total_jobs_processing'] = (int) ($counts->processing ?? 0);
-        $info['total_jobs_in_queue'] = (int) ($counts->approved ?? 0);
+        $info['total_jobs_processing'] = $counts->processing ?? 0;
+        $info['total_jobs_in_queue'] = $counts->approved ?? 0;
 
         // Calculate position in queue
         $info['your_position'] = DB::table('video_jobs')
