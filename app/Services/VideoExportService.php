@@ -190,6 +190,27 @@ class VideoExportService
     {
         $cmd = [];
 
+        // Validate input paths before adding to command
+        foreach ($inputPaths as $inputPath) {
+            // Ensure path is within temporary directory
+            $realPath = realpath($inputPath);
+            $tempDir = sys_get_temp_dir();
+            
+            if (!$realPath || !str_starts_with($realPath, $tempDir)) {
+                throw new \InvalidArgumentException('Invalid input file path: path must be within temporary directory');
+            }
+            
+            // Check for path traversal attempts
+            if (strpos($inputPath, '..') !== false) {
+                throw new \InvalidArgumentException('Invalid input file path: path traversal not allowed');
+            }
+            
+            // Verify file exists and is readable
+            if (!is_file($realPath) || !is_readable($realPath)) {
+                throw new \InvalidArgumentException('Invalid input file path: file does not exist or is not readable');
+            }
+        }
+
         // Add input files
         foreach ($inputPaths as $inputPath) {
             $cmd[] = '-i';
@@ -199,6 +220,11 @@ class VideoExportService
         // Build filter complex
         $filterComplex = $this->buildFilterComplex($job->filter_graph);
         if ($filterComplex) {
+            // Validate filter complex doesn't contain shell injection attempts
+            if (preg_match('/[;&|`$()]/', $filterComplex)) {
+                throw new \InvalidArgumentException('Invalid filter graph: contains potentially dangerous characters');
+            }
+            
             $cmd[] = '-filter_complex';
             $cmd[] = $filterComplex;
         }
@@ -230,7 +256,7 @@ class VideoExportService
 
         // Bitrate override
         if (isset($options['bitrate']) && $options['bitrate']) {
-            $bitrate = (float) $options['bitrate'] * 1000000; // Convert MB/s to bits/s
+            $bitrate = (float) $options['bitrate'] * 1000000; // Convert Mbps to bps
             $cmd[] = '-b:v';
             $cmd[] = (string) $bitrate;
         }

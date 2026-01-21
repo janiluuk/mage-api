@@ -7,6 +7,7 @@ use App\Models\VideoExportJob;
 use App\Services\VideoExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\StreamedResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
@@ -65,7 +66,12 @@ class VideoExportController extends Controller
             // TODO: Use Laravel queue system for better job management
             // For now, start processing in background using exec
             $service = app(VideoExportService::class);
-            $jobId = $job->id;
+            $jobId = (int) $job->id;
+            
+            // Validate job ID is a positive integer
+            if ($jobId <= 0) {
+                throw new \InvalidArgumentException('Invalid job ID');
+            }
             
             // Process job in background
             // TODO: Use Laravel queue system (Queue::push()) for production
