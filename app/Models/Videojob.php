@@ -527,13 +527,22 @@ class Videojob extends Model implements HasMedia
         // Allow text/plain in testing environment for fake file uploads
         $testMimeTypes = app()->environment('testing') ? ['text/plain'] : [];
         
-        $this->addMediaCollection('preview')->acceptsMimeTypes(array_merge(['image/jpeg', 'image/png', 'image/gif', 'image/apng', 'image/webp'], $testMimeTypes))->onlyKeepLatest(20);
+        $this->addMediaCollection('preview')
+            ->useDisk('public')  // Use public disk which is faked in tests
+            ->acceptsMimeTypes(array_merge(['image/jpeg', 'image/png', 'image/gif', 'image/apng', 'image/webp'], $testMimeTypes))
+            ->onlyKeepLatest(20);
         
         // Skip responsive images in testing to avoid FFMpeg/filesystem issues
         if (app()->environment('testing')) {
-            $this->addMediaCollection('thumbnails')->acceptsMimeTypes(array_merge(['image/jpeg', 'image/png'], $testMimeTypes))->onlyKeepLatest(3);
+            $this->addMediaCollection('thumbnails')
+                ->useDisk('public')  // Use public disk which is faked in tests
+                ->acceptsMimeTypes(array_merge(['image/jpeg', 'image/png'], $testMimeTypes))
+                ->onlyKeepLatest(3);
         } else {
-            $this->addMediaCollection('thumbnails')->withResponsiveImages()->acceptsMimeTypes(array_merge(['image/jpeg', 'image/png'], $testMimeTypes))->onlyKeepLatest(3);
+            $this->addMediaCollection('thumbnails')
+                ->withResponsiveImages()
+                ->acceptsMimeTypes(array_merge(['image/jpeg', 'image/png'], $testMimeTypes))
+                ->onlyKeepLatest(3);
         }
         
         $this->addMediaCollection('original')
