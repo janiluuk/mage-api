@@ -189,7 +189,7 @@ class VideojobApiEndpointsTest extends TestCase
         $user = User::factory()->create();
         $approvedJob = Videojob::factory()->for($user, 'user')->create([
             'status' => Videojob::STATUS_APPROVED,
-            'queued_at' => Carbon::now(),  // Pass Carbon object instead of timestamp integer
+            'queued_at' => Carbon::now(),
             'frame_count' => 5,
         ]);
 
@@ -199,7 +199,7 @@ class VideojobApiEndpointsTest extends TestCase
 
         Videojob::factory()->create([
             'status' => Videojob::STATUS_APPROVED,
-            'queued_at' => Carbon::now()->addMinute(),  // Pass Carbon object instead of timestamp integer
+            'queued_at' => Carbon::now()->addMinute(),
         ]);
 
         $this->actingAs($user, 'api');
