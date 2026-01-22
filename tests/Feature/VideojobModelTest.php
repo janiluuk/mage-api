@@ -79,8 +79,8 @@ class VideojobModelTest extends TestCase
     {
         $videoJob = Videojob::factory()->for($this->user, 'user')->create();
 
-        // Create a fake finished media file
-        $mediaFile = UploadedFile::fake()->create('test-video.mp4', 1000);
+        // Create a fake finished media file with proper MIME type
+        $mediaFile = UploadedFile::fake()->createWithContent('test-video.mp4', 'fake video content');
         $media = $videoJob->addMedia($mediaFile)
             ->toMediaCollection(Videojob::MEDIA_FINISHED);
 
@@ -282,9 +282,8 @@ class VideojobModelTest extends TestCase
         ]);
 
         // Step 3: Add original media (simulating upload)
-        $originalFile = UploadedFile::fake()->create('original.mp4', 1000);
+        $originalFile = UploadedFile::fake()->createWithContent('original.mp4', 'fake video content');
         $originalMedia = $videoJob->addMedia($originalFile)
-            ->withResponsiveImages()
             ->preservingOriginal()
             ->toMediaCollection(Videojob::MEDIA_ORIGINAL);
 
@@ -305,9 +304,12 @@ class VideojobModelTest extends TestCase
         $this->assertSame(50, $videoJob->progress);
 
         // Step 5: Add finished video media (simulating job completion)
-        $finishedFile = UploadedFile::fake()->create('finished-video.mp4', 2000);
+        $finishedFile = UploadedFile::fake()->createWithContent('finished-video.mp4', 'fake finished video content');
         $finishedMedia = $videoJob->addMedia($finishedFile)
             ->toMediaCollection(Videojob::MEDIA_FINISHED);
+
+        // Refresh to get updated media relationships
+        $videoJob->refresh();
 
         // Step 6: Mark job as finished
         $videoJob->status = Videojob::STATUS_FINISHED;
@@ -363,7 +365,7 @@ class VideojobModelTest extends TestCase
         ]);
 
         // Add finished media
-        $finishedFile = UploadedFile::fake()->create('completed-video.mp4', 1500);
+        $finishedFile = UploadedFile::fake()->createWithContent('completed-video.mp4', 'fake completed video content');
         $videoJob->addMedia($finishedFile)
             ->toMediaCollection(Videojob::MEDIA_FINISHED);
 
@@ -401,9 +403,9 @@ class VideojobModelTest extends TestCase
         $videoJob->verifyAndCleanPreviews();
 
         $videoJob->refresh();
-        $this->assertFalse($videoJob->preview_animation);
-        $this->assertFalse($videoJob->preview_img);
-        $this->assertFalse($videoJob->url);
+        $this->assertNull($videoJob->preview_animation);
+        $this->assertNull($videoJob->preview_img);
+        $this->assertNull($videoJob->url);
     }
 
     public function test_verify_and_clean_previews_preserves_valid_files(): void
