@@ -182,14 +182,14 @@ class VideojobApiEndpointsTest extends TestCase
         $response->assertOk();
         $response->assertJsonCount(3);
     }
-public function test_status_includes_queue_snapshot_for_approved_job(): void
+    public function test_status_includes_queue_snapshot_for_approved_job(): void
     {
         Carbon::setTestNow('2024-05-05 12:00:00');
 
         $user = User::factory()->create();
         $approvedJob = Videojob::factory()->for($user, 'user')->create([
             'status' => Videojob::STATUS_APPROVED,
-            'queued_at' => Carbon::now()->timestamp,
+            'queued_at' => Carbon::now(),  // Pass Carbon object instead of timestamp integer
             'frame_count' => 5,
         ]);
 
@@ -199,7 +199,7 @@ public function test_status_includes_queue_snapshot_for_approved_job(): void
 
         Videojob::factory()->create([
             'status' => Videojob::STATUS_APPROVED,
-            'queued_at' => Carbon::now()->addMinute()->timestamp,
+            'queued_at' => Carbon::now()->addMinute(),  // Pass Carbon object instead of timestamp integer
         ]);
 
         $this->actingAs($user, 'api');
