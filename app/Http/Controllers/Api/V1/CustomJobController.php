@@ -154,8 +154,14 @@ class CustomJobController extends Controller
 
                     foreach ($projectFiles as $file) {
                         $fileDisk = $file->disk ?? 'local';
-                        $filePath = Storage::disk($fileDisk)
-                            ->path($file->path);
+                        // Use Storage::disk()->path() for consistent path handling
+                        /**
+                         * Get filesystem adapter for the disk
+                         *
+                         * @var \Illuminate\Filesystem\FilesystemAdapter $adapter
+                         */
+                        $adapter = Storage::disk($fileDisk);
+                        $filePath = $adapter->path($file->path);
                         if (file_exists($filePath)) {
                             $videoFiles[] = $filePath;
                         }
@@ -193,7 +199,14 @@ class CustomJobController extends Controller
                 }
 
                 $audioDisk = $audioFiles->disk ?? 'local';
-                $audioFile = Storage::disk($audioDisk)->path($audioFiles->path);
+                // Use Storage::disk()->path() for consistent path handling
+                /**
+                 * Get filesystem adapter for the disk
+                 *
+                 * @var \Illuminate\Filesystem\FilesystemAdapter $adapter
+                 */
+                $adapter = Storage::disk($audioDisk);
+                $audioFile = $adapter->path($audioFiles->path);
 
                 if (!file_exists($audioFile)) {
                     return response()->json(
@@ -207,9 +220,14 @@ class CustomJobController extends Controller
             } else {
                 // Handle file uploads
                 if ($request->hasFile('audio_file')) {
-                    $audioFile = $request->file('audio_file')
+                    $audioFilePath = $request->file('audio_file')
                         ->store('temp/custom-jobs', 'local');
-                    $audioFile = Storage::disk('local')->path($audioFile);
+                    // Use Storage::disk()->path() for consistent path handling
+                    /**
+                     * @var \Illuminate\Filesystem\FilesystemAdapter $localDisk
+                     */
+                    $localDisk = Storage::disk('local');
+                    $audioFile = $localDisk->path($audioFilePath);
                 }
 
                 if (!$isAudioOnly && $request->hasFile('video_files')) {
@@ -217,8 +235,12 @@ class CustomJobController extends Controller
                     foreach ($request->file('video_files') as $videoFile) {
                         $videoPath = $videoFile
                             ->store('temp/custom-jobs', 'local');
-                        $videoFiles[] = Storage::disk('local')
-                            ->path($videoPath);
+                        // Use Storage::disk()->path() for consistent path handling
+                        /**
+                         * @var \Illuminate\Filesystem\FilesystemAdapter $localDisk
+                         */
+                        $localDisk = Storage::disk('local');
+                        $videoFiles[] = $localDisk->path($videoPath);
                     }
                 }
             }
@@ -306,6 +328,7 @@ class CustomJobController extends Controller
             $videoJob->resetProgress(Videojob::STATUS_APPROVED);
             $videoJob->queued_at = Carbon::now();
             $videoJob->save();
+            $videoJob->refresh();
 
             // Dispatch appropriate job based on job_type
             $serviceClass = $validator->getServiceClass();
@@ -332,7 +355,7 @@ class CustomJobController extends Controller
             Log::info(
                 'Custom job queued',
                 [
-                    'job_id' => $videoJob->id,
+                    'job_id' => $videoJob->getKey(),
                     'job_type' => $baseValidated['job_type'],
                     'input_type' => $baseValidated['input_type'],
                     'options' => $validatedOptions,
@@ -344,7 +367,7 @@ class CustomJobController extends Controller
                 [
                     'success' => true,
                     'message' => 'Custom job queued successfully',
-                    'job_id' => $videoJob->id,
+                    'job_id' => $videoJob->getKey(),
                     'status' => $videoJob->status,
                 ]
             );

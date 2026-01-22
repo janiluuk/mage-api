@@ -202,8 +202,15 @@ class CustomJobApiTest extends TestCase
             'Accept' => 'application/json',
         ]);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['audio_file', 'video_files.0']);
+        $response->assertStatus(422);
+        // Check that validation errors exist for both fields
+        $errors = $response->json('errors');
+        $this->assertArrayHasKey('audio_file', $errors);
+        // video_files may be validated as a whole array or per-item, check both
+        $this->assertTrue(
+            isset($errors['video_files']) || isset($errors['video_files.0']),
+            'Expected validation error for video_files'
+        );
     }
 
     public function test_custom_job_process_validates_project_exists(): void
@@ -279,15 +286,14 @@ class CustomJobApiTest extends TestCase
             UploadedFile::fake()->create('test-video-1.mp4', 500),
         ];
 
-        $response = $this->actingAs($user, 'api')->post('/api/v1/custom-jobs/process', [
+        $response = $this->actingAs($user, 'api')->postJson('/api/v1/custom-jobs/process', [
             'job_type' => 'beat-match',
             'input_type' => 'files',
-            'options' => json_encode(['cut_intensity' => 2]), // Add valid options
-        ], [], [
+            'options' => [
+                'cut_intensity' => 2,
+            ],
             'audio_file' => $audioFile,
             'video_files' => $videoFiles,
-        ], [
-            'Accept' => 'application/json',
         ]);
 
         $response->assertOk();

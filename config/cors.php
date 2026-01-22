@@ -15,13 +15,18 @@ return [
     |
     */
 
-    'paths' => ['/*','/api/upload','storage/*', 'api/*', 'sanctum/csrf-cookie'],
+    'paths' => ['api/*', '/api/upload', 'storage/*', 'sanctum/csrf-cookie'],
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    'allowed_origins' => env('CORS_ALLOWED_ORIGINS')
+        ? explode(',', env('CORS_ALLOWED_ORIGINS'))
+        : [
+            env('FRONTEND_URL', 'http://localhost:8080'),
+            env('APP_URL', 'http://localhost'),
+        ],
 
-    'allowed_origins_patterns' => ['*'],
+    'allowed_origins_patterns' => [],
 
     'allowed_headers' => ['*'],
 
@@ -29,5 +34,5 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => true,
+    'supports_credentials' => env('CORS_SUPPORTS_CREDENTIALS', true),
 ];

@@ -145,7 +145,7 @@ class VideoJobOperationsController extends Controller
     public function extend(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'video_job_id' => 'required|integer|exists:video_jobs,id',
+            'video_job_id' => 'required|integer',
             'length' => 'nullable|numeric|between:1,20',
             'prompt' => 'nullable|string|max:2000',
             'negative_prompt' => 'nullable|string|max:2000',
@@ -153,6 +153,7 @@ class VideoJobOperationsController extends Controller
             'denoising' => 'nullable|numeric|between:0,1',
         ]);
 
+        // findOrFail will return 404 if not found
         $baseJob = Videojob::findOrFail($validated['video_job_id']);
 
         // Check authorization
@@ -191,9 +192,15 @@ class VideoJobOperationsController extends Controller
                 }
             }
             
+            // Generate unique identifier for this extension job
+            $uniqueId = uniqid();
+            
             $newJob->user_id = $request->user()->id;
             $newJob->generator = 'deforum';
             $newJob->model_id = $persistedParameters['model_id'] ?? $baseJob->model_id;
+            $newJob->filename = 'extension_' . $baseJob->id . '_' . $uniqueId . '.mp4';
+            $newJob->original_filename = $baseJob->original_filename ?? ('extended_' . $baseJob->id . '.mp4');
+            $newJob->outfile = 'out_extension_' . $baseJob->id . '_' . $uniqueId . '.mp4';
             $newJob->prompt = $validated['prompt'] ?? $persistedParameters['prompts']['positive'] ?? $baseJob->prompt;
             $newJob->negative_prompt = $validated['negative_prompt'] ?? $persistedParameters['prompts']['negative'] ?? $baseJob->negative_prompt;
             $newJob->length = $validated['length'] ?? $persistedParameters['length'] ?? $baseJob->length;
@@ -246,12 +253,13 @@ class VideoJobOperationsController extends Controller
     public function trim(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'video_job_id' => 'required|integer|exists:video_jobs,id',
+            'video_job_id' => 'required|integer',
             'start_seconds' => 'required|numeric|min:0',
             'end_seconds' => 'required|numeric|gt:start_seconds',
             'output_name' => 'nullable|string|max:255',
         ]);
 
+        // findOrFail will return 404 if not found
         $videoJob = Videojob::findOrFail($validated['video_job_id']);
 
         // Check authorization

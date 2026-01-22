@@ -83,7 +83,12 @@ class AudioTrackSplitService
             if (empty($processedDirRelative) || $processedDirRelative === '/') {
                 $processedDirRelative = 'processed';
             }
-            $processedPath = storage_path('app/' . $processedDirRelative);
+            // Use Storage::disk()->path() for consistent path handling
+            /**
+             * @var \Illuminate\Filesystem\FilesystemAdapter $localDisk
+             */
+            $localDisk = Storage::disk('local');
+            $processedPath = $localDisk->path($processedDirRelative);
             if (!is_dir($processedPath)) {
                 mkdir($processedPath, 0755, true);
             }

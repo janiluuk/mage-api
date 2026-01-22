@@ -6,22 +6,22 @@ use Illuminate\Database\Migrations\Migration;
 
 class CreateMediaManagerLockListTable extends Migration
 {
-    protected $tableName;
-
-    public function __construct()
-    {
-        $this->tableName = config('mediaManager.table_locked', 'locked');
-    }
-
     /**
      * Run the migrations.
+     * 
+     * Note: This migration is for the abandoned ctf0/media-manager package.
+     * The table is no longer used but kept for historical migration compatibility.
      */
     public function up()
     {
-        Schema::create($this->tableName, function (Blueprint $table) {
-            $table->bigIncrements('id');
-            $table->string('path');
-        });
+        $tableName = 'locked'; // Default table name (mediaManager config no longer exists)
+        
+        if (!Schema::hasTable($tableName)) {
+            Schema::create($tableName, function (Blueprint $table) {
+                $table->bigIncrements('id');
+                $table->string('path');
+            });
+        }
     }
 
     /**
@@ -29,6 +29,6 @@ class CreateMediaManagerLockListTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists($this->tableName);
+        Schema::dropIfExists('locked');
     }
 }

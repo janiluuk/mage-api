@@ -3,14 +3,8 @@ name: PHP Tests
 on:
   push:
     branches: [ main, develop ]
-    paths:
-      - 'mage-api/**'
-      - '.github/workflows/tests.yml'
   pull_request:
     branches: [ main, develop ]
-    paths:
-      - 'mage-api/**'
-      - '.github/workflows/tests.yml'
 
 jobs:
   test:
@@ -20,6 +14,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install FFMpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version || (echo "FFMpeg installation failed" && exit 1)
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -28,7 +28,6 @@ jobs:
           coverage: none
 
       - name: Copy .env file
-        working-directory: ./mage-api
         run: |
           if [ -f .env.example ]; then
             cp .env.example .env
@@ -45,23 +44,18 @@ jobs:
           echo "SESSION_DRIVER=array" >> .env
 
       - name: Install Composer dependencies
-        working-directory: ./mage-api
         run: composer install --prefer-dist --no-progress --no-interaction
 
       - name: Generate application key
-        working-directory: ./mage-api
         run: php artisan key:generate
 
       - name: Generate JWT secret
-        working-directory: ./mage-api
         run: php artisan jwt:secret --force || echo "JWT_SECRET already set"
 
       - name: Run database migrations
-        working-directory: ./mage-api
         run: php artisan migrate --force --env=testing
         continue-on-error: true
 
       - name: Run PHPUnit tests
-        working-directory: ./mage-api
         run: vendor/bin/phpunit --testdox
 
