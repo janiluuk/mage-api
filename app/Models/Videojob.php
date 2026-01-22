@@ -565,6 +565,19 @@ class Videojob extends Model implements HasMedia
         if (!$queuedAt) {
             $queuedAt = now();
         }
+        
+        // The 'timestamp' cast means queued_at is returned as integer when accessed via model,
+        // but it's stored as datetime string in database. We need to convert to datetime string
+        // for DB queries.
+        if ($queuedAt instanceof \Carbon\Carbon) {
+            $queuedAtForDb = $queuedAt->toDateTimeString();
+        } elseif (is_numeric($queuedAt)) {
+            // Convert timestamp integer to datetime string
+            $queuedAtForDb = date('Y-m-d H:i:s', $queuedAt);
+        } else {
+            // Already a string, use as-is
+            $queuedAtForDb = $queuedAt;
+        }
 
         // Optimize: Single query to get both counts
         $counts = DB::table('video_jobs')
@@ -580,10 +593,10 @@ class Videojob extends Model implements HasMedia
         // Calculate position in queue
         $info['your_position'] = DB::table('video_jobs')
             ->where('status', 'approved')
-            ->where(function ($query) use ($queuedAt) {
-                $query->where('queued_at', '<', $queuedAt)
-                    ->orWhere(function ($nested) use ($queuedAt) {
-                        $nested->where('queued_at', $queuedAt)
+            ->where(function ($query) use ($queuedAtForDb) {
+                $query->where('queued_at', '<', $queuedAtForDb)
+                    ->orWhere(function ($nested) use ($queuedAtForDb) {
+                        $nested->where('queued_at', $queuedAtForDb)
                             ->where('id', '<=', $this->id);
                     });
             })

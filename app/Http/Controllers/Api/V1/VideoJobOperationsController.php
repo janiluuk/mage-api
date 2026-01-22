@@ -192,9 +192,15 @@ class VideoJobOperationsController extends Controller
                 }
             }
             
+            // Generate unique identifier for this extension job
+            $uniqueId = uniqid();
+            
             $newJob->user_id = $request->user()->id;
             $newJob->generator = 'deforum';
             $newJob->model_id = $persistedParameters['model_id'] ?? $baseJob->model_id;
+            $newJob->filename = 'extension_' . $baseJob->id . '_' . $uniqueId . '.mp4';
+            $newJob->original_filename = $baseJob->original_filename ?? ('extended_' . $baseJob->id . '.mp4');
+            $newJob->outfile = 'out_extension_' . $baseJob->id . '_' . $uniqueId . '.mp4';
             $newJob->prompt = $validated['prompt'] ?? $persistedParameters['prompts']['positive'] ?? $baseJob->prompt;
             $newJob->negative_prompt = $validated['negative_prompt'] ?? $persistedParameters['prompts']['negative'] ?? $baseJob->negative_prompt;
             $newJob->length = $validated['length'] ?? $persistedParameters['length'] ?? $baseJob->length;
