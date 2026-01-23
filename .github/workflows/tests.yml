@@ -1,0 +1,61 @@
+name: PHP Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install FFMpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version || (echo "FFMpeg installation failed" && exit 1)
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo, pdo_mysql, pdo_sqlite, bcmath, gd, exif, pcntl, sqlite3
+          coverage: none
+
+      - name: Copy .env file
+        run: |
+          if [ -f .env.example ]; then
+            cp .env.example .env
+          else
+            touch .env
+          fi
+          # phpunit.xml already configures SQLite for testing
+          # These env vars are just for Laravel initialization
+          echo "APP_KEY=" >> .env
+          echo "APP_ENV=testing" >> .env
+          echo "JWT_SECRET=testing-secret-key-for-github-actions" >> .env
+          echo "QUEUE_CONNECTION=sync" >> .env
+          echo "CACHE_DRIVER=array" >> .env
+          echo "SESSION_DRIVER=array" >> .env
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Generate application key
+        run: php artisan key:generate
+
+      - name: Generate JWT secret
+        run: php artisan jwt:secret --force || echo "JWT_SECRET already set"
+
+      - name: Run database migrations
+        run: php artisan migrate --force --env=testing
+        continue-on-error: true
+
+      - name: Run PHPUnit tests
+        run: vendor/bin/phpunit --testdox
+

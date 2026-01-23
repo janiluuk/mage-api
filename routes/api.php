@@ -32,8 +32,19 @@ use App\Http\Controllers\Api\UserRatingController;
 use App\Http\Controllers\Api\WalletTypeController;
 use App\Http\Controllers\Api\SupportRequestController;
 use App\Http\Controllers\Api\FinanceOperationsController;
-use App\Http\Controllers\Api\SdInstanceController;
+use App\Http\Controllers\Api\FileController;
+use App\Http\Controllers\Api\Admin\FileAdminController;
+use App\Http\Controllers\Api\GeneratorInstanceController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\ComfyUIWorkflowController;
+use App\Http\Controllers\Api\V1\VideoJobOperationsController;
+use App\Http\Controllers\Api\V1\BatchController;
+use App\Http\Controllers\Api\V1\PresetController;
+use App\Http\Controllers\Api\V1\CustomJobController;
+use App\Http\Controllers\Api\V1\StoryController;
+use App\Http\Controllers\Api\V1\DeforumController;
+use App\Http\Controllers\Api\V1\VideoEditorProjectController;
+use App\Http\Controllers\Api\V1\VideoExportController;
 use LaravelJsonApi\Laravel\Routing\Relationships;
 
 /*
@@ -79,86 +90,16 @@ JsonApiRoute::server('v1')
         $server->resource('permissions', JsonApiController::class)->relationships(function ($relationships) { 
             $relationships->hasOne('role');
         })->only('index');
-        
+
+        // Note: Batches use REST API endpoints in v1 prefix group below, not JSON:API
+        // $server->resource('batches', JsonApiController::class);
+
         $server->resource('tags', JsonApiController::class)->relationships(function ($relationships) {
             $relationships->hasMany('items');
         });
     });
 
-JsonApiRoute::server('v2')->prefix('v2')->resources(function (ResourceRegistrar $server) {
-    // JSON:API resources for v2 go here.
-});
-
-JsonApiRoute::server('v2')->prefix('v2')->routes(function ($api) {
-    $api->get('me', [MeController::class, 'readProfile']);
-    $api->patch('me', [MeController::class, 'updateProfile']);
-});
-
-// ============================================================================
-// Utility Routes
-// ============================================================================
-
-Route::get('/csrf-token', function () {
-    return response()->json([
-        'csrfToken' => csrf_token(),
-    ]);
-});
-
-Route::get('/status/{serviceName?}', [StatusController::class, 'status']);
-
-// ============================================================================
-// Audio Generation Routes (ComfyUI Integration)
-// ============================================================================
-
-Route::prefix('audio')->group(function () {
-    Route::get('/stream', [AudioController::class, 'stream']);
-    Route::get('/status', [AudioController::class, 'status']);
-    Route::get('/queue', [AudioController::class, 'queue']);
-    Route::get('/config', [AudioController::class, 'config']);
-});
-
-// ============================================================================
-// Video Job Routes (Legacy)
-// ============================================================================
-
-Route::prefix('video-jobs')->group(function () {
-    // Public routes
-    Route::post('/upload', [VideojobController::class, 'upload'])->middleware('api');
-    Route::post('/generate', [VideojobController::class, 'generate'])->middleware('api');
-    Route::post('/finalize', [VideojobController::class, 'finalize'])->middleware('api');
-    Route::post('/cancel/{videoId}', [VideojobController::class, 'cancelJob'])->middleware('api');
-    
-    // Authenticated routes
-    Route::middleware('auth:api')->group(function () {
-        Route::get('/queue', [VideojobController::class, 'getVideoJobs']);
-        Route::get('/processing/status', [VideojobController::class, 'processingStatus']);
-        Route::get('/processing/queue', [VideojobController::class, 'processingQueue']);
-        Route::patch('/{videoId}/audio', [VideojobController::class, 'attachAudio']);
-    });
-});
-
-// ============================================================================
-// Authentication Routes
-// ============================================================================
-
-// V1 Auth Routes
-Route::prefix('auth')->group(function () {
-    // Public routes
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/verified-email', [AuthController::class, 'emailVerification']);
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/forgot-password', [AuthController::class, 'sendLinkForgotPassword']);
-    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
-    
-    // Authenticated routes
-    Route::middleware('auth:api')->group(function () {
-        Route::post('/logout', [AuthController::class, 'logout']);
-        Route::get('/me', [AuthController::class, 'me']);
-    });
-});
-
-// V2 Auth Routes
-Route::prefix('v2')->middleware('json.api')->group(function () {
+Route::prefix('v2')->group(function () {
     Route::post('/login', LoginController::class)->name('login');
     Route::post('/logout', LogoutController::class)->middleware('auth:api');
     Route::post('/register', RegisterController::class);
@@ -166,10 +107,13 @@ Route::prefix('v2')->middleware('json.api')->group(function () {
     Route::post('/password-reset', ResetPasswordController::class)->name('password.reset');
 });
 
-// Social Authentication Routes
-Route::prefix('{providerName}')->group(function () {
-    Route::get('/auth', [SocialiteAuthController::class, 'authUserFromSocialite']);
-    Route::get('/callback', [SocialiteAuthController::class, 'addUserFromSocialite']);
+JsonApiRoute::server('v2')->prefix('v2')->resources(function (ResourceRegistrar $server) {
+    $server->resource('users', JsonApiController::class)->relationships(function ($relationships) {
+        $relationships->hasOne('userRole');
+    });
+
+    Route::get('me', [MeController::class, 'readProfile']);
+    Route::patch('me', [MeController::class, 'updateProfile']);
 });
 
 // ============================================================================
@@ -178,39 +122,97 @@ Route::prefix('{providerName}')->group(function () {
 
 Route::prefix('v1')->middleware('auth:api')->group(function () {
     Route::post('/uploads/{resource}/{id}/{field}', UploadController::class);
+    
+    // Video job operations
+    Route::post('/video-jobs/add-soundtrack', [VideoJobOperationsController::class, 'addSoundtrack']);
+    Route::post('/video-jobs/extend', [VideoJobOperationsController::class, 'extend']);
+    Route::post('/video-jobs/trim', [VideoJobOperationsController::class, 'trim']);
+    
+    // Custom job processing
+    Route::post('/custom-jobs/process', [CustomJobController::class, 'process']);
+    Route::get('/custom-jobs/{id}/status', [CustomJobController::class, 'status']);
+    
+    // Batch processing routes
+    Route::get('/batches', [BatchController::class, 'index']);
+    Route::post('/batches', [BatchController::class, 'store']);
+    Route::get('/batches/{id}', [BatchController::class, 'show']);
+    Route::put('/batches/{id}', [BatchController::class, 'update']);
+    Route::delete('/batches/{id}', [BatchController::class, 'destroy']);
+    Route::post('/batches/{id}/jobs', [BatchController::class, 'addJobs']);
+    Route::delete('/batches/{id}/jobs', [BatchController::class, 'removeJobs']);
+    Route::post('/batches/{id}/process', [BatchController::class, 'process']);
+    Route::get('/batches/{id}/status', [BatchController::class, 'status']);
+    
+    // Preset management routes
+    Route::get('/presets/categories', [PresetController::class, 'categories']);
+    Route::get('/presets', [PresetController::class, 'index']);
+    Route::post('/presets', [PresetController::class, 'store']);
+    Route::get('/presets/{id}', [PresetController::class, 'show']);
+    Route::put('/presets/{id}', [PresetController::class, 'update']);
+    Route::delete('/presets/{id}', [PresetController::class, 'destroy']);
+    Route::post('/presets/{id}/use', [PresetController::class, 'markAsUsed']);
+    Route::post('/presets/{id}/favorite', [PresetController::class, 'toggleFavorite']);
+    Route::post('/presets/{id}/duplicate', [PresetController::class, 'duplicate']);
+    
+    // Story management routes
+    Route::get('/story', [StoryController::class, 'index']);
+    Route::post('/story/generate', [StoryController::class, 'generate']);
+    Route::get('/story/{id}', [StoryController::class, 'show']);
+    Route::put('/story/{id}', [StoryController::class, 'update']);
+    Route::put('/story/{id}/jobs/order', [StoryController::class, 'updateJobOrder']);
+    Route::post('/story/{id}/jobs', [StoryController::class, 'assignJobs']);
+    Route::delete('/story/{id}/jobs', [StoryController::class, 'removeJobs']);
+    
+    // Story batch operations (legacy endpoints, kept for compatibility)
+    Route::get('/story/batch/{batchId}', [StoryController::class, 'getBatchStatus']);
+    Route::post('/story/batch/{batchId}/pause', [StoryController::class, 'pauseBatch']);
+    Route::post('/story/batch/{batchId}/resume', [StoryController::class, 'resumeBatch']);
+    Route::delete('/story/batch/{batchId}', [StoryController::class, 'cancelBatch']);
+    Route::post('/story/batch/{batchId}/frames', [StoryController::class, 'persistFrame']);
+    Route::post('/story/share', [StoryController::class, 'createShareLink']);
+    
+    // Deforum Live Control routes
+    Route::post('/deforum/live', [DeforumController::class, 'sendLiveUpdate']);
+    Route::get('/deforum/live/status', [DeforumController::class, 'getLiveStatus']);
+    
+    // Video Editor Project routes
+    Route::apiResource('video-editor-projects', VideoEditorProjectController::class);
+    
+    // Video Export routes
+    Route::post('/video-export', [VideoExportController::class, 'store']);
+    Route::get('/video-export/{id}', [VideoExportController::class, 'show']);
+    Route::get('/video-export/{id}/stream', [VideoExportController::class, 'stream']); // SSE endpoint
+    Route::delete('/video-export/{id}', [VideoExportController::class, 'destroy']);
 });
 
-// ============================================================================
-// Administration Routes (Admin Only)
-// ============================================================================
+Route::post('/upload', [VideojobController::class, 'upload'])->middleware('api');
+Route::post('/generate', [VideojobController::class, 'generate'])->middleware('api');
+Route::post('/finalize', [VideojobController::class, 'finalize'])->middleware('api');
+Route::post('/cancelJob/{videoId}', [VideojobController::class, 'cancelJob'])->middleware('api');
+Route::get('/queue', [VideojobController::class, 'getVideoJobs'])->middleware('auth:api');
+Route::middleware('auth:api')->prefix('video-jobs')->group(function () {
+    Route::get('/processing/status', [VideojobController::class, 'processingStatus']);
+    Route::get('/processing/queue', [VideojobController::class, 'processingQueue']);
+    Route::get('/{videoId}/status', [VideojobController::class, 'status']);
+});
 
-Route::prefix('administration')->middleware(['AuthorizationChecker', 'IsAdministratorChecker'])->group(function () {
-    // User Management
-    Route::get('/users', [UserController::class, 'getAllUsers']);
-    Route::patch('/admin-reset-user-password', [UserController::class, 'adminResetUserPassword']);
-    Route::patch('/change-user-data', [UserController::class, 'changeUserData']);
-    Route::get('/users/{userId}/data-stats', [UserController::class, 'getUserDataStats']);
-    Route::delete('/users/purge-data', [UserController::class, 'purgeUserData']);
-    Route::patch('/change-password', [UserController::class, 'changePassword']);
+Route::middleware('auth:api')->prefix('files')->group(function () {
+    Route::get('', [FileController::class, 'index']);
+    Route::post('', [FileController::class, 'store']);
+    Route::delete('{id}', [FileController::class, 'destroy']);
+    Route::post('{id}/unzip', [FileController::class, 'unzip']);
+    Route::post('merge', [FileController::class, 'merge']);
+    Route::post('{id}/import', [FileController::class, 'import']);
+    Route::post('{id}/transcode', [FileController::class, 'transcode']);
+    Route::post('{id}/attach-audio', [FileController::class, 'attachAudio']);
+    Route::get('quota', [FileController::class, 'quota']);
     
-    // Support Request Management
-    Route::post('/support-requests', [SupportRequestController::class, 'getSupportRequestsByCriteria']);
-    
-    // Finance Operations
-    Route::get('/finance-operations/get-all', [FinanceOperationsController::class, 'getAllFinanceOperations']);
-    
-    // Order Management
-    Route::get('/orders', [OrderController::class, 'getAllOrders']);
-    Route::patch('/orders/change-order-status', [OrderController::class, 'changeOrderStatus']);
-    
-    // SD Instance Management
-    Route::get('/sd-instances', [SdInstanceController::class, 'index']);
-    Route::post('/sd-instances', [SdInstanceController::class, 'store']);
-    Route::get('/sd-instances/{id}', [SdInstanceController::class, 'show']);
-    Route::put('/sd-instances/{id}', [SdInstanceController::class, 'update']);
-    Route::patch('/sd-instances/{id}', [SdInstanceController::class, 'update']);
-    Route::delete('/sd-instances/{id}', [SdInstanceController::class, 'destroy']);
-    Route::patch('/sd-instances/{id}/toggle', [SdInstanceController::class, 'toggle']);
+    // Tag-related endpoints
+    Route::get('by-tags', [FileController::class, 'byTags']);
+    Route::get('by-tag/{tagId}', [FileController::class, 'byTag']);
+    Route::post('{id}/tags', [FileController::class, 'attachTags']);
+    Route::put('{id}/tags', [FileController::class, 'syncTags']);
+    Route::delete('{id}/tags/{tagId}', [FileController::class, 'detachTag']);
 });
 
 // ============================================================================
@@ -227,23 +229,150 @@ Route::prefix('categories')->group(function () {
     });
 });
 
-// Products
-Route::prefix('products')->group(function () {
-    Route::get('/', [ProductController::class, 'getProductsByCategoryId']);
-    Route::get('/{productId}', [ProductController::class, 'edit']);
-    Route::patch('/{productId}', [ProductController::class, 'toggleActive']);
-    
-    Route::middleware('AuthorizationChecker')->group(function () {
-        Route::get('/get-products-for-user', [ProductController::class, 'getProductsForUser']);
-        Route::post('/', [ProductController::class, 'create']);
-        Route::put('/{productId}', [ProductController::class, 'update']);
-        Route::delete('/{productId}', [ProductController::class, 'delete']);
+
+Route::prefix('/administration')->group(function () {
+    Route::middleware(['AuthorizationChecker', 'IsAdministratorChecker'])->group(function () {
+        Route::get('/users', [UserController::class, 'getAllUsers']);
+        Route::post('/support-requests', [SupportRequestController::class, 'getSupportRequestsByCriteria']);
+        Route::patch('/admin-reset-user-password', [UserController::class, 'adminResetUserPassword']);
+        Route::patch('/change-user-data', [UserController::class, 'changeUserData']);
+        Route::get('/finance-operations/get-all', [FinanceOperationsController::class, 'getAllFinanceOperations']);
+        Route::get('/orders', [OrderController::class, 'getAllOrders']);
+        Route::patch('/orders/change-order-status', [OrderController::class, 'changeOrderStatus']);
+        Route::patch('/change-password', [UserController::class, 'changePassword']);
+        Route::get('/users/{userId}/data-stats', [UserController::class, 'getUserDataStats']);
+        Route::delete('/users/purge-data', [UserController::class, 'purgeUserData']);
+        Route::get('/stats', [\App\Http\Controllers\Api\V1\StatsController::class, 'getStats']);
+        
+        // Generator instance management routes
+        Route::get('/generator-instances', [GeneratorInstanceController::class, 'index']);
+        Route::post('/generator-instances', [GeneratorInstanceController::class, 'store']);
+        Route::get('/generator-instances/{id}', [GeneratorInstanceController::class, 'show']);
+        Route::put('/generator-instances/{id}', [GeneratorInstanceController::class, 'update']);
+        Route::patch('/generator-instances/{id}', [GeneratorInstanceController::class, 'update']);
+        Route::delete('/generator-instances/{id}', [GeneratorInstanceController::class, 'destroy']);
+        Route::patch('/generator-instances/{id}/toggle', [GeneratorInstanceController::class, 'toggle']);
+
+        // Instance status and monitoring routes
+        Route::get('/instances/status', [\App\Http\Controllers\Admin\InstanceStatusController::class, 'status']);
+        Route::get('/instances/{id}/metrics-history', [\App\Http\Controllers\Admin\InstanceStatusController::class, 'metricsHistory']);
+        Route::get('/instances/{id}/job-history', [\App\Http\Controllers\Admin\InstanceStatusController::class, 'jobHistory']);
     });
 });
 
-// Properties
-Route::prefix('properties')->group(function () {
-    Route::get('/', [PropertyController::class, 'getPropertyByCategoryId']);
+Route::prefix('/administration/files')->group(function () {
+    Route::middleware(['AuthorizationChecker', 'IsAdministratorChecker'])->group(function () {
+        Route::get('/overview', [FileAdminController::class, 'index']);
+        Route::get('/users/{userId}', [FileAdminController::class, 'filesForUser']);
+        Route::put('/users/{userId}/quota', [FileAdminController::class, 'updateQuota']);
+    });
+});
+
+Route::prefix('/categories')->group(
+    function () {
+        Route::get('/', [CategoryController::class, 'getCategories']);
+
+        Route::middleware('AuthorizationChecker')->group(function () {
+            Route::get('/by-user-id/{userId?}', [CategoryController::class, 'getCategoriesWithProductsForUser']);
+        });
+
+        Route::get('/{id}', [CategoryController::class, 'getCategoryById']);
+    }
+);
+
+Route::prefix('/products')->group(
+    function () {
+        Route::get('', [ProductController::class, 'getProductsByCategoryId']);
+        Route::patch('/{productId}', [ProductController::class, 'toggleActive']);
+
+        Route::middleware('AuthorizationChecker')->group(function () {
+            Route::get('/get-products-for-user', [ProductController::class, 'getProductsForUser']);
+            Route::post('', [ProductController::class, 'create']);
+            Route::put('/{productId}', [ProductController::class, 'update']);
+            Route::delete('/{productId}', [ProductController::class, 'delete']);
+        });
+
+        Route::get('/{productId}', [ProductController::class, 'edit']);
+    }
+);
+
+Route::prefix('/messages')->group(
+    function () {
+        Route::middleware('AuthorizationChecker')->group(function () {
+            Route::get('/get-messages-by-chat-id/{chatId}', [MessageController::class, 'getMessagesByChatId']);
+            Route::post('', [MessageController::class, 'addMessage']);
+        });
+    }
+);
+
+Route::prefix('/chats')->group(
+    function () {
+        Route::middleware('AuthorizationChecker')->group(function () {
+            Route::get('/get-chats-by-current-user', [ChatController::class, 'getChatsByCurrentUser']);
+            Route::get('/get-chat-by-user-id/{userId}', [ChatController::class, 'getChatByUserId']);
+            Route::post('', [ChatController::class, 'create']);
+            Route::get('/{chatId}', [ChatController::class, 'getChatById']);
+        });
+    }
+);
+
+Route::prefix('/finance-operations')->group(
+    function () {
+        Route::middleware('AuthorizationChecker')->group(function () {
+            Route::get('', [FinanceOperationsController::class, 'getFinanceOperationsForCurrentUser']);
+            Route::post('', [FinanceOperationsController::class, 'create']);
+            Route::get('/{financeOperationsId}', [FinanceOperationsController::class, 'getFinanceOperationById']);
+            Route::put('/{financeOperationsId}', [FinanceOperationsController::class, 'changeFinanceOperationStatusToCancel']);
+            Route::patch('/change-finance-operation-status', [FinanceOperationsController::class, 'changeFinanceOperationStatus']);
+        });
+    }
+);
+
+Route::group(
+    [
+        'prefix' => '/wallet-types',
+    ],
+    function () {
+        Route::get('', [WalletTypeController::class, 'getWalletTypes']);
+    }
+);
+
+Route::group(
+    [
+        'prefix' => 'properties',
+    ],
+    function () {
+        Route::get('', [PropertyController::class, 'getPropertyByCategoryId']);
+    }
+);
+
+Route::prefix('/user-wallets')->group(
+    function () {
+        Route::middleware('AuthorizationChecker')->group(function () {
+            Route::get('', [UserWalletController::class, 'getUserWalletsForCurrentUser']);
+            Route::get('/by-wallet-type-id/{walletTypeId}', [UserWalletController::class, 'getUserWalletsByWalletTypeId']);
+            Route::post('/', [UserWalletController::class, 'save']);
+            Route::put('/', [UserWalletController::class, 'update']);
+            Route::delete('/{userWalletId}', [UserWalletController::class, 'delete']);
+        });
+    }
+);
+
+Route::prefix('/orders')->group(
+    function () {
+        Route::middleware('AuthorizationChecker')->group(function () {
+            Route::get('purchases', [OrderController::class, 'getPurchasesForCurrentUser']);
+            Route::get('sales', [OrderController::class, 'getSalesForCurrentUser']);
+            Route::post('', [OrderController::class, 'create']);
+            Route::get('/{orderId}', [OrderController::class, 'getOrderById']);
+            Route::patch('/confirm-order', [OrderController::class, 'confirmOrderById']);
+        });
+    }
+);
+
+// Payment routes
+Route::prefix('/payment')->middleware('auth:api')->group(function () {
+    Route::post('/create-intent', [PaymentController::class, 'createPaymentIntent']);
 });
 
 // Wallet Types
@@ -357,12 +486,10 @@ Route::prefix('payment')->middleware('auth:api')->group(function () {
 Route::post('/webhooks/stripe', [PaymentController::class, 'webhook'])
     ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
 
-// ============================================================================
-// Public Content Routes
-// ============================================================================
-
-// Questions (FAQ)
-Route::prefix('questions')->group(function () {
-    Route::get('/', [QuestionController::class, 'getAll']);
-    Route::get('/{questionSlug}', [QuestionController::class, 'getBySlug']);
+// ComfyUI Workflow routes
+Route::prefix('/comfyui')->middleware('auth:api')->group(function () {
+    Route::post('/workflow/process', [ComfyUIWorkflowController::class, 'process']);
+    Route::get('/workflow/status/{promptId}', [ComfyUIWorkflowController::class, 'status']);
+    Route::post('/workflow/cancel/{promptId}', [ComfyUIWorkflowController::class, 'cancel']);
+    Route::get('/image', [ComfyUIWorkflowController::class, 'getImage']);
 });

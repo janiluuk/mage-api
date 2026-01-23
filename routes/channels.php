@@ -16,3 +16,8 @@ use Illuminate\Support\Facades\Broadcast;
 Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
+
+Broadcast::channel('video-export.{jobId}', function ($user, $jobId) {
+    $job = \App\Models\VideoExportJob::find($jobId);
+    return $job && $job->user_id === $user->id;
+});

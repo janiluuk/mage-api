@@ -4,64 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3b356b9b1faf636a57f813f07354c88e",
+    "content-hash": "62174c8ae4bd8cd351811ec5c6618bed",
     "packages": [
-        {
-            "name": "asm89/stack-cors",
-            "version": "v2.3.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/asm89/stack-cors.git",
-                "reference": "acf3142e6c5eafa378dc8ef3c069ab4558993f70"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/asm89/stack-cors/zipball/acf3142e6c5eafa378dc8ef3c069ab4558993f70",
-                "reference": "acf3142e6c5eafa378dc8ef3c069ab4558993f70",
-                "shasum": ""
-            },
-            "require": {
-                "php": "^7.3|^8.0",
-                "symfony/http-foundation": "^5.3|^6|^7",
-                "symfony/http-kernel": "^5.3|^6|^7"
-            },
-            "require-dev": {
-                "phpunit/phpunit": "^9",
-                "squizlabs/php_codesniffer": "^3.5"
-            },
-            "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-master": "2.2-dev"
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "Asm89\\Stack\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Alexander",
-                    "email": "iam.asm89@gmail.com"
-                }
-            ],
-            "description": "Cross-origin resource sharing library and stack middleware",
-            "homepage": "https://github.com/asm89/stack-cors",
-            "keywords": [
-                "cors",
-                "stack"
-            ],
-            "support": {
-                "issues": "https://github.com/asm89/stack-cors/issues",
-                "source": "https://github.com/asm89/stack-cors/tree/v2.3.0"
-            },
-            "time": "2025-03-13T08:50:04+00:00"
-        },
         {
             "name": "bensampo/laravel-enum",
             "version": "v6.12.2",
@@ -496,132 +440,6 @@
                 }
             ],
             "time": "2024-11-12T16:29:46+00:00"
-        },
-        {
-            "name": "ctf0/media-manager",
-            "version": "v4.0.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/ctf0/Laravel-Media-Manager.git",
-                "reference": "d430dff07f820469cef6d244fad09829ad472ede"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/ctf0/Laravel-Media-Manager/zipball/d430dff07f820469cef6d244fad09829ad472ede",
-                "reference": "d430dff07f820469cef6d244fad09829ad472ede",
-                "shasum": ""
-            },
-            "require": {
-                "ctf0/package-changelog": "*",
-                "illuminate/support": "^9.0 || ^10.0",
-                "league/flysystem": "^3.12",
-                "maennchen/zipstream-php": "^2.4"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "ctf0\\MediaManager\\MediaManagerServiceProvider"
-                    ]
-                },
-                "changeLog": "logs"
-            },
-            "autoload": {
-                "psr-4": {
-                    "ctf0\\MediaManager\\": "src"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Muah",
-                    "email": "muah003@gmail.com"
-                }
-            ],
-            "description": "A Media Manager Built With Vuejs & Laravel",
-            "homepage": "https://github.com/ctf0/Laravel-Media-Manager",
-            "keywords": [
-                "ctf0",
-                "gui",
-                "laravel",
-                "manager",
-                "media",
-                "mediamanager"
-            ],
-            "support": {
-                "issues": "https://github.com/ctf0/Laravel-Media-Manager/issues",
-                "source": "https://github.com/ctf0/Laravel-Media-Manager/tree/v4.0.0"
-            },
-            "funding": [
-                {
-                    "url": "https://github.com/sponsors/ctf0",
-                    "type": "github"
-                }
-            ],
-            "abandoned": true,
-            "time": "2023-04-17T12:34:08+00:00"
-        },
-        {
-            "name": "ctf0/package-changelog",
-            "version": "v3.1.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/ctf0/PackageChangeLog.git",
-                "reference": "ee0b9881747249e111b8f96d128564626c931834"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/ctf0/PackageChangeLog/zipball/ee0b9881747249e111b8f96d128564626c931834",
-                "reference": "ee0b9881747249e111b8f96d128564626c931834",
-                "shasum": ""
-            },
-            "require": {
-                "illuminate/support": ">=7.0 <11.0"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "ctf0\\PackageChangeLog\\PackageChangeLogServiceProvider"
-                    ]
-                },
-                "changeLog": "logs"
-            },
-            "autoload": {
-                "psr-4": {
-                    "ctf0\\PackageChangeLog\\": "src"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Muah",
-                    "email": "muah003@gmail.com"
-                }
-            ],
-            "description": "show package changeLog on install/update",
-            "homepage": "https://github.com/ctf0/PackageChangeLog",
-            "keywords": [
-                "ctf0",
-                "package-changelog"
-            ],
-            "support": {
-                "issues": "https://github.com/ctf0/PackageChangeLog/issues",
-                "source": "https://github.com/ctf0/PackageChangeLog/tree/v3.1.0"
-            },
-            "funding": [
-                {
-                    "url": "https://github.com/sponsors/ctf0",
-                    "type": "github"
-                }
-            ],
-            "time": "2023-03-29T05:48:56+00:00"
         },
         {
             "name": "dflydev/dot-access-data",
@@ -1358,88 +1176,6 @@
                 "source": "https://github.com/firebase/php-jwt/tree/v6.11.1"
             },
             "time": "2025-04-09T20:32:01+00:00"
-        },
-        {
-            "name": "fruitcake/laravel-cors",
-            "version": "dev-develop",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/fruitcake/laravel-cors.git",
-                "reference": "8cf86974af166a1d75d64c5776028652f486190f"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/fruitcake/laravel-cors/zipball/8cf86974af166a1d75d64c5776028652f486190f",
-                "reference": "8cf86974af166a1d75d64c5776028652f486190f",
-                "shasum": ""
-            },
-            "require": {
-                "asm89/stack-cors": "^2.0.1",
-                "illuminate/contracts": "^6|^7|^8|^9|^10",
-                "illuminate/support": "^6|^7|^8|^9|^10",
-                "php": ">=7.2",
-                "symfony/http-foundation": "^4|^5|^6",
-                "symfony/http-kernel": "^4.3.4|^5|^6"
-            },
-            "require-dev": {
-                "laravel/framework": "^6|^7.24|^8|^9|^10",
-                "orchestra/testbench-dusk": "^4|^5|^6|^7|^8",
-                "phpunit/phpunit": "^6|^7|^8|^9",
-                "squizlabs/php_codesniffer": "^3.5"
-            },
-            "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-master": "2.0-dev"
-                },
-                "laravel": {
-                    "providers": [
-                        "Fruitcake\\Cors\\CorsServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "Fruitcake\\Cors\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Fruitcake",
-                    "homepage": "https://fruitcake.nl"
-                },
-                {
-                    "name": "Barry vd. Heuvel",
-                    "email": "barryvdh@gmail.com"
-                }
-            ],
-            "description": "Adds CORS (Cross-Origin Resource Sharing) headers support in your Laravel application",
-            "keywords": [
-                "api",
-                "cors",
-                "crossdomain",
-                "laravel"
-            ],
-            "support": {
-                "issues": "https://github.com/fruitcake/laravel-cors/issues",
-                "source": "https://github.com/fruitcake/laravel-cors/tree/develop"
-            },
-            "funding": [
-                {
-                    "url": "https://fruitcake.nl",
-                    "type": "custom"
-                },
-                {
-                    "url": "https://github.com/barryvdh",
-                    "type": "github"
-                }
-            ],
-            "abandoned": true,
-            "time": "2022-02-11T11:51:48+00:00"
         },
         {
             "name": "fruitcake/php-cors",
@@ -14808,14 +14544,12 @@
     ],
     "aliases": [],
     "minimum-stability": "dev",
-    "stability-flags": {
-        "fruitcake/laravel-cors": 20
-    },
+    "stability-flags": [],
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
         "php": "^8.2"
     },
-    "platform-dev": {},
-    "plugin-api-version": "2.9.0"
+    "platform-dev": [],
+    "plugin-api-version": "2.6.0"
 }

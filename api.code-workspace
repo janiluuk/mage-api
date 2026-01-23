@@ -16,10 +16,10 @@
 			"path": "../movie-maker"
 		},
 		{
-			"path": "../LineageShop"
+			"path": "../bin"
 		},
 		{
-			"path": "../bin"
+			"path": "../mage-app"
 		}
 	],
 	"settings": {

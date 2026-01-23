@@ -54,6 +54,9 @@ final class AddProductAction
 
         $this->productRepository->save($newProduct);
 
+        // Clear product cache for this category to reflect new product
+        GetProductsByCategoryAction::clearCategoryCache($newProduct->category_id);
+
         return new AddProductResponse($newProduct);
     }
 }

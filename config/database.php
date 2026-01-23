@@ -20,7 +20,7 @@ return [
     /*
     |--------------------------------------------------------------------------
     | Database Connections
-    |--------------------------------------------------------------------------
+    |--------------------------------------------------------------------------+
     |
     | Here are each of the database connections setup for your application.
     | Of course, examples of configuring each database platform that is
@@ -38,7 +38,9 @@ return [
         'sqlite' => [
             'driver' => 'sqlite',
             'url' => env('DATABASE_URL'),
-            'database' => env('DB_DATABASE', database_path('database.sqlite')),
+            'database' => ($_ENV['DB_DATABASE'] ?? env('DB_DATABASE')) === ':memory:' 
+                ? ':memory:' 
+                : (($_ENV['DB_DATABASE'] ?? env('DB_DATABASE')) ?: database_path('database.sqlite')),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
         ],

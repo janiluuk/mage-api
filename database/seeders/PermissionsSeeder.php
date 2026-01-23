@@ -69,6 +69,14 @@ class PermissionsSeeder extends Seeder
         $role = Role::create(['name' => 'admin']);
         $role->givePermissionTo(Permission::all());
 
+        // Create administrator role (alias for admin, used in tests)
+        $role = Role::create(['name' => 'administrator']);
+        $role->givePermissionTo(Permission::all());
+
+        // Create super-administrator role (used in tests)
+        $role = Role::create(['name' => 'super-administrator']);
+        $role->givePermissionTo(Permission::all());
+
         $role = Role::create(['name' => 'creator']);
         $role->givePermissionTo([
             'view categories',

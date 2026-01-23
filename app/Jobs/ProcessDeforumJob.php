@@ -10,6 +10,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use App\Models\Videojob;
 use App\Services\DeforumProcessingService;
+use App\Services\LoadBalancerService;
 use Illuminate\Support\Facades\Log;
 
 class ProcessDeforumJob implements ShouldQueue, ShouldBeUnique
@@ -62,12 +63,17 @@ class ProcessDeforumJob implements ShouldQueue, ShouldBeUnique
      *
      * @return void
      */
-    public function handle(DeforumProcessingService $service)
+    public function handle(DeforumProcessingService $service, LoadBalancerService $loadBalancer)
     {
         // Set PHP execution time limit for long-running Deforum processing
         set_time_limit(self::TIMEOUT_SECONDS);
         
         $start_time = time();
+
+        // Mark job as started for load balancing tracking
+        if ($this->videoJob) {
+            $loadBalancer->markJobAsStarted($this->videoJob->id);
+        }
 
         // Mark stale jobs as errors
         Videojob::where('status', 'processing')
@@ -124,6 +130,10 @@ class ProcessDeforumJob implements ShouldQueue, ShouldBeUnique
                     $videoJob->url = $targetUrl;
                     $videoJob->status = 'finished';
                     $videoJob->save();
+                    
+                    // Mark job as completed for load balancing
+                    $loadBalancer->markJobAsCompleted($videoJob->id);
+                    
                     Log::info('Successfully converted {url} in {duration}', ['url' => $videoJob->url, 'duration' => $videoJob->job_time]);
                 }
 
@@ -132,6 +142,10 @@ class ProcessDeforumJob implements ShouldQueue, ShouldBeUnique
                 $videoJob->job_time = time() - $start_time;
                 $videoJob->status = 'error';
                 $videoJob->save();
+                
+                // Mark job as failed for load balancing
+                $loadBalancer->markJobAsFailed($videoJob->id);
+                
                 $this->fail($e->getMessage());
             }
         }

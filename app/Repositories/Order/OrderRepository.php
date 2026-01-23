@@ -48,7 +48,8 @@ class OrderRepository extends BaseRepository implements OrderRepositoryInterface
             $query = $criterion->apply($query);
         }
 
-        return $query->get();
+        // Eager load relationships to avoid N+1 queries
+        return $query->with(['product', 'userCustomer', 'userSeller', 'walletType'])->get();
     }
 }
 

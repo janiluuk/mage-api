@@ -35,8 +35,6 @@ class Product extends Model implements HasMedia
 
     protected $appends = ['preview'];
 
-    protected $with = ['category'];
-
     protected $casts = [
         'price' => 'float',
         'quantity' => 'integer',

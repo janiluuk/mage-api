@@ -12,6 +12,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use App\Models\Videojob;
 use App\Services\VideoProcessingService;
+use App\Services\LoadBalancerService;
 use Illuminate\Support\Facades\Log;
 
 class ProcessVideoJob implements ShouldQueue, ShouldBeUnique
@@ -69,12 +70,17 @@ class ProcessVideoJob implements ShouldQueue, ShouldBeUnique
      *
      * @return void
      */
-    public function handle(VideoProcessingService $service)
+    public function handle(VideoProcessingService $service, LoadBalancerService $loadBalancer)
     {
         // Set PHP execution time limit for long-running video processing
         set_time_limit(self::TIMEOUT_SECONDS);
         
         $start_time = time();
+
+        // Mark job as started for load balancing tracking
+        if ($this->videoJob) {
+            $loadBalancer->markJobAsStarted($this->videoJob->id);
+        }
 
         // Mark stale jobs as errors
         Videojob::where('status', 'processing')
@@ -139,6 +145,9 @@ class ProcessVideoJob implements ShouldQueue, ShouldBeUnique
                 // Release lock on successful completion
                 \Cache::forget($this->getProcessingLockKey($videoJob->id));
 
+                // Mark job as completed for load balancing
+                $loadBalancer->markJobAsCompleted($videoJob->id);
+
                 Log::info('Video conversion completed', [
                     'job_id' => $videoJob->id,
                     'url' => $videoJob->url,
@@ -148,6 +157,9 @@ class ProcessVideoJob implements ShouldQueue, ShouldBeUnique
             } catch (\Exception $e) {
                 // Release lock on error
                 \Cache::forget($this->getProcessingLockKey($videoJob->id));
+                
+                // Mark job as failed for load balancing
+                $loadBalancer->markJobAsFailed($videoJob->id);
                 
                 Log::error('Error while converting video job', [
                     'job_id' => $videoJob->id,

@@ -24,6 +24,12 @@ final class DeleteProductAction
             throw new ProductNotFoundException();
         }
 
+        // Store category ID before deletion
+        $categoryId = $product->category_id;
+
         $this->productRepository->delete($product);
+
+        // Clear product cache for this category to reflect deleted product
+        GetProductsByCategoryAction::clearCategoryCache($categoryId);
     }
 }

@@ -11,6 +11,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install FFMpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version || (echo "FFMpeg installation failed" && exit 1)
+
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:

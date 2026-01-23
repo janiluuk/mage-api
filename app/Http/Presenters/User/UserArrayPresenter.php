@@ -18,6 +18,12 @@ final class UserArrayPresenter implements CollectionAsArrayPresenterInterface
             $roles[] = $role->name;
         }
 
+        // Include userRole information for admin checks
+        $userRoleType = null;
+        if ($user->userRole) {
+            $userRoleType = $user->userRole->getType();
+        }
+
         $data = [
             'id' => $user->getId(),
             'email' => $user->getEmail(),
@@ -30,6 +36,9 @@ final class UserArrayPresenter implements CollectionAsArrayPresenterInterface
             'discord_id' => $user->getDiscordId(),
             'stripe_id' => $user->getStripeId(),
             'roles' => $roles,
+            'userRole' => $userRoleType, // Include userRole type for admin menu visibility
+            'isAdmin' => $userRoleType === \App\Constant\UserRoleConstant::ADMINISTRATOR || 
+                        $userRoleType === \App\Constant\UserRoleConstant::SUPER_ADMINISTRATOR,
             'passwordResetAdmin' => $user->getPasswordResetAdmin(),
             'createdAt' => $user->getCreatedAt(),
         ];

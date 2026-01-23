@@ -27,6 +27,9 @@ final class AddUserWalletAction
 
         $newUserWallet = $this->userWalletRepository->save($newUserWallet);
 
+        // Clear user wallet cache to reflect new wallet
+        GetUserWalletsForCurrentUserAction::clearUserWalletCache(Auth::id());
+
         return new AddUserWalletResponse($newUserWallet);
     }
 }

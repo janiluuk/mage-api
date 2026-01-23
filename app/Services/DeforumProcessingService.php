@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Exceptions\SdInstanceUnavailableException;
+use App\Exceptions\GeneratorInstanceUnavailableException;
 use App\Models\ModelFile;
 use App\Models\Videojob;
 use Illuminate\Support\Facades\Log;
@@ -11,11 +11,11 @@ use Symfony\Component\Process\Process;
 
 class DeforumProcessingService
 {
-    protected $sdInstanceService;
+    protected $generatorInstanceService;
 
-    public function __construct(SdInstanceService $sdInstanceService)
+    public function __construct(GeneratorInstanceService $generatorInstanceService)
     {
-        $this->sdInstanceService = $sdInstanceService;
+        $this->generatorInstanceService = $generatorInstanceService;
     }
 
     public function parseJob(Videojob $videoJob, string $path)
@@ -102,16 +102,18 @@ class DeforumProcessingService
                 $execution_times = [];
                 $progresses = [];
                 
-                // Get SD instance URL
-                $sdInstanceUrl = $this->sdInstanceService->getEnabledInstanceUrl('stable_diffusion_forge');
-                if (!$sdInstanceUrl) {
-                    throw SdInstanceUnavailableException::forType('stable_diffusion_forge');
+                // Get generator instance URL
+                $modelFile = ModelFile::find($videoJob->model_id);
+                $instanceType = $modelFile?->instance_type ?? 'stable_diffusion_forge';
+                $generatorInstanceUrl = $this->generatorInstanceService->getEnabledInstanceUrl($instanceType);
+                if (!$generatorInstanceUrl) {
+                    throw GeneratorInstanceUnavailableException::forType($instanceType);
                 }
                 
                 while ($running) {
 
                     // Using GuzzleHttp\Client to make an API request
-                    $response = $client->request('GET', $sdInstanceUrl . '/deforum_api/jobs/' . $first_job_id);
+                    $response = $client->request('GET', $generatorInstanceUrl . '/deforum_api/jobs/' . $first_job_id);
                     $data = json_decode($response->getBody(), true);
                 
 
@@ -120,7 +122,7 @@ class DeforumProcessingService
                     $videoJob = Videojob::findOrFail($videoJob->id);
                     
                     if ($videoJob->status == 'cancelled' || $videoJob->status == 'error') {
-                        $response = $client->request('DELETE', $sdInstanceUrl . '/deforum_api/jobs/' . $first_job_id);
+                        $response = $client->request('DELETE', $generatorInstanceUrl . '/deforum_api/jobs/' . $first_job_id);
                         Log::info("Deleted job {$first_job_id}: {$response->getBody()}");
                         $running = false;
                         
@@ -367,12 +369,23 @@ class DeforumProcessingService
 
         $targetFile = preg_replace('/\.mp4$/', '_soundtrack.mp4', $finishedVideoPath);
 
-        $command = sprintf(
-            'ffmpeg -y -i %s -i %s -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 -shortest %s',
-            escapeshellarg($finishedVideoPath),
-            escapeshellarg($soundtrackPath),
-            escapeshellarg($targetFile)
-        );
+        $window = $this->resolveSoundtrackWindow($videoJob, $finishedVideoPath);
+        if (! $window) {
+            return;
+        }
+
+        [$clipStart, $clipDuration] = $window;
+        $commandParts = ['ffmpeg -y'];
+        if ($clipStart > 0) {
+            $commandParts[] = '-ss ' . escapeshellarg((string) $clipStart);
+        }
+        $commandParts[] = '-i ' . escapeshellarg($finishedVideoPath);
+        $commandParts[] = '-i ' . escapeshellarg($soundtrackPath);
+        if ($clipDuration !== null) {
+            $commandParts[] = '-t ' . escapeshellarg((string) $clipDuration);
+        }
+        $commandParts[] = '-c:v copy -c:a aac -map 0:v:0 -map 1:a:0 -shortest ' . escapeshellarg($targetFile);
+        $command = implode(' ', $commandParts);
 
         $process = Process::fromShellCommandline($command);
 
@@ -390,6 +403,60 @@ class DeforumProcessingService
                 @unlink($targetFile);
             }
         }
+    }
+
+    private function resolveSoundtrackWindow(Videojob $videoJob, string $videoPath): ?array
+    {
+        $clipStart = max(0.0, (float) ($videoJob->soundtrack_start_seconds ?? 0.0));
+        $clipEnd = $videoJob->soundtrack_end_seconds;
+        $videoDuration = $this->getMediaDuration($videoPath);
+        $clipDuration = $videoDuration;
+
+        if ($clipEnd !== null) {
+            $clipDuration = max(0.0, (float) $clipEnd - $clipStart);
+        }
+
+        if ($videoDuration !== null && $clipDuration !== null) {
+            $clipDuration = min($clipDuration, $videoDuration);
+        }
+
+        if ($clipDuration !== null && $clipDuration <= 0.0) {
+            Log::warning('Invalid soundtrack clip duration', [
+                'video_job_id' => $videoJob->id,
+                'clip_start' => $clipStart,
+                'clip_end' => $clipEnd,
+                'video_duration' => $videoDuration,
+            ]);
+
+            return null;
+        }
+
+        return [$clipStart, $clipDuration];
+    }
+
+    private function getMediaDuration(string $path): ?float
+    {
+        $process = Process::fromShellCommandline(sprintf(
+            'ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 %s',
+            escapeshellarg($path)
+        ));
+
+        $process->run();
+        if (! $process->isSuccessful()) {
+            Log::warning('Unable to read media duration', [
+                'path' => $path,
+                'error' => $process->getErrorOutput(),
+            ]);
+
+            return null;
+        }
+
+        $duration = trim($process->getOutput());
+        if ($duration === '') {
+            return null;
+        }
+
+        return (float) $duration;
     }
 
     private function resolveInitImage(Videojob $videoJob, ?int $extendFromJobId): string

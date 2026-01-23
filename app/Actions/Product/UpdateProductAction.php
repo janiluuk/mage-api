@@ -42,7 +42,16 @@ final class UpdateProductAction
         $updateProduct->sub_property_id = $request->getSubPropertyId();
         $updateProduct->type_id = $request->getTypeId();
 
+        // Store original category ID before update
+        $originalCategoryId = $updateProduct->getOriginal('category_id') ?? $updateProduct->category_id;
+        
         $this->productRepository->update($updateProduct);
+
+        // Clear product cache for original and new category if changed
+        GetProductsByCategoryAction::clearCategoryCache($originalCategoryId);
+        if ($updateProduct->category_id !== $originalCategoryId) {
+            GetProductsByCategoryAction::clearCategoryCache($updateProduct->category_id);
+        }
 
         return new UpdateProductResponse($updateProduct);
     }

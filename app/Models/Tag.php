@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use App\Exceptions\ConstraintException;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Exception;
 
 class Tag extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'name', 'color'
     ];
@@ -21,6 +23,16 @@ class Tag extends Model
     public function items()
     {
         return $this->belongsToMany(Item::class);
+    }
+
+    /**
+     * A Tag belongs to many user files
+     *
+     * @return BelongsToMany
+     */
+    public function userFiles()
+    {
+        return $this->belongsToMany(UserFile::class, 'user_file_tag');
     }
 
     /**
@@ -52,6 +64,10 @@ class Tag extends Model
     {
         if (count($this->items->toArray())) {
             throw new ConstraintException('This Tag still has associated Items.');
+        }
+
+        if (count($this->userFiles->toArray())) {
+            throw new ConstraintException('This Tag still has associated User Files.');
         }
 
         return parent::delete();

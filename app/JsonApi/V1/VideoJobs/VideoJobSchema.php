@@ -49,6 +49,7 @@ class VideoJobSchema extends Schema
             Str::make('original_filename'),
             BelongsTo::make('modelfile')->type('model-files')->readOnly(),
             BelongsTo::make('user')->type('users')->readOnly(),
+            BelongsToMany::make('batches')->type('batches')->readOnly(),
             MorphToMany::make('media', [
                 BelongsToMany::make('finished'),
                 BelongsToMany::make('original'),
@@ -73,6 +74,8 @@ class VideoJobSchema extends Schema
             Str::make('audio_codec'),
             Str::make('soundtrack_url'),
             Str::make('soundtrack_mimetype'),
+            Number::make('soundtrack_start_seconds'),
+            Number::make('soundtrack_end_seconds'),
             Str::make('thumbnail'),
             Str::make('outfile'),
             Str::make('codec'),
@@ -152,6 +155,21 @@ class VideoJobSchema extends Schema
             SortCountable::make($this, 'created_at'),
         ];
     }
+    
+    /**
+     * Get the allowed include paths.
+     *
+     * @return iterable
+     */
+    public function includePaths(): iterable
+    {
+        return [
+            'batches',
+            'user',
+            'modelfile',
+        ];
+    }
+    
     /**
      * Determine if the resource is authorizable.
      *

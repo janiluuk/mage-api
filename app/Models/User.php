@@ -44,7 +44,8 @@ class User extends Authenticatable implements JWTSubject, HasMedia
         'facebook_id',
         'stripe_id',
         'balance',
-        'discord_id'
+        'discord_id',
+        'quota_bytes',
     ];
 
     protected $hidden = [
@@ -97,6 +98,11 @@ class User extends Authenticatable implements JWTSubject, HasMedia
     public function chat()
     {
         return $this->chats();
+    }
+
+    public function files(): HasMany
+    {
+        return $this->hasMany(UserFile::class);
     }
 
     public function messages(): HasMany
