@@ -28,7 +28,7 @@ Laravel 10 API that powers video production, AI studio experiences, and GPU reso
 - **Queue management**: Priority-based job queuing (high/medium/low)
 - **Real-time progress tracking**: Monitor job status, progress, and estimated completion time
 - **Job lifecycle control**: Upload → Generate → Finalize → Process flow
-- **Advanced encoding system**: (See [VIDEO_ENCODING_IMPROVEMENTS.md](VIDEO_ENCODING_IMPROVEMENTS.md))
+- **Advanced encoding system**:
   - File system watching for automatic output detection
   - Async processing with real-time progress updates
   - Configurable concurrent job processing

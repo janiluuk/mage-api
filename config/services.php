@@ -55,5 +55,23 @@ return [
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
     ],
 
+    'comfy' => [
+        'host' => env('COMFY_HOST', '127.0.0.1:8188'),
+        'queue_timeout' => env('COMFY_QUEUE_TIMEOUT', 10000),
+        'fetch_timeout' => env('COMFY_FETCH_TIMEOUT', 30000),
+        'ws_timeout' => env('COMFY_WS_TIMEOUT', 60000),
+        'poll_interval' => env('COMFY_POLL_INTERVAL', 500),
+    ],
+
+    'stable' => [
+        'url' => env('STABLE_URL', ''),
+    ],
+
+    'ffmpeg' => [
+        'binaries' => [
+            'ffmpeg' => env('FFMPEG_BINARY', '/usr/bin/ffmpeg'),
+            'ffprobe' => env('FFPROBE_BINARY', '/usr/bin/ffprobe'),
+        ],
+    ],
 
 ];
