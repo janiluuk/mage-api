@@ -46,6 +46,12 @@ class AsyncVideoProcessor
         $startTime = time();
         $this->progressParser->setTotalFrames($videoJob->frame_count);
 
+        // Mark encoding as started
+        $videoJob->update([
+            'encoding_status' => 'encoding',
+            'encoding_started_at' => now(),
+        ]);
+
         // Start the encoding process
         $process = Process::fromShellCommandline($command);
         $process->setTimeout($timeout);
@@ -108,6 +114,12 @@ class AsyncVideoProcessor
             $elapsed = time() - $startTime;
             $videoJob->updateProgress($elapsed, 100, 0)->save();
 
+            // Mark encoding as completed
+            $videoJob->update([
+                'encoding_status' => 'completed',
+                'encoding_completed_at' => now(),
+            ]);
+
             Log::info("AsyncVideoProcessor: Processing completed successfully", [
                 'job_id' => $videoJob->id,
                 'duration' => $elapsed,
@@ -124,8 +136,10 @@ class AsyncVideoProcessor
                 'error_output' => $process->getErrorOutput()
             ]);
 
-            $videoJob->status = 'error';
-            $videoJob->save();
+            $videoJob->update([
+                'status' => 'error',
+                'encoding_status' => 'failed',
+            ]);
 
             throw $exception;
 
@@ -139,8 +153,10 @@ class AsyncVideoProcessor
                 $process->stop(3, SIGTERM);
             }
 
-            $videoJob->status = 'error';
-            $videoJob->save();
+            $videoJob->update([
+                'status' => 'error',
+                'encoding_status' => 'failed',
+            ]);
 
             throw $exception;
         }
@@ -192,6 +208,12 @@ class AsyncVideoProcessor
         $startTime = time();
         $outputPath = $videoJob->getFinishedVideoPath();
 
+        // Mark encoding as started
+        $videoJob->update([
+            'encoding_status' => 'encoding',
+            'encoding_started_at' => now(),
+        ]);
+
         // Start the encoding process in background (Process::start() is already async)
         $process = Process::fromShellCommandline($command);
         $process->setTimeout($timeout);
@@ -208,6 +230,12 @@ class AsyncVideoProcessor
             $elapsed = time() - $startTime;
             $videoJob->updateProgress($elapsed, 100, 0)->save();
 
+            // Mark encoding as completed
+            $videoJob->update([
+                'encoding_status' => 'completed',
+                'encoding_completed_at' => now(),
+            ]);
+
             Log::info("AsyncVideoProcessor: Processing completed", [
                 'job_id' => $videoJob->id,
                 'duration' => $elapsed,
@@ -222,8 +250,10 @@ class AsyncVideoProcessor
                 'error' => $exception->getMessage()
             ]);
 
-            $videoJob->status = 'error';
-            $videoJob->save();
+            $videoJob->update([
+                'status' => 'error',
+                'encoding_status' => 'failed',
+            ]);
 
             throw $exception;
         }
