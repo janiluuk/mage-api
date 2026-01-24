@@ -119,10 +119,10 @@ class AudioProcessor
             $comp = $config['compressor'];
             $filters[] = sprintf(
                 'acompressor=threshold=%s:ratio=%s:attack=%s:release=%s',
-                $this->sanitizeFilterValue($comp['threshold'] ?? '-20dB'),
-                $this->sanitizeFilterValue($comp['ratio'] ?? '2'),
-                $this->sanitizeFilterValue($comp['attack'] ?? '5'),
-                $this->sanitizeFilterValue($comp['release'] ?? '50')
+                $this->sanitizeFilterValue($comp['threshold'] ?? '-20dB', '-20dB'),
+                $this->sanitizeFilterValue($comp['ratio'] ?? '2', '2'),
+                $this->sanitizeFilterValue($comp['attack'] ?? '5', '5'),
+                $this->sanitizeFilterValue($comp['release'] ?? '50', '50')
             );
         }
         
@@ -130,7 +130,7 @@ class AudioProcessor
         if (isset($config['highpass']) && is_array($config['highpass'])) {
             $filters[] = sprintf(
                 'highpass=f=%s',
-                $this->sanitizeFilterValue($config['highpass']['frequency'] ?? '120')
+                $this->sanitizeFilterValue($config['highpass']['frequency'] ?? '120', '120')
             );
         }
         
@@ -139,10 +139,10 @@ class AudioProcessor
             $echo = $config['echo'];
             $filters[] = sprintf(
                 'aecho=%s:%s:%s:%s',
-                $this->sanitizeFilterValue($echo['in_gain'] ?? '0.8'),
-                $this->sanitizeFilterValue($echo['out_gain'] ?? '0.9'),
-                $this->sanitizeFilterValue($echo['delay'] ?? '1000'),
-                $this->sanitizeFilterValue($echo['decay'] ?? '0.3')
+                $this->sanitizeFilterValue($echo['in_gain'] ?? '0.8', '0.8'),
+                $this->sanitizeFilterValue($echo['out_gain'] ?? '0.9', '0.9'),
+                $this->sanitizeFilterValue($echo['delay'] ?? '1000', '1000'),
+                $this->sanitizeFilterValue($echo['decay'] ?? '0.3', '0.3')
             );
         }
         
@@ -150,7 +150,7 @@ class AudioProcessor
         if (isset($config['limiter']) && is_array($config['limiter'])) {
             $filters[] = sprintf(
                 'alimiter=limit=%s',
-                $this->sanitizeFilterValue($config['limiter']['limit'] ?? '0.95')
+                $this->sanitizeFilterValue($config['limiter']['limit'] ?? '0.95', '0.95')
             );
         }
         
@@ -176,28 +176,33 @@ class AudioProcessor
         }
         
         return [
-            'channels' => $this->sanitizeFilterValue($config['channels'] ?? '2'),
-            'bitrate' => $this->sanitizeFilterValue($config['bitrate'] ?? '128k'),
-            'format' => $this->sanitizeFilterValue($config['format'] ?? 'adts'),
+            'channels' => $this->sanitizeFilterValue($config['channels'] ?? '2', '2'),
+            'bitrate' => $this->sanitizeFilterValue($config['bitrate'] ?? '128k', '128k'),
+            'format' => $this->sanitizeFilterValue($config['format'] ?? 'adts', 'adts'),
         ];
     }
 
     /**
      * Sanitize filter values to prevent command injection.
-     * Only allows alphanumeric characters, dots, hyphens, and dB suffix.
+     * Only allows alphanumeric characters, dots, hyphens, and specific suffixes.
      *
      * @param mixed $value The value to sanitize
+     * @param string $default The default value to return if sanitization fails
      * @return string The sanitized value
      */
-    private function sanitizeFilterValue($value): string
+    private function sanitizeFilterValue($value, string $default = '0'): string
     {
         // Convert to string
         $value = (string)$value;
         
-        // Allow only safe characters: alphanumeric, dot, hyphen, and dB suffix
+        // Allow only safe patterns:
+        // - Numbers with optional decimal point and optional units (k, dB)
+        // - Alphabetic strings (for formats like 'adts')
         // This prevents command injection while allowing valid FFmpeg parameter values
-        $sanitized = preg_replace('/[^a-zA-Z0-9.\-dB]/', '', $value);
+        if (preg_match('/^[a-zA-Z0-9.\-]+(?:dB|k)?$/', $value)) {
+            return $value;
+        }
         
-        return $sanitized ?: '0';
+        return $default;
     }
 }
