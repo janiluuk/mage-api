@@ -24,6 +24,11 @@ class VideojobModelTest extends TestCase
         Storage::fake('public');
         Storage::fake('storage');
         $this->user = User::factory()->create();
+        
+        // Mock VideoProcessingService to avoid FFMpeg dependency in tests
+        $mockService = \Mockery::mock(\App\Services\VideoProcessingService::class);
+        $mockService->shouldIgnoreMissing();
+        $this->app->instance(\App\Services\VideoProcessingService::class, $mockService);
     }
 
     public function test_update_progress_updates_all_progress_fields(): void
