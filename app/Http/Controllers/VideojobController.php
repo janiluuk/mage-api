@@ -711,7 +711,7 @@ private function generateDeforum(Request $request): JsonResponse
     {
         $videoJob->save();
         
-        // Get the absolute path from the storage disk path
+        // Convert storage-relative path to absolute filesystem path
         $absolutePath = Storage::disk('public')->path($path);
         
         $fileAdder = $videoJob->addMedia($absolutePath)
