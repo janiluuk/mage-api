@@ -845,8 +845,8 @@ private function generateDeforum(Request $request): JsonResponse
             }
 
             // Generate a new filename for the init image
-            $extension = pathinfo($lastFramePath, PATHINFO_EXTENSION);
-            $newFilename = sprintf('%d_extend_init.%s', $videoJob->id, $extension ?: 'png');
+            $extension = pathinfo($lastFramePath, PATHINFO_EXTENSION) ?: 'png';
+            $newFilename = sprintf('%d_extend_init.%s', $videoJob->id, $extension);
             $targetPath = sprintf('%s/%s', $targetDir, $newFilename);
 
             if (copy($lastFramePath, $targetPath)) {
