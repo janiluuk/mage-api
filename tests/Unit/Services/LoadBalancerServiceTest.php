@@ -322,7 +322,7 @@ class LoadBalancerServiceTest extends TestCase
             'started_at' => now(),
         ]);
 
-        // Select instance which triggers refresh
+        // Select instance which triggers refresh (no type filter to test all instances)
         $this->service->selectInstance();
 
         $instance->refresh();
