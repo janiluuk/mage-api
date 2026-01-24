@@ -136,7 +136,7 @@ class StoryGenerationController extends ApiController
     {
         $batch = StoryBatch::where('id', $batchId)
             ->where('user_id', auth('api')->id())
-            ->first();
+            ->firstOrFail();
 
         $batch->status = 'cancelled';
         $batch->save();
