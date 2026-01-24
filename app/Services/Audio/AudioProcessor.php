@@ -33,7 +33,7 @@ class AudioProcessor
      * Process audio buffer and return processed audio data.
      *
      * @param string $audioData Raw audio data (WAV format expected from ComfyUI)
-     * @return string Processed AAC audio data
+     * @return string Processed audio data in configured format (default: AAC/ADTS)
      * @throws \Exception
      */
     public function processAudio(string $audioData): string
@@ -194,7 +194,7 @@ class AudioProcessor
         return [
             'channels' => $this->sanitizeFilterValue($config['channels'] ?? '2', '2'),
             'bitrate' => $this->sanitizeFilterValue($config['bitrate'] ?? '128k', '128k'),
-            'format' => $this->sanitizeFilterValue($format, 'adts'),
+            'format' => $format, // Already validated against whitelist, no need to sanitize
         ];
     }
 
@@ -212,11 +212,10 @@ class AudioProcessor
         $value = (string)$value;
         
         // Allow only safe patterns:
-        // - Negative numbers (e.g., -20, -20dB)
-        // - Positive numbers with optional decimal (e.g., 2, 0.8, 128k)
-        // - Alphabetic strings without special characters (e.g., adts)
+        // - Negative numbers with optional dB suffix (e.g., -20dB)
+        // - Positive numbers with optional decimal and optional k suffix (e.g., 2, 0.8, 128k)
         // Hyphen is only allowed at the start for negative numbers
-        if (preg_match('/^(?:-?[0-9]+(?:\.[0-9]+)?(?:dB|k)?|[a-zA-Z][a-zA-Z0-9]*)$/', $value)) {
+        if (preg_match('/^-?[0-9]+(?:\.[0-9]+)?(?:dB|k)?$/', $value)) {
             return $value;
         }
         
