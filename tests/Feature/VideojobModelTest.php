@@ -24,6 +24,11 @@ class VideojobModelTest extends TestCase
         Storage::fake('public');
         Storage::fake('storage');
         $this->user = User::factory()->create();
+        
+        // Mock VideoProcessingService to avoid FFMpeg dependency in tests
+        $mockService = \Mockery::mock(\App\Services\VideoProcessingService::class);
+        $mockService->shouldIgnoreMissing();
+        $this->app->instance(\App\Services\VideoProcessingService::class, $mockService);
     }
 
     public function test_update_progress_updates_all_progress_fields(): void
@@ -269,8 +274,6 @@ class VideojobModelTest extends TestCase
      */
     public function test_end_to_end_job_creation_and_file_retrieval(): void
     {
-        $this->withoutMiddleware();
-
         // Step 1: Create a user and authenticate
         $user = User::factory()->create();
         $this->actingAs($user, 'api');
@@ -329,7 +332,7 @@ class VideojobModelTest extends TestCase
         $this->assertStringContainsString('finished-video', $retrievedUrl);
 
         // Step 9: Verify status endpoint returns the job with URL
-        $response = $this->getJson("/status/{$videoJob->id}");
+        $response = $this->get("/status/{$videoJob->id}");
         $response->assertOk();
         $response->assertJson([
             'id' => $videoJob->id,
@@ -354,8 +357,6 @@ class VideojobModelTest extends TestCase
      */
     public function test_end_to_end_file_retrieval_via_status_endpoint(): void
     {
-        $this->withoutMiddleware();
-
         $user = User::factory()->create();
         $this->actingAs($user, 'api');
 
@@ -376,7 +377,7 @@ class VideojobModelTest extends TestCase
         $videoJob->save();
 
         // Request status via API
-        $response = $this->getJson("/api/video-jobs/{$videoJob->id}/status");
+        $response = $this->get("/api/video-jobs/{$videoJob->id}/status");
 
         $response->assertOk();
         

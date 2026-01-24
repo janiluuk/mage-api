@@ -26,12 +26,12 @@ class AudioController extends Controller
      * Stream audio generation endpoint.
      * GET /api/stream?text=...
      */
-    public function stream(Request $request): Response
+    public function stream(Request $request): Response|JsonResponse
     {
         $text = $request->input('text', '');
 
         // Validate input
-        if (!is_string($text)) {
+        if (!is_string($text) || $text === '') {
             return response()->json(['error' => 'Text parameter must be a string'], 400);
         }
 

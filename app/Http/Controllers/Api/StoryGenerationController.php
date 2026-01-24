@@ -90,7 +90,9 @@ class StoryGenerationController extends ApiController
             'config' => 'nullable|array',
         ]);
 
-        $batch->config_json = json_encode($validated);
+        // Use request->all() to preserve all fields including story.name and config.*
+        // that aren't explicitly validated but should be saved
+        $batch->config_json = json_encode($request->all());
         $batch->save();
 
         return response()->json([
