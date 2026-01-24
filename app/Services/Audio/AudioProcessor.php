@@ -12,6 +12,16 @@ class AudioProcessor
 {
     private string $ffmpegPath;
     private string $ffprobePath;
+    
+    /**
+     * Default FFmpeg filter chain for audio processing.
+     */
+    private const DEFAULT_FILTER_CHAIN = 'acompressor=threshold=-20dB:ratio=2:attack=5:release=50,highpass=f=120,aecho=0.8:0.9:1000:0.3,alimiter=limit=0.95';
+    
+    /**
+     * Allowed output format values for FFmpeg.
+     */
+    private const ALLOWED_FORMATS = ['adts', 'mp4', 'wav', 'mp3', 'aac', 'flac', 'ogg'];
 
     public function __construct()
     {
@@ -109,7 +119,7 @@ class AudioProcessor
         
         if (!is_array($config) || empty($config)) {
             // Return default filter chain if configuration is missing
-            return 'acompressor=threshold=-20dB:ratio=2:attack=5:release=50,highpass=f=120,aecho=0.8:0.9:1000:0.3,alimiter=limit=0.95';
+            return self::DEFAULT_FILTER_CHAIN;
         }
         
         $filters = [];
@@ -156,7 +166,7 @@ class AudioProcessor
         
         // If no filters were configured, return default filter chain
         if (empty($filters)) {
-            return 'acompressor=threshold=-20dB:ratio=2:attack=5:release=50,highpass=f=120,aecho=0.8:0.9:1000:0.3,alimiter=limit=0.95';
+            return self::DEFAULT_FILTER_CHAIN;
         }
         
         return implode(',', $filters);
@@ -175,10 +185,16 @@ class AudioProcessor
             $config = [];
         }
         
+        $format = $config['format'] ?? 'adts';
+        // Validate format against whitelist
+        if (!in_array($format, self::ALLOWED_FORMATS, true)) {
+            $format = 'adts';
+        }
+        
         return [
             'channels' => $this->sanitizeFilterValue($config['channels'] ?? '2', '2'),
             'bitrate' => $this->sanitizeFilterValue($config['bitrate'] ?? '128k', '128k'),
-            'format' => $this->sanitizeFilterValue($config['format'] ?? 'adts', 'adts'),
+            'format' => $this->sanitizeFilterValue($format, 'adts'),
         ];
     }
 
