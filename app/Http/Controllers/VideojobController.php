@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 class VideojobController extends Controller
 {
@@ -867,7 +868,7 @@ private function generateDeforum(Request $request): JsonResponse
                         'jpg', 'jpeg' => 'image/jpeg',
                         'gif' => 'image/gif',
                         'webp' => 'image/webp',
-                        default => throw new \RuntimeException("Unable to determine mime type for extension: {$extension}")
+                        default => throw new RuntimeException("Unable to determine mime type for extension: {$extension}")
                     };
                 }
                 
