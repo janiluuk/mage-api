@@ -62,4 +62,41 @@ return [
         'python_path' => env('UVR5_PYTHON_PATH', 'python3'),
     ],
 
+    'ffmpeg' => [
+        'binaries' => [
+            'ffmpeg' => env('FFMPEG_BINARY', '/usr/bin/ffmpeg'),
+            'ffprobe' => env('FFPROBE_BINARY', '/usr/bin/ffprobe'),
+        ],
+        'audio_processing' => [
+            // Compressor filter parameters
+            'compressor' => [
+                'threshold' => env('FFMPEG_COMPRESSOR_THRESHOLD', '-20dB'),
+                'ratio' => env('FFMPEG_COMPRESSOR_RATIO', '2'),
+                'attack' => env('FFMPEG_COMPRESSOR_ATTACK', '5'),
+                'release' => env('FFMPEG_COMPRESSOR_RELEASE', '50'),
+            ],
+            // High-pass filter parameters
+            'highpass' => [
+                'frequency' => env('FFMPEG_HIGHPASS_FREQ', '120'),
+            ],
+            // Echo filter parameters
+            'echo' => [
+                'in_gain' => env('FFMPEG_ECHO_IN_GAIN', '0.8'),
+                'out_gain' => env('FFMPEG_ECHO_OUT_GAIN', '0.9'),
+                'delay' => env('FFMPEG_ECHO_DELAY', '1000'),
+                'decay' => env('FFMPEG_ECHO_DECAY', '0.3'),
+            ],
+            // Limiter filter parameters
+            'limiter' => [
+                'limit' => env('FFMPEG_LIMITER_LIMIT', '0.95'),
+            ],
+            // Output format parameters
+            'output' => [
+                'channels' => env('FFMPEG_OUTPUT_CHANNELS', '2'),
+                'bitrate' => env('FFMPEG_OUTPUT_BITRATE', '128k'),
+                'format' => env('FFMPEG_OUTPUT_FORMAT', 'adts'),
+            ],
+        ],
+    ],
+
 ];
