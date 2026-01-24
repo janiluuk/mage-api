@@ -117,6 +117,23 @@ JsonApiRoute::server('v2')->prefix('v2')->resources(function (ResourceRegistrar 
 });
 
 // ============================================================================
+// Auth Routes
+// ============================================================================
+
+Route::prefix('auth')->middleware('auth:api')->group(function () {
+    Route::get('/me', [AuthController::class, 'me']);
+});
+
+// ============================================================================
+// Audio Routes
+// ============================================================================
+
+Route::get('/stream', [AudioController::class, 'stream']);
+Route::get('/status', [AudioController::class, 'status']);
+Route::get('/config', [AudioController::class, 'config']);
+Route::get('/audio-queue', [AudioController::class, 'queue']);
+
+// ============================================================================
 // V1 Upload Routes
 // ============================================================================
 
@@ -190,6 +207,7 @@ Route::post('/generate', [VideojobController::class, 'generate'])->middleware('a
 Route::post('/finalize', [VideojobController::class, 'finalize'])->middleware('api');
 Route::post('/cancelJob/{videoId}', [VideojobController::class, 'cancelJob'])->middleware('api');
 Route::get('/queue', [VideojobController::class, 'getVideoJobs'])->middleware('auth:api');
+Route::get('/status/{id}', [VideojobController::class, 'status']);
 Route::middleware('auth:api')->prefix('video-jobs')->group(function () {
     Route::get('/processing/status', [VideojobController::class, 'processingStatus']);
     Route::get('/processing/queue', [VideojobController::class, 'processingQueue']);

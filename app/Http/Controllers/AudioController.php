@@ -31,7 +31,7 @@ class AudioController extends Controller
         $text = $request->input('text', '');
 
         // Validate input
-        if (!is_string($text)) {
+        if (!is_string($text) || $text === '') {
             return response()->json(['error' => 'Text parameter must be a string'], 400);
         }
 

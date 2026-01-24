@@ -338,8 +338,8 @@ class VideojobExtensionTest extends TestCase
     {
         Queue::fake();
 
-        // Create a test image file as the last frame
-        $framesDir = config('app.paths.frames', public_path('frames'));
+        // Create a test image file as the last frame in a temp directory
+        $framesDir = sys_get_temp_dir() . '/frames_test_' . uniqid();
         if (!is_dir($framesDir)) {
             mkdir($framesDir, 0755, true);
         }
@@ -390,5 +390,13 @@ class VideojobExtensionTest extends TestCase
         // Verify the file exists
         $initImagePath = public_path('videos/' . $extendJob->filename);
         $this->assertFileExists($initImagePath);
+        
+        // Cleanup temp directory
+        if (file_exists($lastFramePath)) {
+            unlink($lastFramePath);
+        }
+        if (is_dir($framesDir)) {
+            rmdir($framesDir);
+        }
     }
 }

@@ -269,8 +269,6 @@ class VideojobModelTest extends TestCase
      */
     public function test_end_to_end_job_creation_and_file_retrieval(): void
     {
-        $this->withoutMiddleware();
-
         // Step 1: Create a user and authenticate
         $user = User::factory()->create();
         $this->actingAs($user, 'api');
@@ -354,8 +352,6 @@ class VideojobModelTest extends TestCase
      */
     public function test_end_to_end_file_retrieval_via_status_endpoint(): void
     {
-        $this->withoutMiddleware();
-
         $user = User::factory()->create();
         $this->actingAs($user, 'api');
 
