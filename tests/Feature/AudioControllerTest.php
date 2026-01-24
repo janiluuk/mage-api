@@ -122,7 +122,13 @@ class AudioControllerTest extends TestCase
 
     public function test_stream_endpoint_validates_text_parameter(): void
     {
-        $response = $this->getJson('/api/stream');
+        // Mock the AudioGenerationService even though we won't use it
+        // This prevents 500 errors from dependency injection failures
+        $mockService = Mockery::mock(AudioGenerationService::class);
+        $mockService->shouldIgnoreMissing();
+        $this->app->instance(AudioGenerationService::class, $mockService);
+        
+        $response = $this->get('/api/stream');
 
         $response->assertStatus(400);
         $response->assertJsonFragment([
@@ -132,9 +138,15 @@ class AudioControllerTest extends TestCase
 
     public function test_stream_endpoint_validates_text_length(): void
     {
+        // Mock the AudioGenerationService even though we won't use it
+        // This prevents 500 errors from dependency injection failures
+        $mockService = Mockery::mock(AudioGenerationService::class);
+        $mockService->shouldIgnoreMissing();
+        $this->app->instance(AudioGenerationService::class, $mockService);
+        
         $longText = str_repeat('a', 1001);
         
-        $response = $this->getJson('/api/stream?text=' . urlencode($longText));
+        $response = $this->get('/api/stream?text=' . urlencode($longText));
 
         $response->assertStatus(400);
         $response->assertJsonFragment([
@@ -173,7 +185,7 @@ class AudioControllerTest extends TestCase
         
         $this->app->instance(AudioGenerationService::class, $mockService);
 
-        $response = $this->getJson('/api/stream?text=test');
+        $response = $this->get('/api/stream?text=test');
 
         $response->assertStatus(500);
         $response->assertJsonStructure([

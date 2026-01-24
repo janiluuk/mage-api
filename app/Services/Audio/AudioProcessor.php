@@ -12,16 +12,6 @@ class AudioProcessor
 {
     private string $ffmpegPath;
     private string $ffprobePath;
-    
-    /**
-     * Default FFmpeg filter chain for audio processing.
-     */
-    private const DEFAULT_FILTER_CHAIN = 'acompressor=threshold=-20dB:ratio=2:attack=5:release=50,highpass=f=120,aecho=0.8:0.9:1000:0.3,alimiter=limit=0.95';
-    
-    /**
-     * Allowed output format values for FFmpeg.
-     */
-    private const ALLOWED_FORMATS = ['adts', 'mp4', 'wav', 'mp3', 'aac', 'flac', 'ogg'];
 
     public function __construct()
     {
@@ -33,7 +23,7 @@ class AudioProcessor
      * Process audio buffer and return processed audio data.
      *
      * @param string $audioData Raw audio data (WAV format expected from ComfyUI)
-     * @return string Processed audio data in configured format (default: AAC/ADTS)
+     * @return string Processed AAC audio data
      * @throws \Exception
      */
     public function processAudio(string $audioData): string
@@ -47,18 +37,11 @@ class AudioProcessor
 
             // Build FFmpeg command for audio processing
             // Apply filters: compressor, highpass, echo, limiter
-            // Output: AAC format, configurable channels and bitrate
-            $filterChain = $this->buildAudioFilterChain();
-            $outputParams = $this->getOutputParameters();
-            
+            // Output: AAC format, 2 channels, 128k bitrate
             $command = sprintf(
-                '%s -y -i %s -af %s -ac %s -b:a %s -f %s %s',
+                '%s -y -i %s -af "acompressor=threshold=-20dB:ratio=2:attack=5:release=50,highpass=f=120,aecho=0.8:0.9:1000:0.3,alimiter=limit=0.95" -ac 2 -b:a 128k -f adts %s',
                 escapeshellarg($this->ffmpegPath),
                 escapeshellarg($tempInput),
-                escapeshellarg($filterChain),
-                escapeshellarg($outputParams['channels']),
-                escapeshellarg($outputParams['bitrate']),
-                escapeshellarg($outputParams['format']),
                 escapeshellarg($tempOutput)
             );
 
