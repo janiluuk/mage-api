@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 class VideojobController extends Controller
 {
@@ -845,17 +846,33 @@ private function generateDeforum(Request $request): JsonResponse
             }
 
             // Generate a new filename for the init image
-            $extension = pathinfo($lastFramePath, PATHINFO_EXTENSION);
-            $newFilename = sprintf('%d_extend_init.%s', $videoJob->id, $extension ?: 'png');
+            $extension = pathinfo($lastFramePath, PATHINFO_EXTENSION) ?: 'png';
+            $newFilename = sprintf('%d_extend_init.%s', $videoJob->id, $extension);
             $targetPath = sprintf('%s/%s', $targetDir, $newFilename);
 
             if (copy($lastFramePath, $targetPath)) {
                 // Update the job's filename and related fields
                 $videoJob->filename = $newFilename;
                 $videoJob->original_filename = basename($newFilename);
-                $videoJob->mimetype = function_exists('mime_content_type') 
-                    ? mime_content_type($targetPath) 
-                    : 'image/png';
+                
+                // Detect mime type with robust fallback
+                $mimetype = null;
+                if (function_exists('mime_content_type') && is_readable($targetPath)) {
+                    $mimetype = mime_content_type($targetPath);
+                }
+                
+                // Fallback to extension-based detection if mime_content_type fails
+                if (!$mimetype) {
+                    $mimetype = match ($extension) {
+                        'png' => 'image/png',
+                        'jpg', 'jpeg' => 'image/jpeg',
+                        'gif' => 'image/gif',
+                        'webp' => 'image/webp',
+                        default => throw new RuntimeException("Unable to determine mime type for extension: {$extension}")
+                    };
+                }
+                
+                $videoJob->mimetype = $mimetype;
                 
                 // Store the file in storage for media library
                 $storagePath = 'videos/' . $newFilename;
