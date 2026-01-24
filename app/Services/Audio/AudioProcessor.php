@@ -107,40 +107,56 @@ class AudioProcessor
     {
         $config = config('services.ffmpeg.audio_processing');
         
+        if (!is_array($config) || empty($config)) {
+            // Return default filter chain if configuration is missing
+            return 'acompressor=threshold=-20dB:ratio=2:attack=5:release=50,highpass=f=120,aecho=0.8:0.9:1000:0.3,alimiter=limit=0.95';
+        }
+        
         $filters = [];
         
         // Compressor filter
-        if (isset($config['compressor'])) {
+        if (isset($config['compressor']) && is_array($config['compressor'])) {
             $comp = $config['compressor'];
             $filters[] = sprintf(
                 'acompressor=threshold=%s:ratio=%s:attack=%s:release=%s',
-                $comp['threshold'],
-                $comp['ratio'],
-                $comp['attack'],
-                $comp['release']
+                $this->sanitizeFilterValue($comp['threshold'] ?? '-20dB'),
+                $this->sanitizeFilterValue($comp['ratio'] ?? '2'),
+                $this->sanitizeFilterValue($comp['attack'] ?? '5'),
+                $this->sanitizeFilterValue($comp['release'] ?? '50')
             );
         }
         
         // High-pass filter
-        if (isset($config['highpass'])) {
-            $filters[] = sprintf('highpass=f=%s', $config['highpass']['frequency']);
+        if (isset($config['highpass']) && is_array($config['highpass'])) {
+            $filters[] = sprintf(
+                'highpass=f=%s',
+                $this->sanitizeFilterValue($config['highpass']['frequency'] ?? '120')
+            );
         }
         
         // Echo filter
-        if (isset($config['echo'])) {
+        if (isset($config['echo']) && is_array($config['echo'])) {
             $echo = $config['echo'];
             $filters[] = sprintf(
                 'aecho=%s:%s:%s:%s',
-                $echo['in_gain'],
-                $echo['out_gain'],
-                $echo['delay'],
-                $echo['decay']
+                $this->sanitizeFilterValue($echo['in_gain'] ?? '0.8'),
+                $this->sanitizeFilterValue($echo['out_gain'] ?? '0.9'),
+                $this->sanitizeFilterValue($echo['delay'] ?? '1000'),
+                $this->sanitizeFilterValue($echo['decay'] ?? '0.3')
             );
         }
         
         // Limiter filter
-        if (isset($config['limiter'])) {
-            $filters[] = sprintf('alimiter=limit=%s', $config['limiter']['limit']);
+        if (isset($config['limiter']) && is_array($config['limiter'])) {
+            $filters[] = sprintf(
+                'alimiter=limit=%s',
+                $this->sanitizeFilterValue($config['limiter']['limit'] ?? '0.95')
+            );
+        }
+        
+        // If no filters were configured, return default filter chain
+        if (empty($filters)) {
+            return 'acompressor=threshold=-20dB:ratio=2:attack=5:release=50,highpass=f=120,aecho=0.8:0.9:1000:0.3,alimiter=limit=0.95';
         }
         
         return implode(',', $filters);
@@ -155,10 +171,33 @@ class AudioProcessor
     {
         $config = config('services.ffmpeg.audio_processing.output', []);
         
+        if (!is_array($config)) {
+            $config = [];
+        }
+        
         return [
-            'channels' => $config['channels'] ?? '2',
-            'bitrate' => $config['bitrate'] ?? '128k',
-            'format' => $config['format'] ?? 'adts',
+            'channels' => $this->sanitizeFilterValue($config['channels'] ?? '2'),
+            'bitrate' => $this->sanitizeFilterValue($config['bitrate'] ?? '128k'),
+            'format' => $this->sanitizeFilterValue($config['format'] ?? 'adts'),
         ];
+    }
+
+    /**
+     * Sanitize filter values to prevent command injection.
+     * Only allows alphanumeric characters, dots, hyphens, and dB suffix.
+     *
+     * @param mixed $value The value to sanitize
+     * @return string The sanitized value
+     */
+    private function sanitizeFilterValue($value): string
+    {
+        // Convert to string
+        $value = (string)$value;
+        
+        // Allow only safe characters: alphanumeric, dot, hyphen, and dB suffix
+        // This prevents command injection while allowing valid FFmpeg parameter values
+        $sanitized = preg_replace('/[^a-zA-Z0-9.\-dB]/', '', $value);
+        
+        return $sanitized ?: '0';
     }
 }
