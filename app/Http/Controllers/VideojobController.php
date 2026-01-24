@@ -170,6 +170,9 @@ private function generateDeforum(Request $request): JsonResponse
             $videoJob->frame_count = $persistedParameters['frame_count'] ?? $baseJob->frame_count;
             $videoJob->width = $baseJob->width;
             $videoJob->height = $baseJob->height;
+
+            // Set initial image to last frame of base job
+            $this->setInitImageFromBaseJob($videoJob, $baseJob);
         } else {
             $videoJob->model_id = $request->input('modelId', $videoJob->model_id);
             $videoJob->prompt = trim((string) $request->input('prompt', $videoJob->prompt));
@@ -642,6 +645,44 @@ private function generateDeforum(Request $request): JsonResponse
         );
     }
 
+    /**
+     * Attach audio file to an existing video job.
+     * PATCH /api/video-jobs/{videoId}/audio
+     */
+    public function attachAudio(Request $request, int $videoId): JsonResponse
+    {
+        if ($response = $this->guardAuthenticated()) {
+            return $response;
+        }
+
+        $videoJob = Videojob::findOrFail($videoId);
+
+        if ($response = $this->assertOwner($videoJob)) {
+            return $response;
+        }
+
+        // Only allow attaching audio to pending jobs
+        if ($videoJob->status !== Videojob::STATUS_PENDING) {
+            return response()->json([
+                'error' => 'Audio can only be attached to pending jobs',
+            ], 422);
+        }
+
+        $request->validate([
+            'soundtrack' => 'required|file|mimes:mp3,aac,wav|max:51200',
+        ]);
+
+        $this->attachSoundtrack($videoJob, $request);
+        $videoJob->save();
+
+        return response()->json([
+            'id' => $videoJob->id,
+            'soundtrack_url' => $videoJob->soundtrack_url,
+            'soundtrack_mimetype' => $videoJob->soundtrack_mimetype,
+            'message' => 'Audio file attached successfully',
+        ]);
+    }
+
     private function persistUploadedFile(Request $request): array
     {
         $uploadedFile = $request->file('attachment');
@@ -669,10 +710,19 @@ private function generateDeforum(Request $request): JsonResponse
     private function persistMedia(Videojob $videoJob, string $path): void
     {
         $videoJob->save();
-        $videoJob->addMedia($path)
-            ->withResponsiveImages()
-            ->preservingOriginal()
-            ->toMediaCollection(Videojob::MEDIA_ORIGINAL);
+        
+        // Convert storage-relative path to absolute filesystem path
+        $absolutePath = Storage::disk('public')->path($path);
+        
+        $fileAdder = $videoJob->addMedia($absolutePath)
+            ->preservingOriginal();
+        
+        // Skip responsive images in testing to avoid queue issues
+        if (!app()->environment('testing')) {
+            $fileAdder->withResponsiveImages();
+        }
+        
+        $fileAdder->toMediaCollection(Videojob::MEDIA_ORIGINAL);
 
         $videoJob->original_url = $videoJob->getMedia(Videojob::MEDIA_ORIGINAL)->first()?->getFullUrl();
         $videoJob->save();
@@ -736,6 +786,135 @@ private function generateDeforum(Request $request): JsonResponse
         }
 
         return null;
+    }
+
+    /**
+     * Set the initial image for a job to be the last frame of the base job.
+     * This is used when extending a deforum job.
+     */
+    private function setInitImageFromBaseJob(Videojob $videoJob, Videojob $baseJob): void
+    {
+        $lastFramePath = null;
+
+        // First, try to use the saved last_frame_path if it exists and is valid
+        if (!empty($baseJob->last_frame_path) && file_exists($baseJob->last_frame_path)) {
+            $lastFramePath = $baseJob->last_frame_path;
+            Log::info('Using saved last frame from base job', [
+                'base_job_id' => $baseJob->id,
+                'last_frame_path' => $lastFramePath,
+            ]);
+        } else {
+            // Extract last frame from base job's video
+            $sourceVideoPath = $baseJob->hasFinishedVideo() 
+                ? $baseJob->getFinishedVideoPath() 
+                : $baseJob->getOriginalVideoPath();
+
+            if (!file_exists($sourceVideoPath)) {
+                Log::warning('Source video not found for extending job', [
+                    'base_job_id' => $baseJob->id,
+                    'source_path' => $sourceVideoPath,
+                ]);
+                return;
+            }
+
+            // Generate path for the init image
+            $targetDir = dirname($videoJob->getOriginalVideoPath());
+            if (!is_dir($targetDir)) {
+                mkdir($targetDir, 0755, true);
+            }
+
+            $initImagePath = sprintf('%s/%d_extend_init.png', $targetDir, $videoJob->id);
+
+            $frameExtractor = app(FrameExtractor::class);
+            $success = $frameExtractor->extractLastFrame($sourceVideoPath, $initImagePath);
+
+            if ($success && file_exists($initImagePath)) {
+                $lastFramePath = $initImagePath;
+                Log::info('Extracted last frame from base job video', [
+                    'base_job_id' => $baseJob->id,
+                    'init_image_path' => $lastFramePath,
+                ]);
+            } else {
+                Log::warning('Failed to extract last frame from base job', [
+                    'base_job_id' => $baseJob->id,
+                    'source_path' => $sourceVideoPath,
+                    'target_path' => $initImagePath,
+                ]);
+                return;
+            }
+        }
+
+        // Copy the last frame to the new job's original file location
+        if ($lastFramePath && file_exists($lastFramePath)) {
+            $targetOriginalPath = $videoJob->getOriginalVideoPath();
+            $targetDir = dirname($targetOriginalPath);
+            
+            if (!is_dir($targetDir)) {
+                mkdir($targetDir, 0755, true);
+            }
+
+            // Generate a new filename for the init image
+            $extension = pathinfo($lastFramePath, PATHINFO_EXTENSION);
+            $newFilename = sprintf('%d_extend_init.%s', $videoJob->id, $extension ?: 'png');
+            $targetPath = sprintf('%s/%s', $targetDir, $newFilename);
+
+            if (copy($lastFramePath, $targetPath)) {
+                // Update the job's filename and related fields
+                $videoJob->filename = $newFilename;
+                $videoJob->original_filename = basename($newFilename);
+                $videoJob->mimetype = function_exists('mime_content_type') 
+                    ? mime_content_type($targetPath) 
+                    : 'image/png';
+                
+                // Store the file in storage for media library
+                $storagePath = 'videos/' . $newFilename;
+                $storageFullPath = Storage::disk('public')->path($storagePath);
+                $storageDir = dirname($storageFullPath);
+                if (!is_dir($storageDir) && !mkdir($storageDir, 0755, true)) {
+                    Log::warning('Failed to create storage directory for init image', [
+                        'video_job_id' => $videoJob->id,
+                        'target_directory' => $storageDir,
+                    ]);
+                    return;
+                }
+
+                if (!copy($targetPath, $storageFullPath)) {
+                    Log::warning('Failed to copy init image into storage', [
+                        'video_job_id' => $videoJob->id,
+                        'source' => $targetPath,
+                        'target' => $storageFullPath,
+                    ]);
+                    return;
+                }
+
+                // Update media library if job has existing original media
+                try {
+                    $originalMedia = $videoJob->getMedia(Videojob::MEDIA_ORIGINAL)->first();
+                    if ($originalMedia) {
+                        $originalMedia->delete();
+                    }
+                    $this->persistMedia($videoJob, $storagePath);
+                } catch (\Exception $e) {
+                    Log::warning('Failed to update media library for extended job', [
+                        'video_job_id' => $videoJob->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+                
+                Log::info('Set init image from base job last frame', [
+                    'video_job_id' => $videoJob->id,
+                    'base_job_id' => $baseJob->id,
+                    'init_image_path' => $targetPath,
+                ]);
+            } else {
+                Log::warning('Failed to copy last frame to new job location', [
+                    'video_job_id' => $videoJob->id,
+                    'base_job_id' => $baseJob->id,
+                    'source' => $lastFramePath,
+                    'target' => $targetPath,
+                ]);
+            }
+        }
     }
 
     private function normalizeSeed(int $seed): int

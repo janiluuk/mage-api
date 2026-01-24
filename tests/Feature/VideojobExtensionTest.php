@@ -330,4 +330,73 @@ class VideojobExtensionTest extends TestCase
             'error' => 'Unauthorized. Not your video.',
         ]);
     }
+
+    /**
+     * Test that extending a deforum job sets the init image to the last frame of the base job
+     */
+    public function test_extending_deforum_job_sets_init_image_to_last_frame(): void
+    {
+        Queue::fake();
+
+        // Create a test image file as the last frame in a temp directory
+        $framesDir = sys_get_temp_dir() . '/frames_test_' . uniqid();
+        if (!is_dir($framesDir)) {
+            mkdir($framesDir, 0755, true);
+        }
+        $lastFramePath = $framesDir . '/base_last_frame.png';
+        $image = imagecreatetruecolor(100, 100);
+        imagepng($image, $lastFramePath);
+        imagedestroy($image);
+
+        // Create a base deforum job with last frame
+        $baseJob = Videojob::factory()->create([
+            'user_id' => $this->user->id,
+            'generator' => 'deforum',
+            'status' => 'finished',
+            'last_frame_path' => $lastFramePath,
+            'width' => 512,
+            'height' => 512,
+        ]);
+
+        // Create a new job to be extended
+        $extendJob = Videojob::factory()->create([
+            'user_id' => $this->user->id,
+            'generator' => 'deforum',
+            'status' => 'pending',
+            'filename' => 'original.png',
+            'outfile' => 'test_out.mp4',
+        ]);
+
+        // Generate the extended job
+        $response = $this->actingAs($this->user, 'api')
+            ->postJson('/api/generate', [
+                'videoId' => $extendJob->id,
+                'type' => 'deforum',
+                'modelId' => 1,
+                'prompt' => 'extended prompt',
+                'preset' => 'zoom',
+                'length' => 4,
+                'frameCount' => 5,
+                'extendFromJobId' => $baseJob->id,
+            ]);
+
+        $response->assertStatus(200);
+
+        // Verify the job filename was updated to use extend_init
+        $extendJob->refresh();
+        $this->assertStringContainsString('extend_init', $extendJob->filename);
+        $this->assertEquals('image/png', $extendJob->mimetype);
+
+        // Verify the file exists
+        $initImagePath = public_path('videos/' . $extendJob->filename);
+        $this->assertFileExists($initImagePath);
+        
+        // Cleanup temp directory
+        if (file_exists($lastFramePath)) {
+            unlink($lastFramePath);
+        }
+        if (is_dir($framesDir)) {
+            rmdir($framesDir);
+        }
+    }
 }

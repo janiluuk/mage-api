@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use LaravelJsonApi\Laravel\Routing\ResourceRegistrar;
 use App\Http\Controllers\Api\V2\Auth\LoginController;
 use App\Http\Controllers\VideojobController;
+use App\Http\Controllers\AudioController;
 use App\Http\Controllers\Api\V1\UploadController;
 use App\Http\Controllers\Api\V1\GeneratorController;
 use App\Http\Controllers\Api\V2\Auth\LogoutController;
@@ -57,30 +58,35 @@ use LaravelJsonApi\Laravel\Routing\Relationships;
 |
 */
 
+// ============================================================================
+// JSON API Routes (v1 & v2)
+// ============================================================================
 
 JsonApiRoute::server('v1')
     ->prefix('v1')
     ->resources(function (ResourceRegistrar $server) {
         $server->resource('model-files', JsonApiController::class);
         $server->resource('generators', JsonApiController::class);
-
         $server->resource('video-jobs', VideojobApiController::class);
+        
         $server->resource('categories', JsonApiController::class)->relationships(function ($relationships) {
             $relationships->hasMany('items');
         });
+        
         $server->resource('users', JsonApiController::class)->relationships(function ($relationships) {
             $relationships->hasOne('role');
         });
+        
         $server->resource('items', JsonApiController::class)->relationships(function ($relationships) {
             $relationships->hasMany('tags');
             $relationships->hasOne('category');
             $relationships->hasOne('user');
         });
-
+        
         $server->resource('roles', JsonApiController::class)->relationships(function ($relationships) {
             $relationships->hasMany('permissions');
         });
-
+        
         $server->resource('permissions', JsonApiController::class)->relationships(function ($relationships) { 
             $relationships->hasOne('role');
         })->only('index');
@@ -91,8 +97,7 @@ JsonApiRoute::server('v1')
         $server->resource('tags', JsonApiController::class)->relationships(function ($relationships) {
             $relationships->hasMany('items');
         });
-          
-    });    
+    });
 
 Route::prefix('v2')->group(function () {
     Route::post('/login', LoginController::class)->name('login');
@@ -110,6 +115,27 @@ JsonApiRoute::server('v2')->prefix('v2')->resources(function (ResourceRegistrar 
     Route::get('me', [MeController::class, 'readProfile']);
     Route::patch('me', [MeController::class, 'updateProfile']);
 });
+
+// ============================================================================
+// Auth Routes
+// ============================================================================
+
+Route::prefix('auth')->middleware('auth:api')->group(function () {
+    Route::get('/me', [AuthController::class, 'me']);
+});
+
+// ============================================================================
+// Audio Routes
+// ============================================================================
+
+Route::get('/stream', [AudioController::class, 'stream']);
+Route::get('/status', [AudioController::class, 'status']);
+Route::get('/config', [AudioController::class, 'config']);
+Route::get('/audio-queue', [AudioController::class, 'queue']);
+
+// ============================================================================
+// V1 Upload Routes
+// ============================================================================
 
 Route::prefix('v1')->middleware('auth:api')->group(function () {
     Route::post('/uploads/{resource}/{id}/{field}', UploadController::class);
@@ -181,10 +207,12 @@ Route::post('/generate', [VideojobController::class, 'generate'])->middleware('a
 Route::post('/finalize', [VideojobController::class, 'finalize'])->middleware('api');
 Route::post('/cancelJob/{videoId}', [VideojobController::class, 'cancelJob'])->middleware('api');
 Route::get('/queue', [VideojobController::class, 'getVideoJobs'])->middleware('auth:api');
+Route::get('/status/{id}', [VideojobController::class, 'status'])->middleware('auth:api');
 Route::middleware('auth:api')->prefix('video-jobs')->group(function () {
     Route::get('/processing/status', [VideojobController::class, 'processingStatus']);
     Route::get('/processing/queue', [VideojobController::class, 'processingQueue']);
     Route::get('/{videoId}/status', [VideojobController::class, 'status']);
+    Route::patch('/{videoId}/audio', [VideojobController::class, 'attachAudio']);
 });
 
 Route::middleware('auth:api')->prefix('files')->group(function () {
@@ -206,21 +234,17 @@ Route::middleware('auth:api')->prefix('files')->group(function () {
     Route::delete('{id}/tags/{tagId}', [FileController::class, 'detachTag']);
 });
 
-Route::get('/csrf-token', function () {
-    return response()->json([
-        'csrfToken' => csrf_token(),
-    ]);
-});
-Route::prefix('auth')->group(function () {
-    Route::post('register', [AuthController::class, 'register']);
-    Route::post('verified-email', [AuthController::class, 'emailVerification']);
-    Route::post('login', [AuthController::class, 'login']);
-    Route::post('forgot-password', [AuthController::class, 'sendLinkForgotPassword']);
-    Route::post('reset-password', [AuthController::class, 'resetPassword']);
+// ============================================================================
+// User-Facing Resource Routes
+// ============================================================================
 
-    Route::middleware('auth:api')->group(function () {
-        Route::post('logout', [AuthController::class, 'logout']);
-        Route::get('me', [AuthController::class, 'me']);
+// Categories
+Route::prefix('categories')->group(function () {
+    Route::get('/', [CategoryController::class, 'getCategories']);
+    Route::get('/{id}', [CategoryController::class, 'getCategoryById']);
+    
+    Route::middleware('AuthorizationChecker')->group(function () {
+        Route::get('/by-user-id/{userId?}', [CategoryController::class, 'getCategoriesWithProductsForUser']);
     });
 });
 
@@ -370,26 +394,98 @@ Route::prefix('/payment')->middleware('auth:api')->group(function () {
     Route::post('/create-intent', [PaymentController::class, 'createPaymentIntent']);
 });
 
-Route::post('/webhooks/stripe', [PaymentController::class, 'webhook'])
-    ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+// Wallet Types
+Route::prefix('wallet-types')->group(function () {
+    Route::get('/', [WalletTypeController::class, 'getWalletTypes']);
+});
 
+// User Wallets
+Route::prefix('user-wallets')->middleware('AuthorizationChecker')->group(function () {
+    Route::get('/', [UserWalletController::class, 'getUserWalletsForCurrentUser']);
+    Route::get('/by-wallet-type-id/{walletTypeId}', [UserWalletController::class, 'getUserWalletsByWalletTypeId']);
+    Route::post('/', [UserWalletController::class, 'save']);
+    Route::put('/', [UserWalletController::class, 'update']);
+    Route::delete('/{userWalletId}', [UserWalletController::class, 'delete']);
+});
 
-Route::prefix('/user-ratings')->group(
-    function () {
-        Route::middleware('AuthorizationChecker')->group(function () {
-            Route::get('/{userId?}', [UserRatingController::class, 'getUserRatingByUserId']);
-        });
-    }
-);
+// Finance Operations
+Route::prefix('finance-operations')->middleware('AuthorizationChecker')->group(function () {
+    Route::get('/', [FinanceOperationsController::class, 'getFinanceOperationsForCurrentUser']);
+    Route::post('/', [FinanceOperationsController::class, 'create']);
+    Route::get('/{financeOperationsId}', [FinanceOperationsController::class, 'getFinanceOperationById']);
+    Route::put('/{financeOperationsId}', [FinanceOperationsController::class, 'changeFinanceOperationStatusToCancel']);
+    Route::patch('/change-finance-operation-status', [FinanceOperationsController::class, 'changeFinanceOperationStatus']);
+});
 
-Route::group(
-    [
-        'prefix' => 'support-request',
-    ],
-    function () {
-        Route::post('', [SupportRequestController::class, 'sendSupportRequest']);
-    }
-);
+// Orders
+Route::prefix('orders')->middleware('AuthorizationChecker')->group(function () {
+    Route::get('/purchases', [OrderController::class, 'getPurchasesForCurrentUser']);
+    Route::get('/sales', [OrderController::class, 'getSalesForCurrentUser']);
+    Route::post('/', [OrderController::class, 'create']);
+    Route::get('/{orderId}', [OrderController::class, 'getOrderById']);
+    Route::patch('/confirm-order', [OrderController::class, 'confirmOrderById']);
+});
+
+// User Ratings
+Route::prefix('user-ratings')->middleware('AuthorizationChecker')->group(function () {
+    Route::get('/{userId?}', [UserRatingController::class, 'getUserRatingByUserId']);
+});
+
+// ============================================================================
+// Communication Routes (Chats & Messages)
+// ============================================================================
+
+// Messages
+Route::prefix('messages')->middleware('AuthorizationChecker')->group(function () {
+    Route::get('/get-messages-by-chat-id/{chatId}', [MessageController::class, 'getMessagesByChatId']);
+    Route::post('/', [MessageController::class, 'addMessage']);
+});
+
+// Chats
+Route::prefix('chats')->middleware('AuthorizationChecker')->group(function () {
+    Route::get('/get-chats-by-current-user', [ChatController::class, 'getChatsByCurrentUser']);
+    Route::get('/get-chat-by-user-id/{userId}', [ChatController::class, 'getChatByUserId']);
+    Route::post('/', [ChatController::class, 'create']);
+    Route::get('/{chatId}', [ChatController::class, 'getChatById']);
+});
+
+// ============================================================================
+// Story Creator Routes
+// ============================================================================
+Route::prefix('story')->middleware('AuthorizationChecker')->group(function () {
+    Route::post('/generate', [\App\Http\Controllers\Api\StoryGenerationController::class, 'start']);
+    Route::post('/share', [\App\Http\Controllers\Api\StoryGenerationController::class, 'share']);
+    Route::get('/batch/{batchId}', [\App\Http\Controllers\Api\StoryGenerationController::class, 'status']);
+    Route::get('/batch/{batchId}/config', [\App\Http\Controllers\Api\StoryGenerationController::class, 'getConfig']);
+    Route::patch('/batch/{batchId}', [\App\Http\Controllers\Api\StoryGenerationController::class, 'updateConfig']);
+    Route::post('/batch/{batchId}/pause', [\App\Http\Controllers\Api\StoryGenerationController::class, 'pause']);
+    Route::post('/batch/{batchId}/resume', [\App\Http\Controllers\Api\StoryGenerationController::class, 'resume']);
+    Route::delete('/batch/{batchId}', [\App\Http\Controllers\Api\StoryGenerationController::class, 'cancel']);
+    Route::post('/batch/{batchId}/frames', [\App\Http\Controllers\Api\StoryGenerationController::class, 'persistFrame']);
+});
+
+// ============================================================================
+// Support Request Routes
+// ============================================================================
+
+Route::prefix('support-requests')->group(function () {
+    // Public route
+    Route::post('/', [SupportRequestController::class, 'sendSupportRequest']);
+    
+    // Authenticated routes
+    Route::middleware('AuthorizationChecker')->group(function () {
+        Route::post('/search', [SupportRequestController::class, 'getSupportRequestsByCriteriaForUser']);
+        Route::get('/{id}', [SupportRequestController::class, 'getSupportRequest']);
+        Route::get('/{id}/messages', [SupportRequestController::class, 'getAllSupportRequestMessages']);
+        Route::post('/{id}/messages', [SupportRequestController::class, 'sendSupportRequestMessage']);
+        Route::patch('/{id}/status', [SupportRequestController::class, 'updateSupportStatusRequest']);
+    });
+});
+
+// Legacy support request routes (for backward compatibility)
+Route::prefix('support-request')->group(function () {
+    Route::post('/', [SupportRequestController::class, 'sendSupportRequest']);
+});
 Route::middleware('AuthorizationChecker')->group(function () {
     Route::post('/support-requests', [SupportRequestController::class, 'getSupportRequestsByCriteriaForUser']);
     Route::get('/support-request/{id}', [SupportRequestController::class, 'getSupportRequest']);
@@ -397,22 +493,17 @@ Route::middleware('AuthorizationChecker')->group(function () {
     Route::post('/send-support-request-message', [SupportRequestController::class, 'sendSupportRequestMessage']);
     Route::patch('/support-request/status-update', [SupportRequestController::class, 'updateSupportStatusRequest']);
 });
-Route::get('/status/{serviceName?}', [StatusController::class, 'status']);
 
-Route::prefix('/')->group( function(){
-    Route::get('/{providerName}/auth', [SocialiteAuthController::class, 'authUserFromSocialite']);
-    Route::get('/{providerName}/callback', [SocialiteAuthController::class, 'addUserFromSocialite']);
+// ============================================================================
+// Payment Routes
+// ============================================================================
+
+Route::prefix('payment')->middleware('auth:api')->group(function () {
+    Route::post('/create-intent', [PaymentController::class, 'createPaymentIntent']);
 });
 
-Route::group(
-    [
-        'prefix' => '/questions',
-    ],
-    function () {
-        Route::get('/', [QuestionController::class, 'getAll']);
-        Route::get('/{questionSlug}', [QuestionController::class, 'getBySlug']);
-    }
-);
+Route::post('/webhooks/stripe', [PaymentController::class, 'webhook'])
+    ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
 
 // ComfyUI Workflow routes
 Route::prefix('/comfyui')->middleware('auth:api')->group(function () {
