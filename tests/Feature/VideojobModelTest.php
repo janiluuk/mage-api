@@ -327,7 +327,7 @@ class VideojobModelTest extends TestCase
         $this->assertStringContainsString('finished-video', $retrievedUrl);
 
         // Step 9: Verify status endpoint returns the job with URL
-        $response = $this->getJson("/status/{$videoJob->id}");
+        $response = $this->get("/status/{$videoJob->id}");
         $response->assertOk();
         $response->assertJson([
             'id' => $videoJob->id,
@@ -372,7 +372,7 @@ class VideojobModelTest extends TestCase
         $videoJob->save();
 
         // Request status via API
-        $response = $this->getJson("/api/video-jobs/{$videoJob->id}/status");
+        $response = $this->get("/api/video-jobs/{$videoJob->id}/status");
 
         $response->assertOk();
         
