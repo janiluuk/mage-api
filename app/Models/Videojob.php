@@ -524,8 +524,8 @@ class Videojob extends Model implements HasMedia
             });
         }
         
-        // Allow text/plain in testing environment for fake file uploads
-        $testMimeTypes = app()->environment('testing') ? ['text/plain'] : [];
+        // Allow text/plain and application/x-empty in testing environment for fake file uploads
+        $testMimeTypes = app()->environment('testing') ? ['text/plain', 'application/x-empty'] : [];
         
         $this->addMediaCollection('preview')
             ->useDisk('public')  // Use public disk which is faked in tests

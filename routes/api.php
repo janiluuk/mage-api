@@ -194,6 +194,7 @@ Route::middleware('auth:api')->prefix('video-jobs')->group(function () {
     Route::get('/processing/status', [VideojobController::class, 'processingStatus']);
     Route::get('/processing/queue', [VideojobController::class, 'processingQueue']);
     Route::get('/{videoId}/status', [VideojobController::class, 'status']);
+    Route::patch('/{videoId}/audio', [VideojobController::class, 'attachAudio']);
 });
 
 Route::middleware('auth:api')->prefix('files')->group(function () {
