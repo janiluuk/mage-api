@@ -42,13 +42,13 @@ class AudioProcessor
             $outputParams = $this->getOutputParameters();
             
             $command = sprintf(
-                '%s -y -i %s -af "%s" -ac %s -b:a %s -f %s %s',
+                '%s -y -i %s -af %s -ac %s -b:a %s -f %s %s',
                 escapeshellarg($this->ffmpegPath),
                 escapeshellarg($tempInput),
-                $filterChain,
-                $outputParams['channels'],
-                $outputParams['bitrate'],
-                $outputParams['format'],
+                escapeshellarg($filterChain),
+                escapeshellarg($outputParams['channels']),
+                escapeshellarg($outputParams['bitrate']),
+                escapeshellarg($outputParams['format']),
                 escapeshellarg($tempOutput)
             );
 
@@ -184,7 +184,7 @@ class AudioProcessor
 
     /**
      * Sanitize filter values to prevent command injection.
-     * Only allows alphanumeric characters, dots, hyphens, and specific suffixes.
+     * Only allows specific safe patterns for FFmpeg parameters.
      *
      * @param mixed $value The value to sanitize
      * @param string $default The default value to return if sanitization fails
@@ -196,10 +196,11 @@ class AudioProcessor
         $value = (string)$value;
         
         // Allow only safe patterns:
-        // - Numbers with optional decimal point and optional units (k, dB)
-        // - Alphabetic strings (for formats like 'adts')
-        // This prevents command injection while allowing valid FFmpeg parameter values
-        if (preg_match('/^[a-zA-Z0-9.\-]+(?:dB|k)?$/', $value)) {
+        // - Negative numbers (e.g., -20, -20dB)
+        // - Positive numbers with optional decimal (e.g., 2, 0.8, 128k)
+        // - Alphabetic strings without special characters (e.g., adts)
+        // Hyphen is only allowed at the start for negative numbers
+        if (preg_match('/^(?:-?[0-9]+(?:\.[0-9]+)?(?:dB|k)?|[a-zA-Z][a-zA-Z0-9]*)$/', $value)) {
             return $value;
         }
         
