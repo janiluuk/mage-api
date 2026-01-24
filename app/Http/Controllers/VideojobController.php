@@ -867,7 +867,7 @@ private function generateDeforum(Request $request): JsonResponse
                         'jpg', 'jpeg' => 'image/jpeg',
                         'gif' => 'image/gif',
                         'webp' => 'image/webp',
-                        default => throw new \RuntimeException("Unable to determine mime type for file: {$targetPath}")
+                        default => throw new \RuntimeException("Unable to determine mime type for extension: {$extension}")
                     };
                 }
                 
