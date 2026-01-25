@@ -539,6 +539,11 @@ private function generateDeforum(Request $request): JsonResponse
                 $variantJob->fps = $persistedParameters['fps'] ?? $baseJob->fps;
                 $variantJob->width = $baseJob->width;
                 $variantJob->height = $baseJob->height;
+
+                // Set init image from base job for extension variants
+                if ($i > 0) {
+                    $this->setInitImageFromBaseJob($variantJob, $baseJob);
+                }
             } else {
                 $variantJob->model_id = $request->input('modelId');
                 $variantJob->cfg_scale = $request->input('cfgScale');
