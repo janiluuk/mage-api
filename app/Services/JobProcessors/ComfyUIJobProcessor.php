@@ -59,7 +59,24 @@ class ComfyUIJobProcessor extends AbstractJobProcessor
             // 3. Retrieve results when complete
             // 4. Update $videoJob with output URL and status
             // See ComfyUIClient and ComfyWebSocketClient for available methods
-            throw new \Exception('ComfyUI processor not yet fully implemented - see TODO comments');
+            
+            // Currently, ComfyUI workflow processing is not implemented.
+            // Fail gracefully instead of throwing a "not implemented" exception.
+            $error = new \RuntimeException('ComfyUI processor is not yet fully implemented - job failed gracefully');
+            $this->logJobError($videoJob, 'ComfyUI', $error);
+            
+            // Release lock and mark job as failed for load balancing
+            $this->unlockJob($videoJob->id);
+            $this->loadBalancer->markJobAsFailed($videoJob->id);
+            
+            // Update job timing and retry information
+            $videoJob->job_time = time() - $startTime;
+            $videoJob->queued_at = \Carbon\Carbon::now();
+            $videoJob->retries += 1;
+            $videoJob->save();
+            
+            // Exit early since processing is not implemented yet
+            return;
             
             // Release lock and mark complete
             $this->unlockJob($videoJob->id);
