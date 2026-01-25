@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.20] - 2026-01-25
+
+### Changes
+- Add parallel variant processing, post-processing effects, and live progress tracking (#56)
+
 ## [1.0.19] - 2026-01-25
 
 ### Changes
