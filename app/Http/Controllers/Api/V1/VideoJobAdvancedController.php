@@ -158,19 +158,7 @@ class VideoJobAdvancedController extends Controller
     {
         $validated = $request->validate([
             'effects' => 'required|array|min:1',
-            'effects.*.name' => 'required|string|in:' . implode(',', [
-                VideoPostProcessor::EFFECT_FADE_IN,
-                VideoPostProcessor::EFFECT_FADE_OUT,
-                VideoPostProcessor::EFFECT_BRIGHTNESS,
-                VideoPostProcessor::EFFECT_CONTRAST,
-                VideoPostProcessor::EFFECT_SATURATION,
-                VideoPostProcessor::EFFECT_SHARPEN,
-                VideoPostProcessor::EFFECT_BLUR,
-                VideoPostProcessor::EFFECT_DENOISE,
-                VideoPostProcessor::EFFECT_SCALE,
-                VideoPostProcessor::EFFECT_CROP,
-                VideoPostProcessor::EFFECT_ROTATE,
-            ]),
+            'effects.*.name' => 'required|string|in:' . implode(',', $this->postProcessor->getValidEffectNames()),
             'effects.*.params' => 'nullable|array',
         ]);
 

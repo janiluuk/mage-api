@@ -20,16 +20,12 @@ class VideoPostProcessor
     public const EFFECT_BRIGHTNESS = 'brightness';
     public const EFFECT_CONTRAST = 'contrast';
     public const EFFECT_SATURATION = 'saturation';
-    public const EFFECT_SPEED = 'speed';
-    public const EFFECT_REVERSE = 'reverse';
-    public const EFFECT_STABILIZE = 'stabilize';
-    public const EFFECT_DENOISE = 'denoise';
     public const EFFECT_SHARPEN = 'sharpen';
     public const EFFECT_BLUR = 'blur';
-    public const EFFECT_CROP = 'crop';
+    public const EFFECT_DENOISE = 'denoise';
     public const EFFECT_SCALE = 'scale';
+    public const EFFECT_CROP = 'crop';
     public const EFFECT_ROTATE = 'rotate';
-    public const EFFECT_WATERMARK = 'watermark';
 
     /**
      * Apply post-processing effects to an approved video.
@@ -242,6 +238,28 @@ class VideoPostProcessor
             $pathInfo['filename'],
             $pathInfo['extension']
         );
+    }
+
+    /**
+     * Get list of valid effect names.
+     *
+     * @return array
+     */
+    public function getValidEffectNames(): array
+    {
+        return [
+            self::EFFECT_FADE_IN,
+            self::EFFECT_FADE_OUT,
+            self::EFFECT_BRIGHTNESS,
+            self::EFFECT_CONTRAST,
+            self::EFFECT_SATURATION,
+            self::EFFECT_SHARPEN,
+            self::EFFECT_BLUR,
+            self::EFFECT_DENOISE,
+            self::EFFECT_SCALE,
+            self::EFFECT_CROP,
+            self::EFFECT_ROTATE,
+        ];
     }
 
     /**
