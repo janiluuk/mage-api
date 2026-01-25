@@ -88,7 +88,7 @@ class VideoJobPostProcessingTest extends TestCase
 
         $response->assertStatus(422);
         $response->assertJson([
-            'message' => 'Video job must be finished before post-processing'
+            'message' => 'Post-processing failed - video must be in finished status'
         ]);
     }
 
