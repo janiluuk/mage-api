@@ -206,6 +206,22 @@ class Videojob extends Model implements HasMedia
             ->orderBy('batch_video_job.order');
     }
 
+    /**
+     * Get variants created from this base job.
+     */
+    public function variants()
+    {
+        return $this->hasMany(VideoJobVariant::class, 'base_video_job_id');
+    }
+
+    /**
+     * Get the variant relationship if this job is a variant.
+     */
+    public function variantOf()
+    {
+        return $this->hasOne(VideoJobVariant::class, 'variant_video_job_id');
+    }
+
     public function modelfile()
     {
         return $this->belongsTo(ModelFile::class, 'model_id');

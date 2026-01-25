@@ -21,3 +21,8 @@ Broadcast::channel('video-export.{jobId}', function ($user, $jobId) {
     $job = \App\Models\VideoExportJob::find($jobId);
     return $job && $job->user_id === $user->id;
 });
+
+Broadcast::channel('video-job.{jobId}', function ($user, $jobId) {
+    $job = \App\Models\Videojob::find($jobId);
+    return $job && $job->user_id === $user->id;
+});

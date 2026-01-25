@@ -38,6 +38,7 @@ use App\Http\Controllers\Api\GeneratorInstanceController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ComfyUIWorkflowController;
 use App\Http\Controllers\Api\V1\VideoJobOperationsController;
+use App\Http\Controllers\Api\V1\VideoJobAdvancedController;
 use App\Http\Controllers\Api\V1\BatchController;
 use App\Http\Controllers\Api\V1\PresetController;
 use App\Http\Controllers\Api\V1\CustomJobController;
@@ -158,6 +159,14 @@ Route::prefix('v1')->middleware('auth:api')->group(function () {
     Route::post('/video-jobs/add-soundtrack', [VideoJobOperationsController::class, 'addSoundtrack']);
     Route::post('/video-jobs/extend', [VideoJobOperationsController::class, 'extend']);
     Route::post('/video-jobs/trim', [VideoJobOperationsController::class, 'trim']);
+    
+    // Advanced video job operations (variants, post-processing)
+    Route::post('/video-jobs/{id}/variants', [VideoJobAdvancedController::class, 'createVariants']);
+    Route::get('/video-jobs/{id}/variants', [VideoJobAdvancedController::class, 'getVariantsStatus']);
+    Route::post('/video-jobs/{id}/variants/process', [VideoJobAdvancedController::class, 'processVariants']);
+    Route::post('/video-jobs/{id}/post-process', [VideoJobAdvancedController::class, 'postProcess']);
+    Route::get('/video-jobs/post-process/effects', [VideoJobAdvancedController::class, 'getAvailableEffects']);
+    Route::post('/video-jobs/{id}/extend-with-params', [VideoJobAdvancedController::class, 'extendWithParams']);
     
     // Custom job processing
     Route::post('/custom-jobs/process', [CustomJobController::class, 'process']);
