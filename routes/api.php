@@ -117,6 +117,22 @@ JsonApiRoute::server('v2')->prefix('v2')->resources(function (ResourceRegistrar 
 });
 
 // ============================================================================
+// Audio Generation Routes
+// ============================================================================
+Route::prefix('audio')->group(function () {
+    Route::get('/stream', [AudioController::class, 'stream']);
+    Route::get('/status', [AudioController::class, 'status']);
+    Route::get('/queue', [AudioController::class, 'queue']);
+    Route::get('/config', [AudioController::class, 'config']);
+});
+
+// Legacy audio routes (for backward compatibility)
+Route::get('/stream', [AudioController::class, 'stream']);
+Route::get('/status', [AudioController::class, 'status']);
+Route::get('/audio-queue', [AudioController::class, 'queue']);
+Route::get('/config', [AudioController::class, 'config']);
+
+// ============================================================================
 // V1 Upload Routes
 // ============================================================================
 
