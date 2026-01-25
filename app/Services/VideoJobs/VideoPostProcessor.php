@@ -40,7 +40,7 @@ class VideoPostProcessor
      */
     public function applyEffects(Videojob $videoJob, array $effects): bool
     {
-        if ($videoJob->status !== Videojob::STATUS_FINISHED && $videoJob->status !== Videojob::STATUS_APPROVED) {
+        if ($videoJob->status !== Videojob::STATUS_FINISHED) {
             Log::warning('Cannot post-process video - invalid status', [
                 'job_id' => $videoJob->id,
                 'status' => $videoJob->status,
@@ -220,8 +220,8 @@ class VideoPostProcessor
                 $params['y'] ?? 0
             ),
             self::EFFECT_ROTATE => sprintf(
-                'rotate=%s',
-                deg2rad($params['degrees'] ?? 0)
+                'rotate=%s*PI/180',
+                $params['degrees'] ?? 0
             ),
             default => null,
         };

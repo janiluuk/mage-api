@@ -105,14 +105,19 @@ class VideoJobVariantService
         $variantJob->last_frame_path = $baseJob->last_frame_path;
         
         // Generate unique outfile for variant
-        $originalOutfile = $baseJob->outfile ?? $baseJob->filename;
+        $originalOutfile = $baseJob->outfile ?? $baseJob->filename ?? 'video.mp4';
         $pathInfo = pathinfo($originalOutfile);
+        
+        // Ensure we have valid filename and extension
+        $filename = $pathInfo['filename'] ?? 'video';
+        $extension = $pathInfo['extension'] ?? 'mp4';
+        
         $variantJob->outfile = sprintf(
             '%s_variant_%s_%s.%s',
-            $pathInfo['filename'] ?? 'video',
+            $filename,
             $modelFile->id,
             uniqid(),
-            $pathInfo['extension'] ?? 'mp4'
+            $extension
         );
         
         // Set initial status

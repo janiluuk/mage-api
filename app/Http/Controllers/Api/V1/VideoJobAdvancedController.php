@@ -181,13 +181,6 @@ class VideoJobAdvancedController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        // Check if video is in a state that can be post-processed
-        if (!in_array($videoJob->status, [Videojob::STATUS_FINISHED, Videojob::STATUS_APPROVED])) {
-            return response()->json([
-                'message' => 'Video job must be finished before post-processing'
-            ], 422);
-        }
-
         try {
             // Transform effects array to the format expected by postProcessor
             $effects = [];
@@ -195,7 +188,7 @@ class VideoJobAdvancedController extends Controller
                 $effects[$effect['name']] = $effect['params'] ?? [];
             }
 
-            // Apply effects
+            // Apply effects - service will validate status
             $success = $this->postProcessor->applyEffects($videoJob, $effects);
 
             if ($success) {
@@ -211,8 +204,8 @@ class VideoJobAdvancedController extends Controller
                 ]);
             } else {
                 return response()->json([
-                    'message' => 'Post-processing failed'
-                ], 500);
+                    'message' => 'Post-processing failed - video must be in finished status'
+                ], 422);
             }
 
         } catch (\Exception $e) {
