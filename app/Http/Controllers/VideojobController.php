@@ -261,13 +261,6 @@ private function generateDeforum(Request $request): JsonResponse
                 // Create a new job by replicating the original
                 $variantJob = $originalJob->replicate();
                 $variantJob->save();
-                
-                // Copy media files to the new job if needed
-                foreach ($originalJob->getMedia('original') as $media) {
-                    $variantJob->addMedia($media->getPath())
-                        ->preservingOriginal()
-                        ->toMediaCollection('original');
-                }
             }
 
             // Generate unique seed for each variant
