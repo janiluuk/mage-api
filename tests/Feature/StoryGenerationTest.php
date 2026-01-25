@@ -171,6 +171,11 @@ class StoryGenerationTest extends TestCase
     public function test_persist_frame_stores_image_and_updates_progress(): void
     {
         $this->withoutMiddleware();
+        $diskRoot = sys_get_temp_dir() . '/mage-api-public';
+        if (!is_dir($diskRoot)) {
+            mkdir($diskRoot, 0777, true);
+        }
+        config(['filesystems.disks.public.root' => $diskRoot]);
         Storage::fake('public');
 
         $user = User::factory()->create();

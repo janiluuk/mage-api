@@ -2,6 +2,7 @@
 /public/build
 /public/hot
 /public/storage
+/public/videos
 /public/videos/
 /storage/*.key
 /vendor
@@ -9,6 +10,7 @@
 .env.backup
 .env.production
 .phpunit.result.cache
+xdebug.log
 __pycache__/
 *.pyc
 Homestead.json

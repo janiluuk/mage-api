@@ -93,7 +93,7 @@ JsonApiRoute::server('v1')
 
         // Note: Batches use REST API endpoints in v1 prefix group below, not JSON:API
         // $server->resource('batches', JsonApiController::class);
-
+        
         $server->resource('tags', JsonApiController::class)->relationships(function ($relationships) {
             $relationships->hasMany('items');
         });
@@ -117,6 +117,20 @@ JsonApiRoute::server('v2')->prefix('v2')->resources(function (ResourceRegistrar 
 });
 
 // ============================================================================
+// Audio Generation Routes
+// ============================================================================
+Route::prefix('audio')->group(function () {
+    Route::get('/stream', [AudioController::class, 'stream']);
+    Route::get('/status', [AudioController::class, 'status']);
+    Route::get('/queue', [AudioController::class, 'queue']);
+    Route::get('/config', [AudioController::class, 'config']);
+});
+
+// Legacy audio routes (for backward compatibility)
+Route::get('/stream', [AudioController::class, 'stream']);
+Route::get('/status', [AudioController::class, 'status']);
+Route::get('/audio-queue', [AudioController::class, 'queue']);
+Route::get('/config', [AudioController::class, 'config']);
 // Auth Routes
 // ============================================================================
 
@@ -302,14 +316,14 @@ Route::prefix('/categories')->group(
 Route::prefix('/products')->group(
     function () {
         Route::get('', [ProductController::class, 'getProductsByCategoryId']);
-        Route::patch('/{productId}', [ProductController::class, 'toggleActive']);
-
-        Route::middleware('AuthorizationChecker')->group(function () {
-            Route::get('/get-products-for-user', [ProductController::class, 'getProductsForUser']);
+    Route::patch('/{productId}', [ProductController::class, 'toggleActive']);
+    
+    Route::middleware('AuthorizationChecker')->group(function () {
+        Route::get('/get-products-for-user', [ProductController::class, 'getProductsForUser']);
             Route::post('', [ProductController::class, 'create']);
-            Route::put('/{productId}', [ProductController::class, 'update']);
-            Route::delete('/{productId}', [ProductController::class, 'delete']);
-        });
+        Route::put('/{productId}', [ProductController::class, 'update']);
+        Route::delete('/{productId}', [ProductController::class, 'delete']);
+    });
 
         Route::get('/{productId}', [ProductController::class, 'edit']);
     }

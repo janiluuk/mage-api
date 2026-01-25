@@ -8,8 +8,8 @@ use App\Services\VideoProcessingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Tests\TestCase;
 use Mockery;
+use Tests\TestCase;
 
 class VideoJobAudioUploadTest extends TestCase
 {

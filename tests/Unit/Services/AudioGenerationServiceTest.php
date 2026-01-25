@@ -123,11 +123,33 @@ class AudioGenerationServiceTest extends TestCase
     public function test_generate_and_stream_writes_to_stream(): void
     {
         $mockPromptBuilder = Mockery::mock(PromptBuilder::class);
+        $mockPromptBuilder->shouldReceive('buildPrompt')
+            ->once()
+            ->with('test text')
+            ->andReturn(['1' => ['inputs' => ['text' => 'test text']]]);
         $mockComfyClient = Mockery::mock(ComfyClient::class);
+        $mockComfyClient->shouldReceive('queuePrompt')
+            ->once()
+            ->with(Mockery::type('array'), Mockery::type('string'));
         $mockWsClient = Mockery::mock(ComfyWebSocketClient::class);
+        $mockWsClient->shouldReceive('waitForResult')
+            ->once()
+            ->with(Mockery::type('string'))
+            ->andReturn([
+                'filename' => 'test.wav',
+                'subfolder' => 'output',
+                'type' => 'output',
+            ]);
+        $mockComfyClient->shouldReceive('fetchAudio')
+            ->once()
+            ->andReturn('raw audio');
         
         $mockAudioProcessor = Mockery::mock(AudioProcessor::class);
-        
+        $mockAudioProcessor->shouldReceive('processAudio')
+            ->once()
+            ->with('raw audio')
+            ->andReturn('processed audio');
+
         $mockQueueManager = Mockery::mock(AudioQueueManager::class);
 
         $service = new AudioGenerationService(
@@ -138,9 +160,11 @@ class AudioGenerationServiceTest extends TestCase
             $mockQueueManager
         );
 
-        // Just verify the method exists since we're not actually testing the streaming behavior
-        // The actual streaming would require more complex setup with real or mock streams
-        $this->assertTrue(method_exists($service, 'generateAndStream'));
+        $stream = fopen('php://temp', 'r+');
+        $service->generateAndStream('test text', $stream);
+
+        rewind($stream);
+        $this->assertSame('processed audio', stream_get_contents($stream));
     }
 }
 
