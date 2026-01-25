@@ -77,6 +77,6 @@ class ProcessUnifiedJob implements ShouldQueue, ShouldBeUnique
 
     public function retryUntil(): DateTimeInterface
     {
-       return now()->addDay();
+        return now()->addDay();
     }
 }
