@@ -90,4 +90,118 @@ class AudioProcessor
         $processedAudio = $this->processAudio($audioData);
         fwrite($outputStream, $processedAudio);
     }
+
+    /**
+     * Build the audio filter chain from configuration.
+     *
+     * @return string The FFmpeg audio filter chain
+     */
+    private function buildAudioFilterChain(): string
+    {
+        $config = config('services.ffmpeg.audio_processing');
+        
+        if (!is_array($config) || empty($config)) {
+            // Return default filter chain if configuration is missing
+            return self::DEFAULT_FILTER_CHAIN;
+        }
+        
+        $filters = [];
+        
+        // Compressor filter
+        if (isset($config['compressor']) && is_array($config['compressor'])) {
+            $comp = $config['compressor'];
+            $filters[] = sprintf(
+                'acompressor=threshold=%s:ratio=%s:attack=%s:release=%s',
+                $this->sanitizeFilterValue($comp['threshold'] ?? '-20dB', '-20dB'),
+                $this->sanitizeFilterValue($comp['ratio'] ?? '2', '2'),
+                $this->sanitizeFilterValue($comp['attack'] ?? '5', '5'),
+                $this->sanitizeFilterValue($comp['release'] ?? '50', '50')
+            );
+        }
+        
+        // High-pass filter
+        if (isset($config['highpass']) && is_array($config['highpass'])) {
+            $filters[] = sprintf(
+                'highpass=f=%s',
+                $this->sanitizeFilterValue($config['highpass']['frequency'] ?? '120', '120')
+            );
+        }
+        
+        // Echo filter
+        if (isset($config['echo']) && is_array($config['echo'])) {
+            $echo = $config['echo'];
+            $filters[] = sprintf(
+                'aecho=%s:%s:%s:%s',
+                $this->sanitizeFilterValue($echo['in_gain'] ?? '0.8', '0.8'),
+                $this->sanitizeFilterValue($echo['out_gain'] ?? '0.9', '0.9'),
+                $this->sanitizeFilterValue($echo['delay'] ?? '1000', '1000'),
+                $this->sanitizeFilterValue($echo['decay'] ?? '0.3', '0.3')
+            );
+        }
+        
+        // Limiter filter
+        if (isset($config['limiter']) && is_array($config['limiter'])) {
+            $filters[] = sprintf(
+                'alimiter=limit=%s',
+                $this->sanitizeFilterValue($config['limiter']['limit'] ?? '0.95', '0.95')
+            );
+        }
+        
+        // If no filters were configured, return default filter chain
+        if (empty($filters)) {
+            return self::DEFAULT_FILTER_CHAIN;
+        }
+        
+        return implode(',', $filters);
+    }
+
+    /**
+     * Get output parameters from configuration.
+     *
+     * @return array Output parameters (channels, bitrate, format)
+     */
+    private function getOutputParameters(): array
+    {
+        $config = config('services.ffmpeg.audio_processing.output', []);
+        
+        if (!is_array($config)) {
+            $config = [];
+        }
+        
+        $format = $config['format'] ?? 'adts';
+        // Validate format against whitelist
+        if (!in_array($format, self::ALLOWED_FORMATS, true)) {
+            $format = 'adts';
+        }
+        
+        return [
+            'channels' => $this->sanitizeFilterValue($config['channels'] ?? '2', '2'),
+            'bitrate' => $this->sanitizeFilterValue($config['bitrate'] ?? '128k', '128k'),
+            'format' => $format, // Already validated against whitelist, no need to sanitize
+        ];
+    }
+
+    /**
+     * Sanitize filter values to prevent command injection.
+     * Only allows specific safe patterns for FFmpeg parameters.
+     *
+     * @param mixed $value The value to sanitize
+     * @param string $default The default value to return if sanitization fails
+     * @return string The sanitized value
+     */
+    private function sanitizeFilterValue($value, string $default = '0'): string
+    {
+        // Convert to string
+        $value = (string)$value;
+        
+        // Allow only safe patterns:
+        // - Negative numbers with optional dB suffix (e.g., -20dB)
+        // - Positive numbers with optional decimal and optional k suffix (e.g., 2, 0.8, 128k)
+        // Hyphen is only allowed at the start for negative numbers
+        if (preg_match('/^-?[0-9]+(?:\.[0-9]+)?(?:dB|k)?$/', $value)) {
+            return $value;
+        }
+        
+        return $default;
+    }
 }

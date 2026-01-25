@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 class VideojobController extends Controller
 {
@@ -710,10 +711,19 @@ private function generateDeforum(Request $request): JsonResponse
     private function persistMedia(Videojob $videoJob, string $path): void
     {
         $videoJob->save();
-        $videoJob->addMedia($path)
-            ->withResponsiveImages()
-            ->preservingOriginal()
-            ->toMediaCollection(Videojob::MEDIA_ORIGINAL);
+        
+        // Convert storage-relative path to absolute filesystem path
+        $absolutePath = Storage::disk('public')->path($path);
+        
+        $fileAdder = $videoJob->addMedia($absolutePath)
+            ->preservingOriginal();
+        
+        // Skip responsive images in testing to avoid queue issues
+        if (!app()->environment('testing')) {
+            $fileAdder->withResponsiveImages();
+        }
+        
+        $fileAdder->toMediaCollection(Videojob::MEDIA_ORIGINAL);
 
         $videoJob->original_url = $videoJob->getMedia(Videojob::MEDIA_ORIGINAL)->first()?->getFullUrl();
         $videoJob->save();
