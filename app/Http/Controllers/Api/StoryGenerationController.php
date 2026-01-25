@@ -86,11 +86,15 @@ class StoryGenerationController extends ApiController
 
         $validated = $request->validate([
             'story' => 'required|array',
+            'story.name' => 'nullable|string',
             'story.scenes' => 'required|array|min:1',
             'config' => 'nullable|array',
         ]);
 
-        $batch->config_json = json_encode($validated);
+        $batch->config_json = json_encode([
+            'story' => $request->input('story'),
+            'config' => $request->input('config'),
+        ]);
         $batch->save();
 
         return response()->json([
@@ -136,7 +140,7 @@ class StoryGenerationController extends ApiController
     {
         $batch = StoryBatch::where('id', $batchId)
             ->where('user_id', auth('api')->id())
-            ->first();
+            ->firstOrFail();
 
         $batch->status = 'cancelled';
         $batch->save();

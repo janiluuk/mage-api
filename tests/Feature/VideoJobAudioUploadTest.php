@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\Videojob;
+use App\Services\VideoProcessingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Mockery;
 use Tests\TestCase;
 
 class VideoJobAudioUploadTest extends TestCase
@@ -17,6 +19,12 @@ class VideoJobAudioUploadTest extends TestCase
     {
         parent::setUp();
         Storage::fake('public');
+
+        $mockVideoService = Mockery::mock(VideoProcessingService::class);
+        $mockVideoService->shouldIgnoreMissing();
+        $mockVideoService->shouldReceive('parseJob')
+            ->andReturnUsing(fn ($job) => $job);
+        $this->app->instance(VideoProcessingService::class, $mockVideoService);
     }
 
     public function test_user_can_upload_audio_file_during_job_creation_vid2vid(): void

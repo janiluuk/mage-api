@@ -123,16 +123,32 @@ class AudioGenerationServiceTest extends TestCase
     public function test_generate_and_stream_writes_to_stream(): void
     {
         $mockPromptBuilder = Mockery::mock(PromptBuilder::class);
+        $mockPromptBuilder->shouldReceive('buildPrompt')
+            ->once()
+            ->with('test text')
+            ->andReturn(['1' => ['inputs' => ['text' => 'test text']]]);
         $mockComfyClient = Mockery::mock(ComfyClient::class);
+        $mockComfyClient->shouldReceive('queuePrompt')
+            ->once()
+            ->with(Mockery::type('array'), Mockery::type('string'));
         $mockWsClient = Mockery::mock(ComfyWebSocketClient::class);
+        $mockWsClient->shouldReceive('waitForResult')
+            ->once()
+            ->with(Mockery::type('string'))
+            ->andReturn([
+                'filename' => 'test.wav',
+                'subfolder' => 'output',
+                'type' => 'output',
+            ]);
+        $mockComfyClient->shouldReceive('fetchAudio')
+            ->once()
+            ->andReturn('raw audio');
         
         $mockAudioProcessor = Mockery::mock(AudioProcessor::class);
         $mockAudioProcessor->shouldReceive('processAudio')
             ->once()
+            ->with('raw audio')
             ->andReturn('processed audio');
-        $mockAudioProcessor->shouldReceive('processAndStream')
-            ->once()
-            ->with('raw audio', Mockery::type('resource'));
 
         $mockQueueManager = Mockery::mock(AudioQueueManager::class);
 
@@ -144,20 +160,11 @@ class AudioGenerationServiceTest extends TestCase
             $mockQueueManager
         );
 
-        // Create a temporary stream
         $stream = fopen('php://temp', 'r+');
-        
-        // Mock the generateAudio to return processed audio
-        $mockPromptBuilder->shouldReceive('buildPrompt')->andReturn([]);
-        $mockComfyClient->shouldReceive('queuePrompt');
-        $mockWsClient->shouldReceive('waitForResult')->andReturn(['filename' => 'test.wav']);
-        $mockComfyClient->shouldReceive('fetchAudio')->andReturn('raw audio');
-        $mockAudioProcessor->shouldReceive('processAudio')->andReturn('processed audio');
+        $service->generateAndStream('test text', $stream);
 
-        // Since generateAndStream calls generateAudio internally and then writes to stream,
-        // we need to mock the full chain differently
-        // For simplicity, let's just verify the method exists and can be called
-        $this->assertTrue(method_exists($service, 'generateAndStream'));
+        rewind($stream);
+        $this->assertSame('processed audio', stream_get_contents($stream));
     }
 }
 
