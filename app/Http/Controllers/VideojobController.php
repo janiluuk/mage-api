@@ -112,6 +112,7 @@ class VideojobController extends Controller
         $request->validate([
             'videoId' => 'required|integer|exists:video_jobs,id',
             'type' => 'required|in:vid2vid,deforum',
+            'variants' => 'nullable|integer|min:1|max:10',
         ]);
 
         $type = $request->input('type');
@@ -139,10 +140,16 @@ private function generateDeforum(Request $request): JsonResponse
             'soundtrack_end_seconds' => 'nullable|numeric|gt:soundtrack_start_seconds',
         ]);
 
+        $variants = (int) $request->input('variants', 1);
         $frameCount = $request->input('frameCount', 1);
         $videoJob = Videojob::findOrFail($request->input('videoId'));
-
         $extendFromJobId = $request->input('extendFromJobId');
+
+        if ($response = $this->assertOwner($videoJob)) {
+            return $response;
+        }
+
+        // Validate base job if extending
         if ($extendFromJobId) {
             $baseJob = Videojob::findOrFail($extendFromJobId);
 
@@ -153,7 +160,21 @@ private function generateDeforum(Request $request): JsonResponse
             if ($response = $this->assertOwner($baseJob)) {
                 return $response;
             }
+        }
 
+        // Handle multiple variants
+        if ($variants > 1) {
+            return $this->generateDeforumVariants($request, $videoJob, $variants, $frameCount, $extendFromJobId);
+        }
+
+        // Single variant processing
+        return $this->processDeforumJob($request, $videoJob, $frameCount, $extendFromJobId);
+    }
+
+    private function processDeforumJob(Request $request, Videojob $videoJob, int $frameCount, ?int $extendFromJobId): JsonResponse
+    {
+        if ($extendFromJobId) {
+            $baseJob = Videojob::findOrFail($extendFromJobId);
             $persistedParameters = json_decode((string) $baseJob->generation_parameters, true) ?? [];
 
             // When extending, inherit model_id from base job (not overridable)
@@ -182,18 +203,8 @@ private function generateDeforum(Request $request): JsonResponse
             $videoJob->denoising = $request->input('denoising', $videoJob->denoising);
         }
 
-        if ($response = $this->assertOwner($videoJob)) {
-            return $response;
-        }
-
         $this->applySoundtrackWindow($videoJob, $request);
 
-        // Only override core generation parameters from the request for non-extension jobs.
-        if (!$extendFromJobId) {
-            $videoJob->model_id = $request->input('modelId', $videoJob->model_id);
-            $videoJob->prompt = trim((string) $request->input('prompt', $videoJob->prompt));
-            $videoJob->negative_prompt = trim((string) $request->input('negative_prompt', $videoJob->negative_prompt));
-        }
         $videoJob->status = 'processing';
         $videoJob->progress = 5;
         $seed = $this->normalizeSeed((int) $request->input('seed', $videoJob->seed ?? -1));
@@ -234,6 +245,107 @@ private function generateDeforum(Request $request): JsonResponse
         ]);
     }
 
+    private function generateDeforumVariants(Request $request, Videojob $originalJob, int $variants, int $frameCount, ?int $extendFromJobId): JsonResponse
+    {
+        $jobs = [];
+        $queueName = $frameCount > 1
+            ? $this->resolveQueueName('MEDIUM_PRIORITY_QUEUE', 'medium')
+            : $this->resolveQueueName('HIGH_PRIORITY_QUEUE', 'high');
+
+        for ($i = 0; $i < $variants; $i++) {
+            // Clone the original job for each variant
+            if ($i === 0) {
+                // Use the original job for the first variant
+                $variantJob = $originalJob;
+            } else {
+                // Create a new job by replicating the original
+                $variantJob = $originalJob->replicate();
+                $variantJob->save();
+                
+                // Copy media files to the new job if needed
+                foreach ($originalJob->getMedia('original') as $media) {
+                    $variantJob->addMedia($media->getPath())
+                        ->preservingOriginal()
+                        ->toMediaCollection('original');
+                }
+            }
+
+            // Generate unique seed for each variant
+            $seed = $this->normalizeSeed(-1);
+
+            // Set job parameters
+            if ($extendFromJobId) {
+                $baseJob = Videojob::findOrFail($extendFromJobId);
+                $persistedParameters = json_decode((string) $baseJob->generation_parameters, true) ?? [];
+
+                $variantJob->model_id = $persistedParameters['model_id'] ?? $baseJob->model_id;
+                $variantJob->prompt = $request->input('prompt', $persistedParameters['prompts']['positive'] ?? $baseJob->prompt);
+                $variantJob->negative_prompt = $request->input('negative_prompt', $persistedParameters['prompts']['negative'] ?? $baseJob->negative_prompt);
+                $variantJob->length = $request->input('length', $persistedParameters['length'] ?? $baseJob->length);
+                $variantJob->denoising = $request->input('denoising', $persistedParameters['denoising'] ?? $baseJob->denoising);
+                $variantJob->fps = $persistedParameters['fps'] ?? $baseJob->fps;
+                $variantJob->frame_count = $persistedParameters['frame_count'] ?? $baseJob->frame_count;
+                $variantJob->width = $baseJob->width;
+                $variantJob->height = $baseJob->height;
+
+                if ($i > 0) {
+                    $this->setInitImageFromBaseJob($variantJob, $baseJob);
+                }
+            } else {
+                $variantJob->model_id = $request->input('modelId', $variantJob->model_id);
+                $variantJob->prompt = trim((string) $request->input('prompt', $variantJob->prompt));
+                $variantJob->negative_prompt = trim((string) $request->input('negative_prompt', $variantJob->negative_prompt));
+                $variantJob->length = $request->input('length', $variantJob->length ?? 4);
+                $variantJob->denoising = $request->input('denoising', $variantJob->denoising);
+            }
+
+            $variantJob->status = 'processing';
+            $variantJob->progress = 5;
+            $variantJob->fps = $variantJob->fps ?? 24;
+            $variantJob->generator = 'deforum';
+            $variantJob->seed = $seed;
+            $variantJob->frame_count = round($variantJob->length * $variantJob->fps);
+            $variantJob->job_time = 3;
+            $variantJob->estimated_time_left = ($variantJob->frame_count * 6) + 6;
+            $variantJob->queued_at = Carbon::now();
+            $variantJob->save();
+
+            // Assign instance for load balancing
+            $instanceType = 'stable_diffusion_forge';
+            $instance = $this->loadBalancer->selectInstance($instanceType);
+            if ($instance) {
+                $this->loadBalancer->assignJobToInstance($variantJob->id, $instance);
+            }
+
+            // Dispatch the job
+            ProcessDeforumJob::dispatch($variantJob, $frameCount, $extendFromJobId)->onQueue($queueName);
+
+            Log::info("Dispatched deforum variant job {$i+1}/{$variants}", [
+                'job_id' => $variantJob->id,
+                'seed' => $seed,
+                'queue' => $queueName
+            ]);
+
+            $jobs[] = [
+                'id' => $variantJob->id,
+                'status' => $variantJob->status,
+                'seed' => $variantJob->seed,
+                'job_time' => $variantJob->job_time,
+                'progress' => $variantJob->progress,
+                'estimated_time_left' => $variantJob->estimated_time_left,
+                'width' => $variantJob->width,
+                'height' => $variantJob->height,
+                'length' => $variantJob->length,
+                'fps' => $variantJob->fps,
+            ];
+        }
+
+        return response()->json([
+            'variants' => $jobs,
+            'count' => count($jobs),
+        ]);
+    }
+
     private function generateVid2Vid(Request $request): JsonResponse
     {
         if ($response = $this->guardAuthenticated()) {
@@ -264,37 +376,17 @@ private function generateDeforum(Request $request): JsonResponse
             ]);
         }
 
-        $seed = $this->normalizeSeed((int) $request->input('seed', -1));
+        $variants = (int) $request->input('variants', 1);
         $frameCount = $request->input('frameCount', 1);
         $extendFromJobId = $request->input('extendFromJobId');
 
         $videoJob = Videojob::findOrFail($request->input('videoId'));
 
-        // Handle extension from another job
-        if ($extendFromJobId) {
-            $baseJob = Videojob::findOrFail($extendFromJobId);
-
-            // Ensure we're not trying to extend from a deforum job
-            if ($baseJob->generator === 'deforum') {
-                return response()->json(['message' => 'Cannot extend deforum jobs with vid2vid'], 422);
-            }
-
-            if ($response = $this->assertOwner($baseJob)) {
-                return $response;
-            }
-
-            // Inherit parameters from base job
-            $videoJob->model_id = $baseJob->model_id;
-            $videoJob->width = $baseJob->width;
-            $videoJob->height = $baseJob->height;
-            $videoJob->fps = $baseJob->fps;
-        }
-
         if ($response = $this->assertOwner($videoJob)) {
             return $response;
         }
 
-        $extendFromJobId = $request->input('extendFromJobId');
+        // Handle job extension - validate base job
         if ($extendFromJobId) {
             $baseJob = Videojob::findOrFail($extendFromJobId);
 
@@ -305,52 +397,25 @@ private function generateDeforum(Request $request): JsonResponse
             if ($response = $this->assertOwner($baseJob)) {
                 return $response;
             }
-
-            // Copy the last frame from the base job to use as init image
-            $baseJobPath = storage_path('app/public/jobs/' . $baseJob->id);
-            $newJobPath = storage_path('app/public/jobs/' . $videoJob->id);
-
-            if (!file_exists($newJobPath)) {
-                mkdir($newJobPath, 0755, true);
-            }
-
-            $lastFramePath = $baseJobPath . '/frame_' . str_pad((string) ($baseJob->frame_count - 1), 5, '0', STR_PAD_LEFT) . '.png';
-            if (file_exists($lastFramePath)) {
-                copy($lastFramePath, $newJobPath . '/init.png');
-            }
-
-            // Inherit parameters from base job
-            $videoJob->model_id = $baseJob->model_id;
-            $videoJob->prompt = $request->input('prompt', $baseJob->prompt);
-            $videoJob->negative_prompt = $request->input('negative_prompt', $baseJob->negative_prompt);
-            $videoJob->cfg_scale = $request->input('cfgScale', $baseJob->cfg_scale);
-            $videoJob->denoising = $request->input('denoising', $baseJob->denoising);
-            $videoJob->width = $baseJob->width;
-            $videoJob->height = $baseJob->height;
-            $videoJob->fps = $baseJob->fps;
-        } else {
-            // New job, use request parameters
-            $videoJob->model_id = $request->input('modelId');
-            $videoJob->prompt = trim((string) $request->input('prompt'));
-            $videoJob->negative_prompt = trim((string) $request->input('negative_prompt', ''));
-            $videoJob->cfg_scale = $request->input('cfgScale');
-            $videoJob->denoising = $request->input('denoising');
         }
 
-        $this->applySoundtrackWindow($videoJob, $request);
+        // Handle multiple variants
+        if ($variants > 1) {
+            return $this->generateVid2VidVariants($request, $videoJob, $variants, $frameCount, $extendFromJobId);
+        }
+
+        // Single variant processing
+        return $this->processVid2VidJob($request, $videoJob, $frameCount, $extendFromJobId);
+    }
+
+    private function processVid2VidJob(Request $request, Videojob $videoJob, int $frameCount, ?int $extendFromJobId): JsonResponse
+    {
+        $seed = $this->normalizeSeed((int) $request->input('seed', -1));
+        $extendFromJobId = $request->input('extendFromJobId');
 
         // Handle job extension
-        $extendFromJobId = $request->input('extendFromJobId');
         if ($extendFromJobId) {
             $baseJob = Videojob::findOrFail($extendFromJobId);
-
-            if ($baseJob->generator === 'deforum') {
-                return response()->json(['message' => 'Cannot extend deforum jobs with vid2vid'], 422);
-            }
-
-            if ($response = $this->assertOwner($baseJob)) {
-                return $response;
-            }
 
             // Use last frame of base job as init image for extension
             if (!empty($baseJob->last_frame_path) && file_exists($baseJob->last_frame_path)) {
@@ -387,7 +452,7 @@ private function generateDeforum(Request $request): JsonResponse
             $videoJob->denoising = $request->input('denoising', $persistedParameters['denoising_strength'] ?? $baseJob->denoising);
             $videoJob->prompt = $request->input('prompt', $persistedParameters['prompt'] ?? $baseJob->prompt);
             $videoJob->negative_prompt = $request->input('negative_prompt', $persistedParameters['negative_prompt'] ?? $baseJob->negative_prompt);
-            $videoJob->seed = $this->normalizeSeed((int) $request->input('seed', $persistedParameters['seed'] ?? $baseJob->seed));
+            $videoJob->seed = $seed;
             $videoJob->fps = $persistedParameters['fps'] ?? $baseJob->fps;
             $videoJob->width = $baseJob->width;
             $videoJob->height = $baseJob->height;
@@ -397,8 +462,10 @@ private function generateDeforum(Request $request): JsonResponse
             $videoJob->denoising = $request->input('denoising');
             $videoJob->prompt = trim((string) $request->input('prompt'));
             $videoJob->negative_prompt = trim((string) $request->input('negative_prompt', ''));
-            $videoJob->seed = $this->normalizeSeed((int) $request->input('seed', -1));
+            $videoJob->seed = $seed;
         }
+
+        $this->applySoundtrackWindow($videoJob, $request);
 
         $controlnet = $request->input('controlnet', []);
 
@@ -437,6 +504,105 @@ private function generateDeforum(Request $request): JsonResponse
             'height' => $videoJob->height,
             'length' => $videoJob->length,
             'fps' => $videoJob->fps,
+        ]);
+    }
+
+    private function generateVid2VidVariants(Request $request, Videojob $originalJob, int $variants, int $frameCount, ?int $extendFromJobId): JsonResponse
+    {
+        $jobs = [];
+        $queueName = $frameCount > 1
+            ? $this->resolveQueueName('MEDIUM_PRIORITY_QUEUE', 'medium')
+            : $this->resolveQueueName('HIGH_PRIORITY_QUEUE', 'high');
+
+        for ($i = 0; $i < $variants; $i++) {
+            // Clone the original job for each variant
+            if ($i === 0) {
+                // Use the original job for the first variant
+                $variantJob = $originalJob;
+            } else {
+                // Create a new job by replicating the original
+                $variantJob = $originalJob->replicate();
+                $variantJob->save();
+                
+                // Copy media files to the new job if needed
+                foreach ($originalJob->getMedia('original') as $media) {
+                    $variantJob->addMedia($media->getPath())
+                        ->preservingOriginal()
+                        ->toMediaCollection('original');
+                }
+            }
+
+            // Generate unique seed for each variant
+            $seed = $this->normalizeSeed(-1);
+
+            // Set job parameters
+            if ($extendFromJobId) {
+                $baseJob = Videojob::findOrFail($extendFromJobId);
+                $persistedParameters = json_decode((string) $baseJob->generation_parameters, true) ?? [];
+
+                $variantJob->model_id = $request->input('modelId', $persistedParameters['model_id'] ?? $baseJob->model_id);
+                $variantJob->cfg_scale = $request->input('cfgScale', $persistedParameters['cfg_scale'] ?? $baseJob->cfg_scale);
+                $variantJob->denoising = $request->input('denoising', $persistedParameters['denoising_strength'] ?? $baseJob->denoising);
+                $variantJob->prompt = $request->input('prompt', $persistedParameters['prompt'] ?? $baseJob->prompt);
+                $variantJob->negative_prompt = $request->input('negative_prompt', $persistedParameters['negative_prompt'] ?? $baseJob->negative_prompt);
+                $variantJob->fps = $persistedParameters['fps'] ?? $baseJob->fps;
+                $variantJob->width = $baseJob->width;
+                $variantJob->height = $baseJob->height;
+            } else {
+                $variantJob->model_id = $request->input('modelId');
+                $variantJob->cfg_scale = $request->input('cfgScale');
+                $variantJob->denoising = $request->input('denoising');
+                $variantJob->prompt = trim((string) $request->input('prompt'));
+                $variantJob->negative_prompt = trim((string) $request->input('negative_prompt', ''));
+            }
+
+            $variantJob->seed = $seed;
+            $variantJob->status = 'processing';
+            $variantJob->progress = 5;
+            $variantJob->job_time = 3;
+            $variantJob->estimated_time_left = ($frameCount * 6) + 6;
+            $variantJob->queued_at = Carbon::now();
+
+            $controlnet = $request->input('controlnet', []);
+            if (! empty($controlnet)) {
+                $variantJob->controlnet = json_encode($controlnet);
+            }
+
+            $variantJob->save();
+
+            // Assign instance for load balancing
+            $instanceType = 'stable_diffusion_forge';
+            $instance = $this->loadBalancer->selectInstance($instanceType);
+            if ($instance) {
+                $this->loadBalancer->assignJobToInstance($variantJob->id, $instance);
+            }
+
+            // Dispatch the job
+            ProcessVideoJob::dispatch($variantJob, $frameCount, $extendFromJobId)->onQueue($queueName);
+
+            Log::info("Dispatched variant job {$i+1}/{$variants}", [
+                'job_id' => $variantJob->id,
+                'seed' => $seed,
+                'queue' => $queueName
+            ]);
+
+            $jobs[] = [
+                'id' => $variantJob->id,
+                'status' => $variantJob->status,
+                'seed' => $variantJob->seed,
+                'job_time' => $variantJob->job_time,
+                'progress' => $variantJob->progress,
+                'estimated_time_left' => $variantJob->estimated_time_left,
+                'width' => $variantJob->width,
+                'height' => $variantJob->height,
+                'length' => $variantJob->length,
+                'fps' => $variantJob->fps,
+            ];
+        }
+
+        return response()->json([
+            'variants' => $jobs,
+            'count' => count($jobs),
         ]);
     }
 
