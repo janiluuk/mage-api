@@ -4,6 +4,8 @@ namespace App\Services\VideoJobs;
 
 use App\Jobs\ProcessDeforumJob;
 use App\Jobs\ProcessVideoJob;
+use App\Jobs\ProcessUnifiedJob;
+use App\Jobs\JobType;
 use App\Models\Videojob;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -16,6 +18,38 @@ class VideoJobSubmitter
     {
     }
 
+    /**
+     * Submit a job using the unified job system
+     * This is the new preferred method for dispatching jobs
+     *
+     * @param Videojob $videoJob
+     * @param int $previewFrames
+     * @param int|null $extendFromJobId
+     * @return Videojob
+     */
+    public function submit(Videojob $videoJob, int $previewFrames = 0, ?int $extendFromJobId = null): Videojob
+    {
+        $frameCount = $videoJob->frame_count ?? $previewFrames;
+        
+        $queueName = $frameCount > 1
+            ? $this->queueNameResolver->resolve('MEDIUM_PRIORITY_QUEUE', 'medium')
+            : $this->queueNameResolver->resolve('HIGH_PRIORITY_QUEUE', 'high');
+
+        Log::info("Dispatching unified job", [
+            'job_id' => $videoJob->id,
+            'frame_count' => $frameCount,
+            'queue' => $queueName,
+            'job_type' => JobType::fromVideoJob($videoJob)->value
+        ]);
+        
+        ProcessUnifiedJob::dispatch($videoJob, $previewFrames, $extendFromJobId)->onQueue($queueName);
+
+        return $videoJob;
+    }
+
+    /**
+     * Submit a vid2vid job (backwards compatibility - prefer using submit())
+     */
     public function submitVid2Vid(Videojob $videoJob, array $payload): Videojob
     {
         $seed = $this->normalizeSeed((int) ($payload['seed'] ?? -1));
@@ -50,6 +84,9 @@ class VideoJobSubmitter
         return $videoJob;
     }
 
+    /**
+     * Submit a deforum job (backwards compatibility - prefer using submit())
+     */
     public function submitDeforum(Videojob $videoJob, array $payload): Videojob
     {
         $frameCount = $payload['frameCount'] ?? 1;

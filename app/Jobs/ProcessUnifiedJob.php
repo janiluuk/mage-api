@@ -2,7 +2,6 @@
 
 namespace App\Jobs;
 
-use App\Models\Videojob;
 use DateTimeInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -10,30 +9,30 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use App\Models\Videojob;
 
-class ProcessAudioTrackSplitJob implements ShouldQueue, ShouldBeUnique
+/**
+ * Unified job class that handles all processing types
+ * This replaces ProcessVideoJob, ProcessDeforumJob, ProcessAudioTrackSplitJob, and ProcessBeatMatchMusicVideoJob
+ */
+class ProcessUnifiedJob implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     
     /**
-     * Maximum execution time in seconds (2 hours)
+     * Maximum execution time in seconds (7.5 hours)
      */
-    public const TIMEOUT_SECONDS = 7200;
+    public const TIMEOUT_SECONDS = 27200;
     
     /**
      * Maximum number of retry attempts
      */
-    public const MAX_RETRIES = 5;
+    public const MAX_RETRIES = 200;
     
     /**
      * Delay between retries in seconds
      */
     public const BACKOFF_SECONDS = 30;
-    
-    /**
-     * Stale job detection threshold in minutes
-     */
-    public const STALE_JOB_THRESHOLD_MINUTES = 30;
     
     /**
      * How long the job should remain unique in seconds (1 hour)
@@ -46,17 +45,23 @@ class ProcessAudioTrackSplitJob implements ShouldQueue, ShouldBeUnique
     public $uniqueFor = self::UNIQUE_FOR_SECONDS;
 
     public function __construct(
-        public Videojob $videoJob
+        public Videojob $videoJob, 
+        public int $previewFrames = 0, 
+        public ?int $extendFromJobId = null
     ) {
     }
 
     public function uniqueId(): string
     {
-        return 'audio-track-split-' . $this->videoJob->id;
+        $id = $this->videoJob->id . '-' . $this->previewFrames;
+        if ($this->extendFromJobId !== null) {
+            $id .= '-' . $this->extendFromJobId;
+        }
+        return $id;
     }
 
     /**
-     * Execute the job using the unified handler.
+     * Execute the job.
      *
      * @return void
      */
@@ -64,14 +69,14 @@ class ProcessAudioTrackSplitJob implements ShouldQueue, ShouldBeUnique
     {
         $handler->handle(
             $this->videoJob,
-            0,
-            null,
+            $this->previewFrames,
+            $this->extendFromJobId,
             fn($delay) => $this->release($delay)
         );
     }
 
     public function retryUntil(): DateTimeInterface
     {
-       return now()->addDay();
+        return now()->addDay();
     }
 }
