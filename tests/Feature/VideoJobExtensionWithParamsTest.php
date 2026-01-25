@@ -8,7 +8,7 @@ use App\Models\Videojob;
 use App\Models\ModelFile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-class VideoJobExtensionTest extends TestCase
+class VideoJobExtensionWithParamsTest extends TestCase
 {
     use RefreshDatabase;
 
