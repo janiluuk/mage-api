@@ -91,9 +91,16 @@ class StoryGenerationController extends ApiController
             'config' => 'nullable|array',
         ]);
 
+<<<<<<< HEAD
         // Use request->all() to preserve all fields including story.name and config.*
         // that aren't explicitly validated but should be saved
         $batch->config_json = json_encode($request->all());
+=======
+        $batch->config_json = json_encode([
+            'story' => $request->input('story'),
+            'config' => $request->input('config'),
+        ]);
+>>>>>>> 925d55f (chore: update .gitignore and enhance docker-compose configuration)
         $batch->save();
 
         return response()->json([
