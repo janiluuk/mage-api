@@ -320,7 +320,8 @@ private function generateDeforum(Request $request): JsonResponse
             // Dispatch the job
             ProcessDeforumJob::dispatch($variantJob, $frameCount, $extendFromJobId)->onQueue($queueName);
 
-            Log::info("Dispatched deforum variant job {$i+1}/{$variants}", [
+            $variantNumber = $i + 1;
+            Log::info("Dispatched deforum variant job {$variantNumber}/{$variants}", [
                 'job_id' => $variantJob->id,
                 'seed' => $seed,
                 'queue' => $queueName
@@ -580,7 +581,8 @@ private function generateDeforum(Request $request): JsonResponse
             // Dispatch the job
             ProcessVideoJob::dispatch($variantJob, $frameCount, $extendFromJobId)->onQueue($queueName);
 
-            Log::info("Dispatched variant job {$i+1}/{$variants}", [
+            $variantNumber = $i + 1;
+            Log::info("Dispatched variant job {$variantNumber}/{$variants}", [
                 'job_id' => $variantJob->id,
                 'seed' => $seed,
                 'queue' => $queueName
