@@ -150,6 +150,7 @@ private function generateDeforum(Request $request): JsonResponse
         }
 
         // Validate base job if extending
+        $baseJob = null;
         if ($extendFromJobId) {
             $baseJob = Videojob::findOrFail($extendFromJobId);
 
@@ -164,17 +165,16 @@ private function generateDeforum(Request $request): JsonResponse
 
         // Handle multiple variants
         if ($variants > 1) {
-            return $this->generateDeforumVariants($request, $videoJob, $variants, $frameCount, $extendFromJobId);
+            return $this->generateDeforumVariants($request, $videoJob, $variants, $frameCount, $baseJob);
         }
 
         // Single variant processing
-        return $this->processDeforumJob($request, $videoJob, $frameCount, $extendFromJobId);
+        return $this->processDeforumJob($request, $videoJob, $frameCount, $baseJob);
     }
 
-    private function processDeforumJob(Request $request, Videojob $videoJob, int $frameCount, ?int $extendFromJobId): JsonResponse
+    private function processDeforumJob(Request $request, Videojob $videoJob, int $frameCount, ?Videojob $baseJob): JsonResponse
     {
-        if ($extendFromJobId) {
-            $baseJob = Videojob::findOrFail($extendFromJobId);
+        if ($baseJob) {
             $persistedParameters = json_decode((string) $baseJob->generation_parameters, true) ?? [];
 
             // When extending, inherit model_id from base job (not overridable)
@@ -229,7 +229,7 @@ private function generateDeforum(Request $request): JsonResponse
             ? $this->resolveQueueName('MEDIUM_PRIORITY_QUEUE', 'medium')
             : $this->resolveQueueName('HIGH_PRIORITY_QUEUE', 'high');
         Log::info("Dispatching job with framecount {$frameCount} to queue {$queueName}");
-        ProcessDeforumJob::dispatch($videoJob, $frameCount, $extendFromJobId)->onQueue($queueName);
+        ProcessDeforumJob::dispatch($videoJob, $frameCount, $baseJob ? $baseJob->id : null)->onQueue($queueName);
 
         return response()->json([
             'id' => $videoJob->id,
@@ -245,7 +245,7 @@ private function generateDeforum(Request $request): JsonResponse
         ]);
     }
 
-    private function generateDeforumVariants(Request $request, Videojob $originalJob, int $variants, int $frameCount, ?int $extendFromJobId): JsonResponse
+    private function generateDeforumVariants(Request $request, Videojob $originalJob, int $variants, int $frameCount, ?Videojob $baseJob): JsonResponse
     {
         $jobs = [];
         $queueName = $frameCount > 1
@@ -274,8 +274,7 @@ private function generateDeforum(Request $request): JsonResponse
             $seed = $this->normalizeSeed(-1);
 
             // Set job parameters
-            if ($extendFromJobId) {
-                $baseJob = Videojob::findOrFail($extendFromJobId);
+            if ($baseJob) {
                 $persistedParameters = json_decode((string) $baseJob->generation_parameters, true) ?? [];
 
                 $variantJob->model_id = $persistedParameters['model_id'] ?? $baseJob->model_id;
@@ -318,7 +317,7 @@ private function generateDeforum(Request $request): JsonResponse
             }
 
             // Dispatch the job
-            ProcessDeforumJob::dispatch($variantJob, $frameCount, $extendFromJobId)->onQueue($queueName);
+            ProcessDeforumJob::dispatch($variantJob, $frameCount, $baseJob ? $baseJob->id : null)->onQueue($queueName);
 
             $variantNumber = $i + 1;
             Log::info("Dispatched deforum variant job {$variantNumber}/{$variants}", [
@@ -388,6 +387,7 @@ private function generateDeforum(Request $request): JsonResponse
         }
 
         // Handle job extension - validate base job
+        $baseJob = null;
         if ($extendFromJobId) {
             $baseJob = Videojob::findOrFail($extendFromJobId);
 
@@ -402,21 +402,19 @@ private function generateDeforum(Request $request): JsonResponse
 
         // Handle multiple variants
         if ($variants > 1) {
-            return $this->generateVid2VidVariants($request, $videoJob, $variants, $frameCount, $extendFromJobId);
+            return $this->generateVid2VidVariants($request, $videoJob, $variants, $frameCount, $baseJob);
         }
 
         // Single variant processing
-        return $this->processVid2VidJob($request, $videoJob, $frameCount, $extendFromJobId);
+        return $this->processVid2VidJob($request, $videoJob, $frameCount, $baseJob);
     }
 
-    private function processVid2VidJob(Request $request, Videojob $videoJob, int $frameCount, ?int $extendFromJobId): JsonResponse
+    private function processVid2VidJob(Request $request, Videojob $videoJob, int $frameCount, ?Videojob $baseJob): JsonResponse
     {
         $seed = $this->normalizeSeed((int) $request->input('seed', -1));
-        $extendFromJobId = $request->input('extendFromJobId');
 
         // Handle job extension
-        if ($extendFromJobId) {
-            $baseJob = Videojob::findOrFail($extendFromJobId);
+        if ($baseJob) {
 
             // Use last frame of base job as init image for extension
             if (!empty($baseJob->last_frame_path) && file_exists($baseJob->last_frame_path)) {
@@ -492,7 +490,7 @@ private function generateDeforum(Request $request): JsonResponse
             ? $this->resolveQueueName('MEDIUM_PRIORITY_QUEUE', 'medium')
             : $this->resolveQueueName('HIGH_PRIORITY_QUEUE', 'high');
         Log::info("Dispatching job with framecount {$frameCount} to queue {$queueName}");
-        ProcessVideoJob::dispatch($videoJob, $frameCount, $extendFromJobId)->onQueue($queueName);
+        ProcessVideoJob::dispatch($videoJob, $frameCount, $baseJob ? $baseJob->id : null)->onQueue($queueName);
 
         return response()->json([
             'id' => $videoJob->id,
@@ -508,7 +506,7 @@ private function generateDeforum(Request $request): JsonResponse
         ]);
     }
 
-    private function generateVid2VidVariants(Request $request, Videojob $originalJob, int $variants, int $frameCount, ?int $extendFromJobId): JsonResponse
+    private function generateVid2VidVariants(Request $request, Videojob $originalJob, int $variants, int $frameCount, ?Videojob $baseJob): JsonResponse
     {
         $jobs = [];
         $queueName = $frameCount > 1
@@ -537,8 +535,7 @@ private function generateDeforum(Request $request): JsonResponse
             $seed = $this->normalizeSeed(-1);
 
             // Set job parameters
-            if ($extendFromJobId) {
-                $baseJob = Videojob::findOrFail($extendFromJobId);
+            if ($baseJob) {
                 $persistedParameters = json_decode((string) $baseJob->generation_parameters, true) ?? [];
 
                 $variantJob->model_id = $request->input('modelId', $persistedParameters['model_id'] ?? $baseJob->model_id);
@@ -579,7 +576,7 @@ private function generateDeforum(Request $request): JsonResponse
             }
 
             // Dispatch the job
-            ProcessVideoJob::dispatch($variantJob, $frameCount, $extendFromJobId)->onQueue($queueName);
+            ProcessVideoJob::dispatch($variantJob, $frameCount, $baseJob ? $baseJob->id : null)->onQueue($queueName);
 
             $variantNumber = $i + 1;
             Log::info("Dispatched variant job {$variantNumber}/{$variants}", [
