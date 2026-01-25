@@ -52,10 +52,14 @@ class ComfyUIJobProcessor extends AbstractJobProcessor
                 throw new \Exception('No ComfyUI workflow provided in generation_parameters');
             }
             
-            // Process with ComfyUI
-            // This is a placeholder - actual implementation would use ComfyUIClient methods
-            // to queue the prompt, monitor progress, and retrieve results
-            // $this->comfyClient->queuePrompt($workflow);
+            // TODO: Implement ComfyUI workflow processing
+            // The implementation should:
+            // 1. Queue the workflow prompt using $this->comfyClient->queuePrompt($workflow)
+            // 2. Monitor progress via WebSocket or polling
+            // 3. Retrieve results when complete
+            // 4. Update $videoJob with output URL and status
+            // See ComfyUIClient and ComfyWebSocketClient for available methods
+            throw new \Exception('ComfyUI processor not yet fully implemented - see TODO comments');
             
             // Release lock and mark complete
             $this->unlockJob($videoJob->id);

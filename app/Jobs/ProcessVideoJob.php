@@ -78,15 +78,6 @@ class ProcessVideoJob implements ShouldQueue, ShouldBeUnique
         );
     }
 
-    /**
-     * Get the cache key for processing lock
-     * @deprecated No longer needed with unified handler
-     */
-    private function getProcessingLockKey(int $jobId): string
-    {
-        return "video_job_processing_{$jobId}";
-    }
-
     public function retryUntil(): DateTimeInterface
     {
        return now()->addDay();
