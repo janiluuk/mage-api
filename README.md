@@ -183,10 +183,18 @@ The Custom Jobs API provides a flexible framework for specialized video and audi
   - **Returns**: Job ID, status, and media URL
 
 - `POST /api/generate` — Start AI generation for uploaded job
-  - **Common parameters**: `videoId`, `type`, `modelId`, `prompt`, `seed` (optional)
+  - **Common parameters**: 
+    - `videoId` (required): ID of the uploaded video job
+    - `type` (required): `vid2vid` or `deforum`
+    - `modelId` (required): Model to use for generation
+    - `prompt` (required): Text prompt for generation
+    - `seed` (optional): Random seed for reproducibility (-1 for random)
+    - `variants` (optional, 1-10): Number of variants to generate with different seeds (default: 1)
   - **Vid2Vid specific**: `cfgScale` (2-10), `denoising` (0.1-1.0), `frameCount`, `negative_prompt`, `controlnet`
   - **Deforum specific**: `preset`, `length` (1-20), `frameCount`, `extendFromJobId` (to continue from previous job)
-  - **Returns**: Job details with progress tracking info
+  - **Returns**: 
+    - Single variant (variants=1 or omitted): Job details with progress tracking info
+    - Multiple variants (variants>1): Object with `variants` array containing all job details and `count`
 
 - `POST /api/finalize` — Approve and enqueue job for final processing
   - **Parameters**: `videoId`, optional generation parameters to override
