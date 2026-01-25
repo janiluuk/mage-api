@@ -2,7 +2,6 @@
 
 namespace App\Jobs;
 
-use App\Models\ModelFile;
 use DateTimeInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -11,22 +10,24 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use App\Models\Videojob;
-use App\Jobs\UnifiedJobHandler;
 
-class ProcessVideoJob implements ShouldQueue, ShouldBeUnique
+/**
+ * Unified job class that handles all processing types
+ * This replaces ProcessVideoJob, ProcessDeforumJob, ProcessAudioTrackSplitJob, and ProcessBeatMatchMusicVideoJob
+ */
+class ProcessUnifiedJob implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     
     /**
      * Maximum execution time in seconds (7.5 hours)
-     * Long timeout needed for video processing with AI models
      */
     public const TIMEOUT_SECONDS = 27200;
     
     /**
      * Maximum number of retry attempts
      */
-    public const MAX_RETRIES = 5;
+    public const MAX_RETRIES = 200;
     
     /**
      * Delay between retries in seconds
@@ -34,24 +35,20 @@ class ProcessVideoJob implements ShouldQueue, ShouldBeUnique
     public const BACKOFF_SECONDS = 30;
     
     /**
-     * Stale job detection threshold in minutes
-     * Jobs stuck in processing state for longer are marked as errors
-     */
-    public const STALE_JOB_THRESHOLD_MINUTES = 15;
-    
-    /**
      * How long the job should remain unique in seconds (1 hour)
      */
     public const UNIQUE_FOR_SECONDS = 3600;
     
     public $timeout = self::TIMEOUT_SECONDS;
-    public $tries = 200; // Higher retry count due to external video processing dependencies
+    public $tries = self::MAX_RETRIES;
     public $backoff = self::BACKOFF_SECONDS;
     public $uniqueFor = self::UNIQUE_FOR_SECONDS;
 
-    public function __construct(public Videojob $videoJob, public int $previewFrames = 0, public ?int $extendFromJobId = null)
-    {
-
+    public function __construct(
+        public Videojob $videoJob, 
+        public int $previewFrames = 0, 
+        public ?int $extendFromJobId = null
+    ) {
     }
 
     public function uniqueId(): string
@@ -64,7 +61,7 @@ class ProcessVideoJob implements ShouldQueue, ShouldBeUnique
     }
 
     /**
-     * Execute the job using the unified handler.
+     * Execute the job.
      *
      * @return void
      */
@@ -78,18 +75,8 @@ class ProcessVideoJob implements ShouldQueue, ShouldBeUnique
         );
     }
 
-    /**
-     * Get the cache key for processing lock
-     * @deprecated No longer needed with unified handler
-     */
-    private function getProcessingLockKey(int $jobId): string
-    {
-        return "video_job_processing_{$jobId}";
-    }
-
     public function retryUntil(): DateTimeInterface
     {
        return now()->addDay();
     }
-
 }
