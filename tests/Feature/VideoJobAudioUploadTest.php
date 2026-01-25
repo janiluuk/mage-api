@@ -18,6 +18,7 @@ class VideoJobAudioUploadTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+<<<<<<< HEAD
         
         // Mock VideoProcessingService to avoid FFMpeg dependency in tests
         $this->mock(VideoProcessingService::class, function ($mock) {
@@ -36,6 +37,15 @@ class VideoJobAudioUploadTest extends TestCase
                     return $videoJob;
                 });
         });
+=======
+        Storage::fake('public');
+
+        $mockVideoService = Mockery::mock(VideoProcessingService::class);
+        $mockVideoService->shouldIgnoreMissing();
+        $mockVideoService->shouldReceive('parseJob')
+            ->andReturnUsing(fn ($job) => $job);
+        $this->app->instance(VideoProcessingService::class, $mockVideoService);
+>>>>>>> 925d55f (chore: update .gitignore and enhance docker-compose configuration)
     }
 
     public function test_user_can_upload_audio_file_during_job_creation_vid2vid(): void

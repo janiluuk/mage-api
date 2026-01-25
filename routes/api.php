@@ -141,15 +141,6 @@ Route::prefix('auth')->middleware('auth:api')->group(function () {
 });
 
 // ============================================================================
-// Audio Routes
-// ============================================================================
-
-Route::get('/stream', [AudioController::class, 'stream']);
-Route::get('/status', [AudioController::class, 'status']);
-Route::get('/config', [AudioController::class, 'config']);
-Route::get('/audio-queue', [AudioController::class, 'queue']);
-
-// ============================================================================
 // V1 Upload Routes
 // ============================================================================
 

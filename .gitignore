@@ -3,7 +3,10 @@
 /public/hot
 /public/storage
 /public/videos
+<<<<<<< HEAD
 /public/videos/
+=======
+>>>>>>> 925d55f (chore: update .gitignore and enhance docker-compose configuration)
 /storage/*.key
 /vendor
 .env
