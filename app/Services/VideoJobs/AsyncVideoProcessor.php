@@ -184,6 +184,10 @@ class AsyncVideoProcessor
                 $videoJob->updateProgress($elapsed, min(99, $progressPercent), $eta);
                 $videoJob->save();
 
+                // Broadcast progress update to client
+                $currentFrame = $progress['frame'] ?? null;
+                event(new \App\Events\VideoJobProgressUpdated($videoJob, $currentFrame));
+
                 Log::debug("AsyncVideoProcessor: Progress update", [
                     'job_id' => $videoJob->id,
                     'progress' => $progressPercent,

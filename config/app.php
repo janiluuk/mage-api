@@ -183,11 +183,28 @@ return [
         // Maximum number of concurrent encoding jobs (0 = unlimited)
         'max_concurrent_jobs' => env('VIDEO_PROCESSING_MAX_CONCURRENT', 1),
         
+        // Maximum concurrent jobs per model (for load balancing across models)
+        'max_concurrent_per_model' => env('VIDEO_PROCESSING_MAX_PER_MODEL', 1),
+        
+        // Enable parallel processing of job variants
+        'enable_parallel_variants' => env('VIDEO_PROCESSING_PARALLEL_VARIANTS', true),
+        
         // Progress update throttle (minimum percentage change to trigger update)
         'progress_update_threshold' => env('VIDEO_PROCESSING_PROGRESS_THRESHOLD', 1.0),
         
         // Enable incremental progress updates during encoding
         'track_progress' => env('VIDEO_PROCESSING_TRACK_PROGRESS', true),
+        
+        // Broadcast live progress updates via WebSocket
+        'broadcast_progress' => env('VIDEO_PROCESSING_BROADCAST_PROGRESS', true),
+        
+        // Queue priority for video jobs (higher = more priority)
+        'queue_priority' => [
+            'preview' => env('VIDEO_PROCESSING_PREVIEW_PRIORITY', 10),
+            'full' => env('VIDEO_PROCESSING_FULL_PRIORITY', 5),
+            'variant' => env('VIDEO_PROCESSING_VARIANT_PRIORITY', 8),
+            'post_processing' => env('VIDEO_PROCESSING_POST_PRIORITY', 3),
+        ],
     ],
     'providers' => [
 
