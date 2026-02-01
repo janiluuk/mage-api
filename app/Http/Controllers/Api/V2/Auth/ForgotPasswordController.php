@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api\V2\Auth;
 
 use App\Http\Requests\Api\V2\Auth\ForgotPasswordRequest;
 use Illuminate\Support\Facades\Password;
+use LaravelJsonApi\Core\Document\Error;
 use LaravelJsonApi\Laravel\Http\Controllers\JsonApiController;
+use Throwable;
 
 class ForgotPasswordController extends JsonApiController
 {

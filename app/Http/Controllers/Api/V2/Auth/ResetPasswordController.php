@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Auth\Events\PasswordReset;
 use LaravelJsonApi\Core\Document\Error;
 use LaravelJsonApi\Laravel\Http\Controllers\JsonApiController;
+use Throwable;
 
 class ResetPasswordController extends JsonApiController
 {

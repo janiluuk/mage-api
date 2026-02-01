@@ -211,18 +211,8 @@ Route::get('/csrf-token', function () {
         'csrfToken' => csrf_token(),
     ]);
 });
-Route::prefix('auth')->group(function () {
-    Route::post('register', [AuthController::class, 'register']);
-    Route::post('verified-email', [AuthController::class, 'emailVerification']);
-    Route::post('login', [AuthController::class, 'login']);
-    Route::post('forgot-password', [AuthController::class, 'sendLinkForgotPassword']);
-    Route::post('reset-password', [AuthController::class, 'resetPassword']);
-
-    Route::middleware('auth:api')->group(function () {
-        Route::post('logout', [AuthController::class, 'logout']);
-        Route::get('me', [AuthController::class, 'me']);
-    });
-});
+// V1 auth routes removed - using V2 auth routes instead
+// V2 auth routes are defined above in the v2 prefix group
 
 
 Route::prefix('/administration')->group(function () {
