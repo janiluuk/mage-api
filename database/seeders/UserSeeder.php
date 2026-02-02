@@ -36,6 +36,7 @@ class UserSeeder extends Seeder
 
         $adminRole = $adminRoleRow->id;
 
+
         $userData = [
             'login' => 'admin',
             'password' => bcrypt('secret'),
