@@ -20,15 +20,7 @@ use App\Models\Shot;
 use App\Services\AI\LocalAIService;
 use Illuminate\Support\Facades\Log;
 
-/**
- * Film Project API Controller
- * 
- * Handles all film project-related API endpoints.
- * Namespace: /api/film-projects
- * 
- * @namespace App\Http\Controllers\Api\FilmProject
- */
-class FilmProjectController extends ApiController
+class FilmProductionController extends ApiController
 {
     private SequenceRepositoryInterface $sequenceRepository;
     private ShotRepositoryInterface $shotRepository;
