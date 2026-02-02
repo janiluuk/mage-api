@@ -58,6 +58,9 @@ class ComfyWebSocketClient
                     // We need to find our client_id in the outputs
                     if (is_array($historyData)) {
                         foreach ($historyData as $promptId => $jobData) {
+                            if (! $this->matchesClientId($jobData, $clientId)) {
+                                continue;
+                            }
                             // Check if this job has outputs with our expected structure
                             if (isset($jobData['outputs']) && is_array($jobData['outputs'])) {
                                 // Look through outputs for audio files
@@ -103,5 +106,32 @@ class ComfyWebSocketClient
             // Sleep before next poll
             usleep($this->pollInterval * 1000); // Convert ms to microseconds
         }
+    }
+
+    private function matchesClientId(array $jobData, string $clientId): bool
+    {
+        if (isset($jobData['client_id']) && $jobData['client_id'] === $clientId) {
+            return true;
+        }
+
+        if (isset($jobData['meta']['client_id']) && $jobData['meta']['client_id'] === $clientId) {
+            return true;
+        }
+
+        if (isset($jobData['status']['client_id']) && $jobData['status']['client_id'] === $clientId) {
+            return true;
+        }
+
+        if (isset($jobData['prompt']) && is_array($jobData['prompt'])) {
+            if (isset($jobData['prompt']['client_id']) && $jobData['prompt']['client_id'] === $clientId) {
+                return true;
+            }
+
+            if (isset($jobData['prompt']['extra']['client_id']) && $jobData['prompt']['extra']['client_id'] === $clientId) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
