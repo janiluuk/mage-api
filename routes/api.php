@@ -109,6 +109,11 @@ Route::prefix('v2')->group(function () {
     Route::post('/password-reset', ResetPasswordController::class)->name('password.reset');
 });
 
+// V1 auth routes (used by /api/auth/me tests)
+Route::prefix('auth')->middleware('auth:api')->group(function () {
+    Route::get('/me', [AuthController::class, 'me']);
+});
+
 JsonApiRoute::server('v2')->prefix('v2')->resources(function (ResourceRegistrar $server) {
     $server->resource('users', JsonApiController::class)->relationships(function ($relationships) {
         $relationships->hasOne('userRole');
@@ -294,113 +299,6 @@ Route::prefix('/administration/files')->group(function () {
         Route::get('/users/{userId}', [FileAdminController::class, 'filesForUser']);
         Route::put('/users/{userId}/quota', [FileAdminController::class, 'updateQuota']);
     });
-});
-
-Route::prefix('/categories')->group(
-    function () {
-        Route::get('/', [CategoryController::class, 'getCategories']);
-
-        Route::middleware('AuthorizationChecker')->group(function () {
-            Route::get('/by-user-id/{userId?}', [CategoryController::class, 'getCategoriesWithProductsForUser']);
-        });
-
-        Route::get('/{id}', [CategoryController::class, 'getCategoryById']);
-    }
-);
-
-Route::prefix('/products')->group(
-    function () {
-        Route::get('', [ProductController::class, 'getProductsByCategoryId']);
-    Route::patch('/{productId}', [ProductController::class, 'toggleActive']);
-    
-    Route::middleware('AuthorizationChecker')->group(function () {
-        Route::get('/get-products-for-user', [ProductController::class, 'getProductsForUser']);
-            Route::post('', [ProductController::class, 'create']);
-        Route::put('/{productId}', [ProductController::class, 'update']);
-        Route::delete('/{productId}', [ProductController::class, 'delete']);
-    });
-
-        Route::get('/{productId}', [ProductController::class, 'edit']);
-    }
-);
-
-Route::prefix('/messages')->group(
-    function () {
-        Route::middleware('AuthorizationChecker')->group(function () {
-            Route::get('/get-messages-by-chat-id/{chatId}', [MessageController::class, 'getMessagesByChatId']);
-            Route::post('', [MessageController::class, 'addMessage']);
-        });
-    }
-);
-
-Route::prefix('/chats')->group(
-    function () {
-        Route::middleware('AuthorizationChecker')->group(function () {
-            Route::get('/get-chats-by-current-user', [ChatController::class, 'getChatsByCurrentUser']);
-            Route::get('/get-chat-by-user-id/{userId}', [ChatController::class, 'getChatByUserId']);
-            Route::post('', [ChatController::class, 'create']);
-            Route::get('/{chatId}', [ChatController::class, 'getChatById']);
-        });
-    }
-);
-
-Route::prefix('/finance-operations')->group(
-    function () {
-        Route::middleware('AuthorizationChecker')->group(function () {
-            Route::get('', [FinanceOperationsController::class, 'getFinanceOperationsForCurrentUser']);
-            Route::post('', [FinanceOperationsController::class, 'create']);
-            Route::get('/{financeOperationsId}', [FinanceOperationsController::class, 'getFinanceOperationById']);
-            Route::put('/{financeOperationsId}', [FinanceOperationsController::class, 'changeFinanceOperationStatusToCancel']);
-            Route::patch('/change-finance-operation-status', [FinanceOperationsController::class, 'changeFinanceOperationStatus']);
-        });
-    }
-);
-
-Route::group(
-    [
-        'prefix' => '/wallet-types',
-    ],
-    function () {
-        Route::get('', [WalletTypeController::class, 'getWalletTypes']);
-    }
-);
-
-Route::group(
-    [
-        'prefix' => 'properties',
-    ],
-    function () {
-        Route::get('', [PropertyController::class, 'getPropertyByCategoryId']);
-    }
-);
-
-Route::prefix('/user-wallets')->group(
-    function () {
-        Route::middleware('AuthorizationChecker')->group(function () {
-            Route::get('', [UserWalletController::class, 'getUserWalletsForCurrentUser']);
-            Route::get('/by-wallet-type-id/{walletTypeId}', [UserWalletController::class, 'getUserWalletsByWalletTypeId']);
-            Route::post('/', [UserWalletController::class, 'save']);
-            Route::put('/', [UserWalletController::class, 'update']);
-            Route::delete('/{userWalletId}', [UserWalletController::class, 'delete']);
-        });
-    }
-);
-
-Route::prefix('/orders')->group(
-    function () {
-        Route::middleware('AuthorizationChecker')->group(function () {
-            Route::get('purchases', [OrderController::class, 'getPurchasesForCurrentUser']);
-            Route::get('sales', [OrderController::class, 'getSalesForCurrentUser']);
-            Route::post('', [OrderController::class, 'create']);
-            Route::get('/{orderId}', [OrderController::class, 'getOrderById']);
-            Route::patch('/confirm-order', [OrderController::class, 'confirmOrderById']);
-        });
-    }
-);
-
-// Payment routes
-Route::prefix('/payment')->middleware('auth:api')->group(function () {
-    Route::post('/create-intent', [PaymentController::class, 'createPaymentIntent']);
 });
 
 // Wallet Types

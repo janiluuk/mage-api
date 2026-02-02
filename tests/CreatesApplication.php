@@ -18,16 +18,6 @@ trait CreatesApplication
         $appEnv = $_ENV['APP_ENV'] ?? getenv('APP_ENV') ?: env('APP_ENV');
         
         if ($appEnv === 'testing') {
-            $envPath = __DIR__ . '/../.env';
-            if (!file_exists($envPath)) {
-                $examplePath = __DIR__ . '/../.env.example';
-                if (file_exists($examplePath)) {
-                    copy($examplePath, $envPath);
-                } else {
-                    file_put_contents($envPath, "APP_ENV=testing\n");
-                }
-            }
-
             // phpunit.xml sets these in $_ENV, ensure they're also in putenv() for env() helper
             $dbConnection = $_ENV['DB_CONNECTION'] ?? getenv('DB_CONNECTION') ?: 'sqlite';
             $dbDatabase = $_ENV['DB_DATABASE'] ?? getenv('DB_DATABASE') ?: ':memory:';
