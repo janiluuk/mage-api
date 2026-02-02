@@ -5,14 +5,12 @@ Laravel 10 API that powers video production, AI studio experiences, and GPU reso
 ## Features
 
 ### 🔐 Authentication & Authorization
-- **OAuth 2.0 token-based authentication** (v2 API) with Bearer token support
-- **JWT-based authentication** with token management (legacy v1 endpoints removed)
+- **JWT-based authentication** with token management
 - **Social login integration** (Discord, and other OAuth providers via Laravel Socialite)
 - **Password recovery** with email-based reset flows
 - **Email verification** for new user accounts
 - **Role-based access control** with administrator and user roles
 - Secure middleware for route protection
-- **JSON:API format** for v2 endpoints with proper relationship handling
 
 ### 🎥 Video Processing & AI Generation
 - **Vid2Vid transformation**: Convert existing videos using AI models
@@ -125,23 +123,25 @@ Queue names default to `high`, `medium`, and `low`. Override them with `HIGH_PRI
 
 ### Authentication Endpoints
 
-**⚠️ Breaking Change**: V1 auth endpoints (`/api/auth/*`) have been removed. Use v2 endpoints (`/api/v2/*`) instead.
+#### V1 API
+- `POST /api/auth/register` — Register a new user account
+- `POST /api/auth/login` — Authenticate and receive JWT token
+- `POST /api/auth/logout` — Invalidate current session (requires auth)
+- `POST /api/auth/forgot-password` — Request password reset email
+- `POST /api/auth/reset-password` — Reset password with token
+- `POST /api/auth/verify-email` — Verify user email with token
+- `GET /api/auth/me` — Get current user profile (requires auth)
+  - **Returns**: User information including `userRole` (0=REGISTERED, 1=ADMINISTRATOR, 2=SUPER_ADMINISTRATOR) and `isAdmin` (boolean) for admin menu visibility
 
-**Base path**: `/api/v2`
-
-- `POST /api/v2/login` — Authenticate and receive OAuth access token
-  - Request: `{ "email": "user@example.com", "password": "password" }`
-  - Response: `{ "access_token": "...", "token_type": "Bearer", "expires_in": 3600 }`
-  - Store `access_token` and include in subsequent requests as `Authorization: Bearer {token}` header
-- `POST /api/v2/logout` — Invalidate current token (requires Bearer token)
-- `POST /api/v2/register` — Register a new user account
-- `POST /api/v2/password-forgot` — Request password reset email
-- `POST /api/v2/password-reset` — Reset password with token
-  - Request: `{ "email": "...", "token": "...", "password": "...", "password_confirmation": "..." }`
-- `GET /api/v2/me` — Get current user profile (requires Bearer token)
-  - Returns JSON:API format with user data and role relationship
-  - Response includes `relationships.role` with role information in `included` array
-- `PATCH /api/v2/me` — Update current user profile (requires Bearer token)
+#### V2 API
+API v2 mirrors these endpoints at `/api/v2/*`:
+- `POST /api/v2/login`
+- `POST /api/v2/logout`
+- `POST /api/v2/register`
+- `POST /api/v2/password-forgot`
+- `POST /api/v2/password-reset`
+- `GET /api/v2/me` — Get current user profile
+- `PATCH /api/v2/me` — Update current user profile
 
 ### Custom Jobs API
 
