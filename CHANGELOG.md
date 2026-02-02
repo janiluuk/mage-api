@@ -34,7 +34,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changes
 - Feat/story generation processor (#60)
-
 ## [1.0.20] - 2026-01-25
 
 ### Changes
