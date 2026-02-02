@@ -14,13 +14,11 @@ class FilmProjectApiTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
-    protected string $token;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->user = User::factory()->create();
-        $this->token = auth('api')->login($this->user);
     }
 
     // ============================================================================
