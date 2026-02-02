@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking Changes
+- **Authentication API Migration**: Removed v1 auth endpoints (`/api/auth/*`) in favor of v2 endpoints (`/api/v2/*`)
+  - `POST /api/auth/login` → `POST /api/v2/login` (now returns OAuth token format)
+  - `POST /api/auth/logout` → `POST /api/v2/logout` (requires Bearer token)
+  - `GET /api/auth/me` → `GET /api/v2/me` (returns JSON:API format)
+  - `POST /api/auth/reset-password` → `POST /api/v2/password-forgot` and `POST /api/v2/password-reset`
+  - All v2 endpoints use OAuth Bearer token authentication instead of session-based auth
+  - Frontend clients must store `access_token` from login response and include `Authorization: Bearer {token}` header in requests
+
+### Added
+- SQLite extension support in Docker configuration for improved test execution
+- Enhanced v2 auth endpoints with proper JSON:API response format
+- OAuth token-based authentication for all v2 endpoints
+
+### Fixed
+- Fixed relationship name mismatch: API now consistently uses `role` relationship name (was `userRole` in route declaration)
+- Fixed missing SQLite dependencies in Dockerfile for test environment
+
 ## [1.0.22] - 2026-05-13
 
 ### Changes
