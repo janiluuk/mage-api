@@ -46,6 +46,7 @@ use App\Http\Controllers\Api\V1\StoryController;
 use App\Http\Controllers\Api\V1\DeforumController;
 use App\Http\Controllers\Api\V1\VideoEditorProjectController;
 use App\Http\Controllers\Api\V1\VideoExportController;
+use App\Http\Controllers\Api\FilmProjectController;
 use LaravelJsonApi\Laravel\Routing\Relationships;
 
 /*
@@ -110,7 +111,7 @@ Route::prefix('v2')->group(function () {
 
 JsonApiRoute::server('v2')->prefix('v2')->resources(function (ResourceRegistrar $server) {
     $server->resource('users', JsonApiController::class)->relationships(function ($relationships) {
-        $relationships->hasOne('userRole');
+        $relationships->hasOne('role');
     });
 
     Route::get('me', [MeController::class, 'readProfile']);
@@ -534,4 +535,46 @@ Route::prefix('/comfyui')->middleware('auth:api')->group(function () {
     Route::get('/workflow/status/{promptId}', [ComfyUIWorkflowController::class, 'status']);
     Route::post('/workflow/cancel/{promptId}', [ComfyUIWorkflowController::class, 'cancel']);
     Route::get('/image', [ComfyUIWorkflowController::class, 'getImage']);
+});
+
+// ============================================================================
+// Film Project API Routes
+// Namespace: /api/film-projects
+// Controller: App\Http\Controllers\Api\FilmProjectController
+// ============================================================================
+
+Route::prefix('film-projects')->middleware('auth:api')->name('film-projects.')->group(function () {
+    // AI Models (must be before catch-all routes)
+    Route::get('/ai/models', [FilmProjectController::class, 'getAvailableModels'])->name('ai.models');
+    
+    // Projects CRUD
+    Route::get('/', [FilmProjectController::class, 'index'])->name('index');
+    Route::post('/', [FilmProjectController::class, 'store'])->name('store');
+    Route::get('/{id}', [FilmProjectController::class, 'show'])->name('show');
+    Route::put('/{id}', [FilmProjectController::class, 'update'])->name('update');
+    Route::delete('/{id}', [FilmProjectController::class, 'destroy'])->name('destroy');
+    
+    // AI Script Generation
+    Route::post('/{id}/generate/script', [FilmProjectController::class, 'generateScript'])->name('generate.script');
+    
+    // Sequences
+    Route::prefix('{projectId}/sequences')->name('sequences.')->group(function () {
+        Route::get('/', [FilmProjectController::class, 'getSequences'])->name('index');
+        Route::post('/', [FilmProjectController::class, 'createSequence'])->name('store');
+        Route::get('/{sequenceId}', [FilmProjectController::class, 'getSequence'])->name('show');
+        Route::put('/{sequenceId}', [FilmProjectController::class, 'updateSequence'])->name('update');
+        Route::delete('/{sequenceId}', [FilmProjectController::class, 'deleteSequence'])->name('destroy');
+        
+        // Shots
+        Route::prefix('{sequenceId}/shots')->name('shots.')->group(function () {
+            Route::get('/', [FilmProjectController::class, 'getShots'])->name('index');
+            Route::post('/', [FilmProjectController::class, 'createShot'])->name('store');
+            Route::get('/{shotId}', [FilmProjectController::class, 'getShot'])->name('show');
+            Route::put('/{shotId}', [FilmProjectController::class, 'updateShot'])->name('update');
+            Route::delete('/{shotId}', [FilmProjectController::class, 'deleteShot'])->name('destroy');
+            
+            // AI Scene Generation
+            Route::post('/{shotId}/generate/scene', [FilmProjectController::class, 'generateScene'])->name('generate.scene');
+        });
+    });
 });
