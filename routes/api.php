@@ -263,7 +263,7 @@ Route::prefix('categories')->group(function () {
 });
 
 
-Route::prefix('/administration')->group(function () {
+Route::prefix('administration')->group(function () {
     Route::middleware(['AuthorizationChecker', 'IsAdministratorChecker'])->group(function () {
         Route::get('/users', [UserController::class, 'getAllUsers']);
         Route::post('/support-requests', [SupportRequestController::class, 'getSupportRequestsByCriteria']);
@@ -293,7 +293,7 @@ Route::prefix('/administration')->group(function () {
     });
 });
 
-Route::prefix('/administration/files')->group(function () {
+Route::prefix('administration/files')->group(function () {
     Route::middleware(['AuthorizationChecker', 'IsAdministratorChecker'])->group(function () {
         Route::get('/overview', [FileAdminController::class, 'index']);
         Route::get('/users/{userId}', [FileAdminController::class, 'filesForUser']);

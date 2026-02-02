@@ -466,10 +466,7 @@ class FilmProductionController extends ApiController
 
     private function successPayload(array $data, int $status = 200): JsonResponse
     {
-        return response()->json([
-            'success' => true,
-            'data' => $data,
-        ], $status);
+        return $this->successResponse($data, $status);
     }
 
     private function ensureOwnership(int $productionId): ?JsonResponse
