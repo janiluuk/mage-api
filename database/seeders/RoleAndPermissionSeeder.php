@@ -16,13 +16,16 @@ class RoleAndPermissionSeeder extends Seeder
     
             
     
-            // Assign roles to demo users
-            $superadmin = User::where('id',1)->first();
+            // Assign roles to demo users when present
+            $superadmin = User::where('id', 1)->first();
+            if ($superadmin && Role::where('name', 'super-admin')->exists()) {
+                $superadmin->assignRole('super-admin');
+            }
     
-            $superadmin->assignRole('super-admin');
-    
-            $admin = User::where('id',1)->first();
-            $admin->assignRole('admin');
+            $admin = User::where('id', 1)->first();
+            if ($admin && Role::where('name', 'admin')->exists()) {
+                $admin->assignRole('admin');
+            }
 
     }
 }

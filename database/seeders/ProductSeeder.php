@@ -12,6 +12,9 @@ class ProductSeeder extends Seeder
      */
     public function run(): void
     {
+        if (!class_exists(PropertyFactory::class) || !class_exists(ProductFactory::class)) {
+            return;
+        }
 
         $properties = PropertyFactory::new()->count(10)->create();
 

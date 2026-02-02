@@ -16,19 +16,22 @@ class DatabaseSeeder extends Seeder
             Storage::deleteDirectory($directory);
         }
 
-        $this->call([
-            LocationSeeder::class,
-            UserRoleSeeder::class,
-            UserSeeder::class,
-            PermissionSeeder::class,
-            CategorySeeder::class,
-            ProductSeeder::class,
-            PromoCodeSeeder::class,
-            OrderSeeder::class,
-            QuestionSeeder::class,
-            RoleAndPermissionSeeder::class,
-            WalletTypeSeeder::class,
+        $seeders = [
+            'Database\\Seeders\\LocationSeeder',
+            'Database\\Seeders\\UserRoleSeeder',
+            'Database\\Seeders\\UserSeeder',
+            'Database\\Seeders\\PermissionSeeder',
+            'Database\\Seeders\\CategorySeeder',
+            'Database\\Seeders\\ProductSeeder',
+            'Database\\Seeders\\PromoCodeSeeder',
+            'Database\\Seeders\\OrderSeeder',
+            'Database\\Seeders\\QuestionSeeder',
+            'Database\\Seeders\\RoleAndPermissionSeeder',
+            'Database\\Seeders\\WalletTypeSeeder',
+        ];
 
-        ]);
+        $this->call(array_values(array_filter($seeders, static function (string $seeder): bool {
+            return class_exists($seeder);
+        })));
     }
 }
