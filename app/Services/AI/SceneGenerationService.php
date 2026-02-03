@@ -93,19 +93,10 @@ class SceneGenerationService
         bool $generateReferenceShots,
         array $options
     ): array {
-        // Get available ComfyUI instance
-        $instances = GeneratorInstance::where('type', 'comfyui')
-            ->where('enabled', true)
-            ->where('health_status', 'online')
-            ->get();
-
-        if ($instances->isEmpty()) {
-            throw new \Exception('No available ComfyUI instances');
-        }
-
-        $instance = $this->loadBalancer->selectInstance($instances, 'least_loaded');
+        // Get available ComfyUI instance using LoadBalancer
+        $instance = $this->loadBalancer->selectInstance('comfyui', 'least_loaded');
         if (!$instance) {
-            throw new \Exception('Failed to select ComfyUI instance');
+            throw new \Exception('No available ComfyUI instances');
         }
 
         Log::info('Using ComfyUI instance', [
@@ -155,19 +146,10 @@ class SceneGenerationService
         bool $generateReferenceShots,
         array $options
     ): array {
-        // Get available SD-Forge instance
-        $instances = GeneratorInstance::where('type', 'stable_diffusion_forge')
-            ->where('enabled', true)
-            ->where('health_status', 'online')
-            ->get();
-
-        if ($instances->isEmpty()) {
-            throw new \Exception('No available SD-Forge instances');
-        }
-
-        $instance = $this->loadBalancer->selectInstance($instances, 'least_loaded');
+        // Get available SD-Forge instance using LoadBalancer
+        $instance = $this->loadBalancer->selectInstance('stable_diffusion_forge', 'least_loaded');
         if (!$instance) {
-            throw new \Exception('Failed to select SD-Forge instance');
+            throw new \Exception('No available SD-Forge instances');
         }
 
         Log::info('Using Deforum instance', [

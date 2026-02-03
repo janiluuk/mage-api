@@ -218,7 +218,12 @@ class StoryGenerationController extends ApiController
         if ($batchId) {
             $batch = StoryBatch::where('id', $batchId)
                 ->where('user_id', auth('api')->id())
-                ->firstOrFail();
+                ->first();
+            
+            if (!$batch) {
+                return $this->errorResponse('Batch not found', 404);
+            }
+            
             $batch->share_token = $token;
             $batch->save();
         }
