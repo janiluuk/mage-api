@@ -425,9 +425,60 @@ When the rate limit is exceeded, you'll receive a `429 Too Many Requests` respon
 - **SQL Injection Prevention**: Parameterized queries via Eloquent ORM
 - **XSS Protection**: Automatic output escaping
 
+## Testing
+
+### Running Tests
+
+#### Unit and Feature Tests
+
+Run all tests using Docker:
+```bash
+./docker-test
+```
+
+Run specific test class:
+```bash
+./docker-test InstanceStatusApiTest
+```
+
+Or using PHPUnit directly (requires local PHP setup):
+```bash
+./vendor/bin/phpunit
+```
+
+#### End-to-End Tests with Real Instances
+
+For comprehensive E2E testing with real generator instances:
+
+1. **Configure test instances**:
+   ```bash
+   cp .env.testing.example .env.testing
+   # Edit .env.testing with your real instance URLs
+   ```
+
+2. **Set up test instances in database**:
+   ```bash
+   ./scripts/setup-test-instances.sh
+   ```
+
+3. **Run E2E tests**:
+   ```bash
+   ./scripts/run-e2e-tests.sh
+   ```
+
+For detailed E2E testing instructions, see [docs/E2E_TESTING_WITH_REAL_INSTANCES.md](docs/E2E_TESTING_WITH_REAL_INSTANCES.md)
+
+### Test Structure
+
+- **Unit Tests**: `tests/Unit/` - Test individual classes and methods
+- **Feature Tests**: `tests/Feature/` - Test API endpoints and integrations
+- **E2E Tests**: `tests/E2E/` - Test with real generator instances
+
+All tests use SQLite in-memory database for fast execution.
+
 ## Common Tooling
 
-- **Run tests**: `./vendor/bin/phpunit`
+- **Run tests**: `./docker-test` or `./vendor/bin/phpunit`
 - **Generate API docs** (Scribe): `php artisan scribe:generate`
 - **Clear logs**: `php artisan log:clear`
 - **Code formatting** (Pint): `./vendor/bin/pint`

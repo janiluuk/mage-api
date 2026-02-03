@@ -100,9 +100,15 @@ return [
     ],
 
     'local_ai' => [
-        'base_url' => env('LOCAL_AI_BASE_URL', 'http://localhost:1234'),
-        'default_model' => env('LOCAL_AI_DEFAULT_MODEL', 'qwen-8b'),
+        'base_url' => env('LOCAL_AI_BASE_URL', 'http://localhost:11434'),
+        'default_model' => env('LOCAL_AI_DEFAULT_MODEL', 'qwen3-18b'),
         'timeout' => env('LOCAL_AI_TIMEOUT', 300),
+    ],
+
+    'comfy' => [
+        'host' => env('COMFY_HOST', '127.0.0.1:8188'),
+        'ws_timeout' => env('COMFY_WS_TIMEOUT', 60000),
+        'poll_interval' => env('COMFY_POLL_INTERVAL', 500),
     ],
 
 ];

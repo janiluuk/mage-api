@@ -439,19 +439,23 @@ Route::prefix('film-projects')->middleware('auth:api')->group(function () {
     Route::post('/{id}/generate/script', [FilmProductionController::class, 'generateScript']);
     
     // Sequences
-    Route::get('/{projectId}/sequences', [FilmProductionController::class, 'getSequences']);
-    Route::post('/{projectId}/sequences', [FilmProductionController::class, 'createSequence']);
-    Route::get('/{projectId}/sequences/{sequenceId}', [FilmProductionController::class, 'getSequence']);
-    Route::put('/{projectId}/sequences/{sequenceId}', [FilmProductionController::class, 'updateSequence']);
-    Route::delete('/{projectId}/sequences/{sequenceId}', [FilmProductionController::class, 'deleteSequence']);
+    Route::get('/{projectId}/sequences', [FilmProjectController::class, 'getSequences']);
+    Route::post('/{projectId}/sequences', [FilmProjectController::class, 'createSequence']);
+    Route::get('/{projectId}/sequences/{sequenceId}', [FilmProjectController::class, 'getSequence']);
+    Route::put('/{projectId}/sequences/{sequenceId}', [FilmProjectController::class, 'updateSequence']);
+    Route::delete('/{projectId}/sequences/{sequenceId}', [FilmProjectController::class, 'deleteSequence']);
     
     // Shots
-    Route::get('/{projectId}/sequences/{sequenceId}/shots', [FilmProductionController::class, 'getShots']);
-    Route::post('/{projectId}/sequences/{sequenceId}/shots', [FilmProductionController::class, 'createShot']);
-    Route::get('/{projectId}/sequences/{sequenceId}/shots/{shotId}', [FilmProductionController::class, 'getShot']);
-    Route::put('/{projectId}/sequences/{sequenceId}/shots/{shotId}', [FilmProductionController::class, 'updateShot']);
-    Route::delete('/{projectId}/sequences/{sequenceId}/shots/{shotId}', [FilmProductionController::class, 'deleteShot']);
+    Route::get('/{projectId}/sequences/{sequenceId}/shots', [FilmProjectController::class, 'getShots']);
+    Route::post('/{projectId}/sequences/{sequenceId}/shots', [FilmProjectController::class, 'createShot']);
+    Route::get('/{projectId}/sequences/{sequenceId}/shots/{shotId}', [FilmProjectController::class, 'getShot']);
+    Route::put('/{projectId}/sequences/{sequenceId}/shots/{shotId}', [FilmProjectController::class, 'updateShot']);
+    Route::delete('/{projectId}/sequences/{sequenceId}/shots/{shotId}', [FilmProjectController::class, 'deleteShot']);
     
     // AI Scene Generation
-    Route::post('/{projectId}/sequences/{sequenceId}/shots/{shotId}/generate/scene', [FilmProductionController::class, 'generateScene']);
+    Route::post('/{projectId}/sequences/{sequenceId}/shots/{shotId}/generate/scene', [FilmProjectController::class, 'generateScene']);
+    
+    // Script and Scene Parsing
+    Route::post('/{id}/parse/script', [FilmProjectController::class, 'parseScriptIntoScenes']);
+    Route::post('/{projectId}/sequences/{sequenceId}/parse/shots', [FilmProjectController::class, 'parseSceneIntoShots']);
 });
