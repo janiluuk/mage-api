@@ -32,7 +32,7 @@ class GeneratorInstanceController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'url' => 'required|string|max:255',
+            'url' => ['required', 'string', 'max:255', 'regex:/^(https?:\/\/)?[\w.\-]+(:\d+)?(\/.*)?$/'],
             'type' => ['required', Rule::in(['stable_diffusion_forge', 'comfyui', 'ollama'])],
             'enabled' => 'boolean',
         ]);
@@ -68,7 +68,7 @@ class GeneratorInstanceController extends Controller
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
-            'url' => 'sometimes|string|max:255',
+            'url' => ['sometimes', 'string', 'max:255', 'regex:/^(https?:\/\/)?[\w.\-]+(:\d+)?(\/.*)?$/'],
             'type' => ['sometimes', Rule::in(['stable_diffusion_forge', 'comfyui', 'ollama'])],
             'enabled' => 'sometimes|boolean',
         ]);
