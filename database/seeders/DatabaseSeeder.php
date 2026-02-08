@@ -28,7 +28,6 @@ class DatabaseSeeder extends Seeder
             'Database\\Seeders\\QuestionSeeder',
             'Database\\Seeders\\RoleAndPermissionSeeder',
             'Database\\Seeders\\WalletTypeSeeder',
-            'Database\\Seeders\\FilmProjectSeeder',
         ];
 
         $this->call(array_values(array_filter($seeders, static function (string $seeder): bool {

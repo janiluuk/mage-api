@@ -124,3 +124,4 @@ EOF
 print_info "Test instances have been set up successfully!"
 print_info "You can now run E2E tests with: ./scripts/run-e2e-tests.sh"
 
+

@@ -14,7 +14,7 @@ class GeneratorInstanceFactory extends Factory
         return [
             'name' => $this->faker->words(3, true) . ' Instance',
             'url' => 'http://' . $this->faker->ipv4() . ':7860',
-            'type' => $this->faker->randomElement(['stable_diffusion_forge', 'comfyui']),
+            'type' => $this->faker->randomElement(['stable_diffusion_forge', 'comfyui', 'ollama']),
             'enabled' => true,
         ];
     }
@@ -44,6 +44,14 @@ class GeneratorInstanceFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'type' => 'comfyui',
+        ]);
+    }
+
+    public function ollama(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => 'ollama',
+            'url' => 'http://localhost:11434',
         ]);
     }
 }

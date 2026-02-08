@@ -176,3 +176,4 @@ cd mage-api && ./docker-test
 - E2E tests run on a schedule (not on every commit)
 - Test data is cleaned up automatically using RefreshDatabase trait
 
+
