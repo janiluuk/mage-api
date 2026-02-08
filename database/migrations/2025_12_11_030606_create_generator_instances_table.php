@@ -17,7 +17,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('url');
-            $table->enum('type', ['stable_diffusion_forge', 'comfyui'])->default('stable_diffusion_forge');
+            $table->enum('type', ['stable_diffusion_forge', 'comfyui', 'ollama'])->default('stable_diffusion_forge');
             $table->boolean('enabled')->default(true);
             $table->timestamps();
         });

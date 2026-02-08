@@ -14,13 +14,27 @@ class UserSeeder extends Seeder
 {
     public function run()
     {
-        $registeredRole = DB::table('user_roles')
+        $registeredRoleRow = DB::table('user_roles')
             ->where('type', '=', UserRoleConstant::REGISTERED)
-            ->first()->id;
+            ->first();
 
-        $adminRole = DB::table('user_roles')
+        if (!$registeredRoleRow) {
+            $this->command->error('Registered user role not found. Please run the user_roles seeder first.');
+            return;
+        }
+
+        $registeredRole = $registeredRoleRow->id;
+
+        $adminRoleRow = DB::table('user_roles')
             ->where('type', '=', UserRoleConstant::ADMINISTRATOR)
-            ->first()->id;
+            ->first();
+
+        if (!$adminRoleRow) {
+            $this->command->error('Administrator user role not found. Please run the user_roles seeder first.');
+            return;
+        }
+
+        $adminRole = $adminRoleRow->id;
 
         $userData = [
             'login' => 'admin',
