@@ -123,11 +123,25 @@ class ComfyWebSocketClient
         }
 
         if (isset($jobData['prompt']) && is_array($jobData['prompt'])) {
+            // Associative array format
             if (isset($jobData['prompt']['client_id']) && $jobData['prompt']['client_id'] === $clientId) {
                 return true;
             }
 
             if (isset($jobData['prompt']['extra']['client_id']) && $jobData['prompt']['extra']['client_id'] === $clientId) {
+                return true;
+            }
+
+            // Indexed array format: ComfyUI stores prompt as
+            // [queue_number, prompt_id, prompt_object, extra_data, output_node_ids]
+            // where extra_data (index 3) contains the client_id
+            if (
+                array_is_list($jobData['prompt'])
+                && isset($jobData['prompt'][3])
+                && is_array($jobData['prompt'][3])
+                && isset($jobData['prompt'][3]['client_id'])
+                && $jobData['prompt'][3]['client_id'] === $clientId
+            ) {
                 return true;
             }
         }
