@@ -17,6 +17,11 @@ return new class extends Migration
 
         if ($driver === 'mysql' || $driver === 'mariadb') {
             DB::statement("ALTER TABLE generator_instances MODIFY COLUMN type ENUM('stable_diffusion_forge', 'comfyui', 'ollama') NOT NULL DEFAULT 'stable_diffusion_forge'");
+        } elseif ($driver === 'pgsql') {
+            // PostgreSQL: Laravel enum() creates a CHECK constraint, not a native ENUM type.
+            // Drop the old constraint and re-add with the new value.
+            DB::statement("ALTER TABLE generator_instances DROP CONSTRAINT IF EXISTS generator_instances_type_check");
+            DB::statement("ALTER TABLE generator_instances ADD CONSTRAINT generator_instances_type_check CHECK (type IN ('stable_diffusion_forge', 'comfyui', 'ollama'))");
         }
 
         // For SQLite: the original migration already includes 'ollama' in the enum,
@@ -33,6 +38,9 @@ return new class extends Migration
 
         if ($driver === 'mysql' || $driver === 'mariadb') {
             DB::statement("ALTER TABLE generator_instances MODIFY COLUMN type ENUM('stable_diffusion_forge', 'comfyui') NOT NULL DEFAULT 'stable_diffusion_forge'");
+        } elseif ($driver === 'pgsql') {
+            DB::statement("ALTER TABLE generator_instances DROP CONSTRAINT IF EXISTS generator_instances_type_check");
+            DB::statement("ALTER TABLE generator_instances ADD CONSTRAINT generator_instances_type_check CHECK (type IN ('stable_diffusion_forge', 'comfyui'))");
         }
     }
 };
