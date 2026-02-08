@@ -379,16 +379,22 @@ All administration endpoints require authentication and administrator role. Base
 #### Support Administration
 - `POST /api/administration/support-requests` — Search support requests with criteria
 
-#### Generator Instance Management (Stable Diffusion Forge / ComfyUI)
+#### Generator Instance Management (Stable Diffusion Forge / ComfyUI / Ollama)
 - `GET /api/administration/generator-instances` — List instances
 - `POST /api/administration/generator-instances` — Create instance
+  - **Parameters**: `name` (required), `url` (required), `type` (required: `stable_diffusion_forge`, `comfyui`, or `ollama`), `enabled` (boolean)
 - `GET /api/administration/generator-instances/{id}` — Get instance details
 - `PUT /api/administration/generator-instances/{id}` — Update instance
 - `PATCH /api/administration/generator-instances/{id}` — Update instance
 - `DELETE /api/administration/generator-instances/{id}` — Delete instance
 - `PATCH /api/administration/generator-instances/{id}/toggle` — Toggle instance
 
-Model files can be tagged with an `instanceType` (e.g., `stable_diffusion_forge`, `comfyui`) so jobs route to the right backend,
+Supported instance types:
+- **stable_diffusion_forge** — Image/video generation via SD Forge
+- **comfyui** — Workflow-based generation via ComfyUI
+- **ollama** — LLM text generation via Ollama (model listing, generation, health checks, model pulling)
+
+Model files can be tagged with an `instanceType` so jobs route to the right backend,
 such as `dreamshaper` → Stable Diffusion Forge and `flux` → ComfyUI.
 
 ### Utility Endpoints
