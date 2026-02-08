@@ -17,7 +17,7 @@ class GeneratorInstanceService
     /**
      * Get a load-balanced generator instance URL.
      *
-     * @param string|null $type Filter by instance type (stable_diffusion_forge or comfyui)
+     * @param string|null $type Filter by instance type (stable_diffusion_forge, comfyui, or ollama)
      * @return string|null
      */
     public function getEnabledInstanceUrl(?string $type = null): ?string
