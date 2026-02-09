@@ -12,7 +12,7 @@ class LoadBalancerService
     /**
      * Select the best instance for a job based on load balancing strategy.
      *
-     * @param string|null $type Filter by instance type (stable_diffusion_forge or comfyui)
+     * @param string|null $type Filter by instance type (stable_diffusion_forge, comfyui, or ollama)
      * @param string $strategy Load balancing strategy: 'least_loaded' or 'round_robin'
      * @return GeneratorInstance|null
      */

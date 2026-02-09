@@ -18,24 +18,26 @@ class VideoJobAudioUploadTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+        Storage::fake('public');
+
         // Mock VideoProcessingService to avoid FFMpeg dependency in tests
-        $this->mock(VideoProcessingService::class, function ($mock) {
-            $mock->shouldReceive('parseJob')
-                ->andReturnUsing(function ($videoJob, $path) {
-                    // Set dummy video properties
-                    $videoJob->fps = 30;
-                    $videoJob->codec = 'h264';
-                    $videoJob->frame_count = 90;
-                    $videoJob->size = 1000000;
-                    $videoJob->width = 1920;
-                    $videoJob->height = 1080;
-                    $videoJob->bitrate = 4000000;
-                    $videoJob->audio_codec = 'aac';
-                    $videoJob->length = 3.0;
-                    return $videoJob;
-                });
-        });
+        $mockVideoService = Mockery::mock(VideoProcessingService::class);
+        $mockVideoService->shouldIgnoreMissing();
+        $mockVideoService->shouldReceive('parseJob')
+            ->andReturnUsing(function ($videoJob, $path) {
+                // Set dummy video properties
+                $videoJob->fps = 30;
+                $videoJob->codec = 'h264';
+                $videoJob->frame_count = 90;
+                $videoJob->size = 1000000;
+                $videoJob->width = 1920;
+                $videoJob->height = 1080;
+                $videoJob->bitrate = 4000000;
+                $videoJob->audio_codec = 'aac';
+                $videoJob->length = 3.0;
+                return $videoJob;
+            });
+        $this->app->instance(VideoProcessingService::class, $mockVideoService);
     }
 
     public function test_user_can_upload_audio_file_during_job_creation_vid2vid(): void

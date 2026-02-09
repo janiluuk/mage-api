@@ -232,5 +232,71 @@ class StoryGenerationTest extends TestCase
         $response->assertJsonStructure(['shareUrl']);
         $this->assertNotNull($batch->fresh()->share_token);
     }
+
+    public function test_share_returns_404_for_nonexistent_batch(): void
+    {
+        $this->withoutMiddleware();
+
+        $user = User::factory()->create();
+        $this->actingAs($user, 'api');
+
+        $response = $this->postJson('/api/story/share', [
+            'story' => [
+                'name' => 'Test Story',
+                'scenes' => [],
+            ],
+            'batchId' => '99999',
+        ]);
+
+        $response->assertNotFound();
+        $response->assertJsonStructure(['error']);
+    }
+
+    public function test_share_returns_404_for_other_users_batch(): void
+    {
+        $this->withoutMiddleware();
+
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+
+        $batch = StoryBatch::create([
+            'user_id' => $owner->id,
+            'status' => 'pending',
+            'total_frames' => 0,
+            'completed_frames' => 0,
+            'progress' => 0,
+        ]);
+
+        $this->actingAs($otherUser, 'api');
+
+        $response = $this->postJson('/api/story/share', [
+            'story' => [
+                'name' => 'Test Story',
+                'scenes' => [],
+            ],
+            'batchId' => (string) $batch->id,
+        ]);
+
+        $response->assertNotFound();
+        $this->assertNull($batch->fresh()->share_token);
+    }
+
+    public function test_share_without_batch_id_returns_share_url(): void
+    {
+        $this->withoutMiddleware();
+
+        $user = User::factory()->create();
+        $this->actingAs($user, 'api');
+
+        $response = $this->postJson('/api/story/share', [
+            'story' => [
+                'name' => 'No Batch Story',
+                'scenes' => [],
+            ],
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonStructure(['shareUrl']);
+    }
 }
 

@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('video_job_variants', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('base_video_job_id')->index();
-            $table->unsignedBigInteger('variant_video_job_id')->index();
+            $table->unsignedInteger('base_video_job_id')->index();
+            $table->unsignedInteger('variant_video_job_id')->index();
             $table->unsignedBigInteger('model_id')->nullable()->index();
             $table->string('variant_name')->nullable();
             $table->text('description')->nullable();

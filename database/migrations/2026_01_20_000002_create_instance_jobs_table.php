@@ -16,7 +16,7 @@ return new class extends Migration
         Schema::create('instance_jobs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('instance_id')->constrained('generator_instances')->onDelete('cascade');
-            $table->foreignId('video_job_id')->constrained('video_jobs')->onDelete('cascade');
+            $table->unsignedInteger('video_job_id');
             $table->string('status')->default('queued'); // queued, processing, completed, failed, cancelled
             $table->timestamp('assigned_at')->useCurrent();
             $table->timestamp('started_at')->nullable();
@@ -27,6 +27,11 @@ return new class extends Migration
             $table->index(['instance_id', 'status']);
             $table->index(['video_job_id']);
             $table->index(['status', 'assigned_at']);
+
+            $table->foreign('video_job_id')
+                ->references('id')
+                ->on('video_jobs')
+                ->onDelete('cascade');
         });
     }
 

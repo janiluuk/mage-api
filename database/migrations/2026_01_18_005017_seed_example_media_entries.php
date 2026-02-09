@@ -5,6 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use App\Constant\UserRoleConstant;
 
 return new class extends Migration
 {
@@ -16,6 +17,13 @@ return new class extends Migration
     public function up()
     {
         // Get or create admin user
+        $adminRoleId = null;
+        if (Schema::hasTable('user_roles')) {
+            $adminRoleId = DB::table('user_roles')
+                ->where('type', UserRoleConstant::ADMINISTRATOR)
+                ->value('id');
+        }
+
         $userId = DB::table('users')->where('email', 'admin@jsonapi.com')->value('id');
         
         if (!$userId) {
@@ -29,8 +37,8 @@ return new class extends Migration
             ];
             
             // Only include fields if the columns exist
-            if (Schema::hasColumn('users', 'user_role_id')) {
-                $userData['user_role_id'] = 1;
+            if (Schema::hasColumn('users', 'user_role_id') && $adminRoleId) {
+                $userData['user_role_id'] = $adminRoleId;
             }
             if (Schema::hasColumn('users', 'email_verified_at')) {
                 $userData['email_verified_at'] = now();

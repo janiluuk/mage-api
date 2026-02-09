@@ -220,10 +220,14 @@ class StoryGenerationController extends ApiController
                 ->where('user_id', auth('api')->id())
                 ->first();
 
-            if ($batch) {
-                $batch->share_token = $token;
-                $batch->save();
+            if (!$batch) {
+                return response()->json([
+                    'error' => 'Batch not found or access denied.',
+                ], 404);
             }
+
+            $batch->share_token = $token;
+            $batch->save();
         }
 
         return response()->json([

@@ -12,6 +12,10 @@ class PromoCodeSeeder extends Seeder
      */
     public function run(): void
     {
+        if (!class_exists(PromoCodeFactory::class)) {
+            return;
+        }
+
         PromoCodeFactory::new()
             ->count(10)
             ->create();
