@@ -15,7 +15,8 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             if (!Schema::hasColumn('users', 'user_role_id')) {
-                $table->unsignedBigInteger('user_role_id')->nullable()->after('balance');
+                $afterColumn = Schema::hasColumn('users', 'balance') ? 'balance' : 'profile_image';
+                $table->unsignedBigInteger('user_role_id')->nullable()->after($afterColumn);
                 $table->foreign('user_role_id')->references('id')->on('user_roles')->onDelete('set null');
             }
         });

@@ -68,7 +68,7 @@ These images are served from external URLs, so an internet connection is require
 If you're running the application in Docker:
 
 ```bash
-docker exec -it laravel-api php artisan demo:content
+docker exec -it mage-api php artisan demo:content
 ```
 
 ## Examples

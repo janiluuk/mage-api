@@ -34,7 +34,7 @@ warnings.filterwarnings("ignore")
 
 # Constants
 DB_CONFIG = {
-    "user": "laravel",
+    "user": "mage_api",
     "password": "zxcvfdsA",
     "host": "webtop.local",
     "database": "mage",

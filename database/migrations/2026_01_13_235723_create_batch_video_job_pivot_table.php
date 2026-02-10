@@ -16,7 +16,8 @@ return new class extends Migration
         Schema::create('batch_video_job', function (Blueprint $table) {
             $table->id();
             $table->foreignId('batch_id')->constrained()->onDelete('cascade');
-            $table->foreignId('video_job_id')->constrained('video_jobs')->onDelete('cascade');
+            $table->unsignedInteger('video_job_id');
+            $table->foreign('video_job_id')->references('id')->on('video_jobs')->onDelete('cascade');
             $table->integer('order')->default(0); // Order within batch
             $table->string('status')->default('pending'); // pending, processing, completed, failed
             $table->timestamp('started_at')->nullable();

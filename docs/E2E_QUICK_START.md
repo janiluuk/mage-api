@@ -63,10 +63,10 @@ docker compose --profile test up -d test
 ./scripts/run-e2e-tests.sh
 
 # Check test container logs
-docker logs laravel-api-test
+docker logs mage-api-test
 
 # Access test container shell
-docker exec -it laravel-api-test bash
+docker exec -it mage-api-test bash
 ```
 
 ## Troubleshooting
@@ -75,10 +75,10 @@ docker exec -it laravel-api-test bash
 
 ```bash
 # Test connectivity
-docker exec laravel-api-test curl -v http://YOUR_INSTANCE_IP:8188/system_stats
+docker exec mage-api-test curl -v http://YOUR_INSTANCE_IP:8188/system_stats
 
 # Check if instance is online
-docker exec laravel-api-test ping -c 3 YOUR_INSTANCE_IP
+docker exec mage-api-test ping -c 3 YOUR_INSTANCE_IP
 ```
 
 ### Container Issues
@@ -89,14 +89,14 @@ docker compose --profile test build test
 docker compose --profile test up -d test
 
 # Check container status
-docker ps | grep laravel-api-test
+docker ps | grep mage-api-test
 ```
 
 ### Database Issues
 
 ```bash
 # Reset test database
-docker exec laravel-api-test php artisan migrate:fresh
+docker exec mage-api-test php artisan migrate:fresh
 ```
 
 ## Test Instance Requirements

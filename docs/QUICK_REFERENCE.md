@@ -298,7 +298,7 @@ php artisan queue:retry all
 LOG_LEVEL=debug
 
 // Check logs
-tail -f storage/logs/laravel.log
+tail -f storage/logs/mage-api.log
 ```
 
 ### Monitor Queue Jobs
@@ -331,7 +331,7 @@ php artisan queue:work --queue=medium &
 php artisan queue:work --queue=low &
 
 # With supervisor
-[program:laravel-worker]
+[program:mage-api-worker]
 command=php /path/to/artisan queue:work --queue=high,medium,low --sleep=3 --tries=3
 ```
 
@@ -384,5 +384,5 @@ php artisan optimize:clear
 For issues or questions:
 1. Check documentation: `docs/VIDEO_JOB_IMPROVEMENTS.md`
 2. Review test examples in `tests/Feature/VideoJob*.php`
-3. Check logs: `storage/logs/laravel.log`
+3. Check logs: `storage/logs/mage-api.log`
 4. Open GitHub issue with details
