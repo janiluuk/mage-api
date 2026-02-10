@@ -529,3 +529,15 @@ When contributing to this repository:
 ## License
 
 MIT License
+
+5. Use descriptive commit messages
+
+## License
+
+MIT License
+
+5. Use descriptive commit messages
+
+## License
+
+MIT License
