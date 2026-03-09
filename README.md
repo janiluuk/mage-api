@@ -98,6 +98,8 @@ npm run build
 
 Docker users can start the stack with `docker-compose up -d` and run the same artisan commands inside the `app` container. Queue workers should target the configured names (`HIGH_PRIORITY_QUEUE`, `MEDIUM_PRIORITY_QUEUE`, `LOW_PRIORITY_QUEUE`).
 
+Docker Compose resolves `${...}` variables from `.env` by default. If you keep Docker-specific values in `.env.docker`, run with `docker compose --env-file .env.docker up -d` or copy those values into `.env`.
+
 ### File service configuration
 Add/adjust these keys in `.env` to tune storage behavior:
 ```
@@ -524,18 +526,6 @@ When contributing to this repository:
 2. Write tests for new features
 3. Update API documentation
 4. Ensure all tests pass before submitting PR
-5. Use descriptive commit messages
-
-## License
-
-MIT License
-
-5. Use descriptive commit messages
-
-## License
-
-MIT License
-
 5. Use descriptive commit messages
 
 ## License
