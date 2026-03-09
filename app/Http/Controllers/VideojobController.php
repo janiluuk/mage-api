@@ -690,20 +690,28 @@ private function generateDeforum(Request $request): JsonResponse
         $path = $uploadedFile->store('videos', 'public');
         $filename = basename($path);
 
-        $publicDirectory = public_path('videos');
-        if (! is_dir($publicDirectory)) {
-            mkdir($publicDirectory, 0755, true);
-        }
-
         $storagePath = Storage::disk('public')->path($path);
-        copy($storagePath, $publicDirectory . '/' . $filename);
+
+        // Copy to public directory for direct access.
+        // Fall back to storage path when directory/file copy is not possible.
+        $publicDirectory = public_path('videos');
+        $publicPath = $publicDirectory . '/' . $filename;
+        try {
+            if (! is_dir($publicDirectory) && ! mkdir($publicDirectory, 0755, true) && ! is_dir($publicDirectory)) {
+                $publicPath = $storagePath;
+            } elseif (! copy($storagePath, $publicPath)) {
+                $publicPath = $storagePath;
+            }
+        } catch (\Throwable $e) {
+            $publicPath = $storagePath;
+        }
 
         return [
             'filename' => $filename,
             'originalName' => $uploadedFile->getClientOriginalName(),
             'outfile' => pathinfo($filename, PATHINFO_FILENAME) . '.mp4',
             'path' => $path,
-            'publicPath' => $publicDirectory . '/' . $filename,
+            'publicPath' => $publicPath,
             'mimeType' => $uploadedFile->getMimeType(),
         ];
     }
