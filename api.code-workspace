@@ -27,6 +27,7 @@
 			"editor.defaultFormatter": "ms-python.python"
 		},
 		"python.formatting.provider": "none",
-		"mocha.subdirectory": "../app/src/store/modules"
+		"mocha.subdirectory": "../app/src/store/modules",
+		"git.useIntegratedAskPass": false
 	}
 }
