@@ -89,6 +89,31 @@ services:
     profiles:
       - test
 
+  test:
+    build:
+      args:
+        user: www-data
+        uid: ${UID:-1000}
+      context: ./
+      dockerfile: Dockerfile
+    image: mage-backend
+    container_name: laravel-api-test
+    working_dir: /var/www/
+    volumes:
+      - ./:/var/www
+      - ./filestorage:/storage
+    environment:
+      APP_ENV: testing
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ":memory:"
+      CACHE_DRIVER: array
+      QUEUE_CONNECTION: sync
+      SESSION_DRIVER: array
+      COMPOSER_MEMORY_LIMIT: 2G
+    command: sleep infinity
+    profiles:
+      - test
+
   uvr5:
     image: upseem/uvr5-cli-no-ui:latest
     container_name: mage-api-uvr5
