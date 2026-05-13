@@ -26,7 +26,7 @@ $DOCKER_COMPOSE --profile test up -d test
 echo "Waiting for container to be ready..."
 sleep 2
 
-CONTAINER_NAME="laravel-api-test"
+CONTAINER_NAME="mage-api-test"
 
 # Verify SQLite is available
 echo "Verifying SQLite extension..."

@@ -49,7 +49,7 @@ set -e
 
 source .env.testing
 
-docker exec laravel-api-test php artisan tinker <<EOF
+docker exec mage-api-test php artisan tinker <<EOF
 use App\Models\GeneratorInstance;
 use App\Models\User;
 
@@ -110,7 +110,7 @@ docker compose --profile test up -d test
 ./scripts/setup-test-instances.sh
 
 # Run e2e tests
-docker exec laravel-api-test php artisan test --filter InstanceE2ETest
+docker exec mage-api-test php artisan test --filter InstanceE2ETest
 ```
 
 ### Option 2: Using Test Script
@@ -264,7 +264,7 @@ jobs:
         run: ./scripts/setup-test-instances.sh
       
       - name: Run E2E tests
-        run: docker exec laravel-api-test php artisan test --filter E2E
+        run: docker exec mage-api-test php artisan test --filter E2E
 ```
 
 ## Troubleshooting
@@ -273,24 +273,24 @@ jobs:
 
 ```bash
 # Test connectivity from container
-docker exec laravel-api-test curl -v http://192.168.1.100:8188/system_stats
+docker exec mage-api-test curl -v http://192.168.1.100:8188/system_stats
 
 # Check network configuration
-docker exec laravel-api-test ping -c 3 192.168.1.100
+docker exec mage-api-test ping -c 3 192.168.1.100
 ```
 
 ### Permission Issues
 
 ```bash
 # Ensure test container has proper permissions
-docker exec -u root laravel-api-test chown -R www-data:www-data /var/www
+docker exec -u root mage-api-test chown -R www-data:www-data /var/www
 ```
 
 ### Database Issues
 
 ```bash
 # Reset test database
-docker exec laravel-api-test php artisan migrate:fresh --seed
+docker exec mage-api-test php artisan migrate:fresh --seed
 ```
 
 ## Best Practices

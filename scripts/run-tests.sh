@@ -23,7 +23,7 @@ else
 fi
 
 # Check if containers are running, if not start them
-CONTAINER_STATUS=$($DOCKER_COMPOSE ps app 2>/dev/null | grep -i "laravel-api" || echo "")
+CONTAINER_STATUS=$($DOCKER_COMPOSE ps app 2>/dev/null | grep -i "mage-api" || echo "")
 if [ -z "$CONTAINER_STATUS" ] || ! echo "$CONTAINER_STATUS" | grep -q "Up"; then
     echo "Starting Docker containers..."
     $DOCKER_COMPOSE up -d app 2>&1 | grep -v "already in use" || true
@@ -32,7 +32,7 @@ if [ -z "$CONTAINER_STATUS" ] || ! echo "$CONTAINER_STATUS" | grep -q "Up"; then
 fi
 
 # Get the container name (use docker ps to find the actual running container)
-CONTAINER_NAME="laravel-api"
+CONTAINER_NAME="mage-api"
 if ! docker ps --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
     # Try to start it if it exists but is stopped
     docker start "$CONTAINER_NAME" 2>/dev/null || true

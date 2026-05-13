@@ -33,7 +33,7 @@ fi
 source .env.testing
 
 # Check if test container is running
-CONTAINER_NAME="laravel-api-test"
+CONTAINER_NAME="mage-api-test"
 if ! docker ps --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
     print_info "Starting test container..."
     docker compose --profile test up -d test

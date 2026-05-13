@@ -62,7 +62,7 @@ $DOCKER_COMPOSE build app
 print_info "Cleaning up existing containers..."
 $DOCKER_COMPOSE down 2>/dev/null || true
 # Also try to remove containers by name in case docker-compose down didn't work
-docker rm -f laravel-api laravel-db laravel-redis 2>/dev/null || true
+docker rm -f mage-api mage-api-db mage-api-redis 2>/dev/null || true
 
 # Start required services (app and db for tests that might need it)
 print_info "Starting Docker containers..."
@@ -73,7 +73,7 @@ print_info "Waiting for containers to be ready..."
 sleep 5
 
 # Get the container name
-CONTAINER_NAME="laravel-api"
+CONTAINER_NAME="mage-api"
 
 # Check if container is running
 if ! docker ps --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
@@ -111,8 +111,8 @@ if ! docker exec "$CONTAINER_NAME" test -d vendor; then
     docker exec "$CONTAINER_NAME" composer install --no-interaction --prefer-dist --optimize-autoloader
 fi
 
-# Clear Laravel caches
-print_info "Clearing Laravel caches..."
+# Clear application caches
+print_info "Clearing application caches..."
 docker exec "$CONTAINER_NAME" php artisan config:clear || true
 docker exec "$CONTAINER_NAME" php artisan cache:clear || true
 
