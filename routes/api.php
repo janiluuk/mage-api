@@ -427,31 +427,31 @@ Route::prefix('/comfyui')->middleware('auth:api')->group(function () {
 Route::prefix('film-projects')->middleware('auth:api')->group(function () {
     // AI Models (must be before catch-all routes)
     Route::get('/ai/models', [FilmProductionController::class, 'getAvailableModels']);
-    
+
     // Projects CRUD
     Route::get('/', [FilmProductionController::class, 'index']);
     Route::post('/', [FilmProductionController::class, 'store']);
     Route::get('/{id}', [FilmProductionController::class, 'show']);
     Route::put('/{id}', [FilmProductionController::class, 'update']);
     Route::delete('/{id}', [FilmProductionController::class, 'destroy']);
-    
+
     // AI Script Generation
     Route::post('/{id}/generate/script', [FilmProductionController::class, 'generateScript']);
-    
+
     // Sequences
     Route::get('/{projectId}/sequences', [FilmProductionController::class, 'getSequences']);
     Route::post('/{projectId}/sequences', [FilmProductionController::class, 'createSequence']);
     Route::get('/{projectId}/sequences/{sequenceId}', [FilmProductionController::class, 'getSequence']);
     Route::put('/{projectId}/sequences/{sequenceId}', [FilmProductionController::class, 'updateSequence']);
     Route::delete('/{projectId}/sequences/{sequenceId}', [FilmProductionController::class, 'deleteSequence']);
-    
+
     // Shots
     Route::get('/{projectId}/sequences/{sequenceId}/shots', [FilmProductionController::class, 'getShots']);
     Route::post('/{projectId}/sequences/{sequenceId}/shots', [FilmProductionController::class, 'createShot']);
     Route::get('/{projectId}/sequences/{sequenceId}/shots/{shotId}', [FilmProductionController::class, 'getShot']);
     Route::put('/{projectId}/sequences/{sequenceId}/shots/{shotId}', [FilmProductionController::class, 'updateShot']);
     Route::delete('/{projectId}/sequences/{sequenceId}/shots/{shotId}', [FilmProductionController::class, 'deleteShot']);
-    
+
     // AI Scene Generation
     Route::post('/{projectId}/sequences/{sequenceId}/shots/{shotId}/generate/scene', [FilmProductionController::class, 'generateScene']);
 });

@@ -17,18 +17,12 @@ use App\Repositories\Sequence\SequenceRepositoryInterface;
 use App\Repositories\Shot\ShotRepositoryInterface;
 use App\Models\Sequence;
 use App\Models\Shot;
+use App\Models\FilmProduction;
 use App\Services\AI\LocalAIService;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
-/**
- * Film Project API Controller
- * 
- * Handles all film project-related API endpoints.
- * Namespace: /api/film-projects
- * 
- * @namespace App\Http\Controllers\Api\FilmProject
- */
-class FilmProjectController extends ApiController
+class FilmProductionController extends ApiController
 {
     private SequenceRepositoryInterface $sequenceRepository;
     private ShotRepositoryInterface $shotRepository;
@@ -49,7 +43,7 @@ class FilmProjectController extends ApiController
     {
         try {
             $productions = $action->execute()->getResponse();
-            return $this->successResponse($productions->toArray());
+            return $this->successPayload($productions->toArray());
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 500);
         }
@@ -59,7 +53,10 @@ class FilmProjectController extends ApiController
     {
         try {
             $production = $action->execute(new GetFilmProductionByIdRequest($id))->getResponse();
-            return $this->successResponse($production->toArray());
+            if ($production->user_id !== Auth::id()) {
+                return $this->errorResponse('Film project not found', 404);
+            }
+            return $this->successPayload($production->toArray());
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 404);
         }
@@ -77,7 +74,7 @@ class FilmProjectController extends ApiController
                 $request->input('metadata')
             ))->getResponse();
 
-            return $this->successResponse($production->toArray(), 201);
+            return $this->successPayload($production->toArray(), 201);
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 400);
         }
@@ -86,6 +83,10 @@ class FilmProjectController extends ApiController
     public function update(UpdateFilmProductionAction $action, Request $request, int $id): JsonResponse
     {
         try {
+            $ownershipResponse = $this->ensureOwnership($id);
+            if ($ownershipResponse) {
+                return $ownershipResponse;
+            }
             $production = $action->execute(new UpdateFilmProductionRequest(
                 $id,
                 $request->input('name'),
@@ -96,7 +97,7 @@ class FilmProjectController extends ApiController
                 $request->input('metadata')
             ))->getResponse();
 
-            return $this->successResponse($production->toArray());
+            return $this->successPayload($production->toArray());
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 400);
         }
@@ -105,6 +106,10 @@ class FilmProjectController extends ApiController
     public function destroy(DeleteFilmProductionAction $action, int $id): JsonResponse
     {
         try {
+            $ownershipResponse = $this->ensureOwnership($id);
+            if ($ownershipResponse) {
+                return $ownershipResponse;
+            }
             $action->execute(new DeleteFilmProductionRequest($id));
             return $this->emptyResponse(204);
         } catch (\Exception $e) {
@@ -116,8 +121,12 @@ class FilmProjectController extends ApiController
     public function getSequences(int $productionId): JsonResponse
     {
         try {
+            $ownershipResponse = $this->ensureOwnership($productionId);
+            if ($ownershipResponse) {
+                return $ownershipResponse;
+            }
             $sequences = $this->sequenceRepository->getAllByProductionId($productionId);
-            return $this->successResponse($sequences->toArray());
+            return $this->successPayload($sequences->toArray());
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 500);
         }
@@ -126,11 +135,15 @@ class FilmProjectController extends ApiController
     public function getSequence(int $productionId, int $sequenceId): JsonResponse
     {
         try {
+            $ownershipResponse = $this->ensureOwnership($productionId);
+            if ($ownershipResponse) {
+                return $ownershipResponse;
+            }
             $sequence = $this->sequenceRepository->getById($sequenceId);
             if (!$sequence || $sequence->film_production_id != $productionId) {
                 return $this->errorResponse('Sequence not found', 404);
             }
-            return $this->successResponse($sequence->toArray());
+            return $this->successPayload($sequence->toArray());
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 500);
         }
@@ -139,6 +152,10 @@ class FilmProjectController extends ApiController
     public function createSequence(Request $request, int $productionId): JsonResponse
     {
         try {
+            $ownershipResponse = $this->ensureOwnership($productionId);
+            if ($ownershipResponse) {
+                return $ownershipResponse;
+            }
             $sequence = new Sequence();
             $sequence->film_production_id = $productionId;
             $sequence->name = $request->input('name');
@@ -148,7 +165,7 @@ class FilmProjectController extends ApiController
             $sequence->metadata = $request->input('metadata');
 
             $this->sequenceRepository->save($sequence);
-            return $this->successResponse($sequence->toArray(), 201);
+            return $this->successPayload($sequence->toArray(), 201);
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 400);
         }
@@ -157,6 +174,10 @@ class FilmProjectController extends ApiController
     public function updateSequence(Request $request, int $productionId, int $sequenceId): JsonResponse
     {
         try {
+            $ownershipResponse = $this->ensureOwnership($productionId);
+            if ($ownershipResponse) {
+                return $ownershipResponse;
+            }
             $sequence = $this->sequenceRepository->getById($sequenceId);
             if (!$sequence || $sequence->film_production_id != $productionId) {
                 return $this->errorResponse('Sequence not found', 404);
@@ -169,7 +190,7 @@ class FilmProjectController extends ApiController
             if ($request->has('metadata')) $sequence->metadata = $request->input('metadata');
 
             $this->sequenceRepository->update($sequence);
-            return $this->successResponse($sequence->toArray());
+            return $this->successPayload($sequence->toArray());
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 400);
         }
@@ -178,6 +199,10 @@ class FilmProjectController extends ApiController
     public function deleteSequence(int $productionId, int $sequenceId): JsonResponse
     {
         try {
+            $ownershipResponse = $this->ensureOwnership($productionId);
+            if ($ownershipResponse) {
+                return $ownershipResponse;
+            }
             $sequence = $this->sequenceRepository->getById($sequenceId);
             if (!$sequence || $sequence->film_production_id != $productionId) {
                 return $this->errorResponse('Sequence not found', 404);
@@ -194,13 +219,17 @@ class FilmProjectController extends ApiController
     public function getShots(int $productionId, int $sequenceId): JsonResponse
     {
         try {
+            $ownershipResponse = $this->ensureOwnership($productionId);
+            if ($ownershipResponse) {
+                return $ownershipResponse;
+            }
             $sequence = $this->sequenceRepository->getById($sequenceId);
             if (!$sequence || $sequence->film_production_id != $productionId) {
                 return $this->errorResponse('Sequence not found', 404);
             }
 
             $shots = $this->shotRepository->getAllBySequenceId($sequenceId);
-            return $this->successResponse($shots->toArray());
+            return $this->successPayload($shots->toArray());
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 500);
         }
@@ -209,11 +238,15 @@ class FilmProjectController extends ApiController
     public function getShot(int $productionId, int $sequenceId, int $shotId): JsonResponse
     {
         try {
+            $ownershipResponse = $this->ensureOwnership($productionId);
+            if ($ownershipResponse) {
+                return $ownershipResponse;
+            }
             $shot = $this->shotRepository->getById($shotId);
             if (!$shot || $shot->film_production_id != $productionId || $shot->sequence_id != $sequenceId) {
                 return $this->errorResponse('Shot not found', 404);
             }
-            return $this->successResponse($shot->toArray());
+            return $this->successPayload($shot->toArray());
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 500);
         }
@@ -222,6 +255,10 @@ class FilmProjectController extends ApiController
     public function createShot(Request $request, int $productionId, int $sequenceId): JsonResponse
     {
         try {
+            $ownershipResponse = $this->ensureOwnership($productionId);
+            if ($ownershipResponse) {
+                return $ownershipResponse;
+            }
             $sequence = $this->sequenceRepository->getById($sequenceId);
             if (!$sequence || $sequence->film_production_id != $productionId) {
                 return $this->errorResponse('Sequence not found', 404);
@@ -238,7 +275,7 @@ class FilmProjectController extends ApiController
             $shot->metadata = $request->input('metadata');
 
             $this->shotRepository->save($shot);
-            return $this->successResponse($shot->toArray(), 201);
+            return $this->successPayload($shot->toArray(), 201);
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 400);
         }
@@ -247,6 +284,10 @@ class FilmProjectController extends ApiController
     public function updateShot(Request $request, int $productionId, int $sequenceId, int $shotId): JsonResponse
     {
         try {
+            $ownershipResponse = $this->ensureOwnership($productionId);
+            if ($ownershipResponse) {
+                return $ownershipResponse;
+            }
             $shot = $this->shotRepository->getById($shotId);
             if (!$shot || $shot->film_production_id != $productionId || $shot->sequence_id != $sequenceId) {
                 return $this->errorResponse('Shot not found', 404);
@@ -260,7 +301,7 @@ class FilmProjectController extends ApiController
             if ($request->has('metadata')) $shot->metadata = $request->input('metadata');
 
             $this->shotRepository->update($shot);
-            return $this->successResponse($shot->toArray());
+            return $this->successPayload($shot->toArray());
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 400);
         }
@@ -269,6 +310,10 @@ class FilmProjectController extends ApiController
     public function deleteShot(int $productionId, int $sequenceId, int $shotId): JsonResponse
     {
         try {
+            $ownershipResponse = $this->ensureOwnership($productionId);
+            if ($ownershipResponse) {
+                return $ownershipResponse;
+            }
             $shot = $this->shotRepository->getById($shotId);
             if (!$shot || $shot->film_production_id != $productionId || $shot->sequence_id != $sequenceId) {
                 return $this->errorResponse('Shot not found', 404);
@@ -286,7 +331,7 @@ class FilmProjectController extends ApiController
     {
         try {
             $models = $this->aiService->getAvailableModels();
-            return $this->successResponse([
+            return $this->successPayload([
                 'models' => $models,
                 'default_model' => config('services.local_ai.default_model', 'qwen-8b'),
             ]);
@@ -299,6 +344,10 @@ class FilmProjectController extends ApiController
     public function generateScript(Request $request, int $productionId): JsonResponse
     {
         try {
+            $ownershipResponse = $this->ensureOwnership($productionId);
+            if ($ownershipResponse) {
+                return $ownershipResponse;
+            }
             $prompt = $request->input('prompt');
             $options = $request->input('options', []);
 
@@ -324,7 +373,7 @@ class FilmProjectController extends ApiController
                 null
             ));
 
-            return $this->successResponse([
+            return $this->successPayload([
                 'script' => $script,
                 'production_id' => $productionId,
                 'model' => $options['model'] ?? config('services.local_ai.default_model', 'qwen-8b'),
@@ -338,6 +387,10 @@ class FilmProjectController extends ApiController
     public function generateScene(Request $request, int $productionId, int $sequenceId, int $shotId): JsonResponse
     {
         try {
+            $ownershipResponse = $this->ensureOwnership($productionId);
+            if ($ownershipResponse) {
+                return $ownershipResponse;
+            }
             $prompt = $request->input('prompt');
             $options = $request->input('options', []);
 
@@ -401,7 +454,7 @@ class FilmProjectController extends ApiController
             $shot->scene_data = $sceneData;
             $this->shotRepository->update($shot);
 
-            return $this->successResponse([
+            return $this->successPayload([
                 'scene_data' => $sceneData,
                 'shot_id' => $shotId,
             ]);
@@ -409,6 +462,21 @@ class FilmProjectController extends ApiController
             Log::error('Scene generation error: ' . $e->getMessage());
             return $this->errorResponse('Failed to generate scene: ' . $e->getMessage(), 500);
         }
+    }
+
+    private function successPayload(array $data, int $status = 200): JsonResponse
+    {
+        return $this->successResponse($data, $status);
+    }
+
+    private function ensureOwnership(int $productionId): ?JsonResponse
+    {
+        $production = FilmProduction::find($productionId);
+        if (! $production || $production->user_id !== Auth::id()) {
+            return $this->errorResponse('Film project not found', 404);
+        }
+
+        return null;
     }
 }
 

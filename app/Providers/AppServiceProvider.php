@@ -32,6 +32,12 @@ use App\Repositories\UserRating\UserRatingRepositoryInterface;
 use App\Repositories\FinanceOperation\FinanceOperationRepository;
 use App\Repositories\SupportRequest\SupportRequestRepositoryInterface;
 use App\Repositories\FinanceOperation\FinanceOperationRepositoryInterface;
+use App\Repositories\FilmProduction\FilmProductionRepository;
+use App\Repositories\FilmProduction\FilmProductionRepositoryInterface;
+use App\Repositories\Sequence\SequenceRepository;
+use App\Repositories\Sequence\SequenceRepositoryInterface;
+use App\Repositories\Shot\ShotRepository;
+use App\Repositories\Shot\ShotRepositoryInterface;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -47,7 +53,10 @@ class AppServiceProvider extends ServiceProvider
         SupportRequestRepositoryInterface::class => SupportRequestRepository::class,
         EmailTokenRepositoryInterface::class => EmailTokenRepository::class,
         OrderRepositoryInterface::class => OrderRepository::class,
-        SupportRequestMessageRepositoryInterface::class => SupportRequestMessageRepository::class
+        SupportRequestMessageRepositoryInterface::class => SupportRequestMessageRepository::class,
+        FilmProductionRepositoryInterface::class => FilmProductionRepository::class,
+        SequenceRepositoryInterface::class => SequenceRepository::class,
+        ShotRepositoryInterface::class => ShotRepository::class,
     ];
 
     /**

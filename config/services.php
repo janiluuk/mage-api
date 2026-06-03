@@ -99,4 +99,10 @@ return [
         ],
     ],
 
+    'local_ai' => [
+        'base_url' => env('LOCAL_AI_BASE_URL', 'http://localhost:1234'),
+        'default_model' => env('LOCAL_AI_DEFAULT_MODEL', 'qwen-8b'),
+        'timeout' => env('LOCAL_AI_TIMEOUT', 300),
+    ],
+
 ];
